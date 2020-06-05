@@ -36,7 +36,6 @@
 #include <QDBusConnectionInterface>
 #include <QDBusServiceWatcher>
 #include <QGuiApplication>
-
 #include <QDebug>
 
 #include "dbusmenuimporter.h"
@@ -64,9 +63,7 @@ protected:
 
 };
 
-AppMenuModel::AppMenuModel(QObject *parent)
-    : QAbstractListModel(parent),
-      m_serviceWatcher(new QDBusServiceWatcher(this))
+AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(new QDBusServiceWatcher(this))
 {
     if (!KWindowSystem::isPlatformX11()) {
         return;
@@ -201,10 +198,8 @@ void AppMenuModel::setWinId(const QVariant &id)
     emit winIdChanged();
 }
 
-int AppMenuModel::rowCount(const QModelIndex &parent) const
+int AppMenuModel::rowCount() const
 {
-    Q_UNUSED(parent);
-
     if (!m_menuAvailable || !m_menu) {
         return 0;
     }
@@ -214,8 +209,6 @@ int AppMenuModel::rowCount(const QModelIndex &parent) const
 
 void AppMenuModel::update()
 {
-    beginResetModel();
-    endResetModel();
     m_updatePending = false;
 }
 
@@ -305,15 +298,12 @@ void AppMenuModel::onActiveWindowChanged(WId id)
 
             //! hide when the windows or their transiet(s) do not have a menu
             if (filterByActive()) {
-
                 KWindowInfo transientInfo = KWindowInfo(info.transientFor(), NET::WMState | NET::WMWindowType | NET::WMGeometry, NET::WM2TransientFor);
-
                 while (transientInfo.win()) {
                     if (transientInfo.win() == m_currentWindowId) {
                         filterWindow(info);
                         return;
                     }
-
                     transientInfo = KWindowInfo(transientInfo.transientFor(), NET::WMState | NET::WMWindowType | NET::WMGeometry, NET::WM2TransientFor);
                 }
             }
@@ -321,7 +311,6 @@ void AppMenuModel::onActiveWindowChanged(WId id)
             if (filterByActive()) {
                 setVisible(false);
             }
-
             return;
         }
 
@@ -396,35 +385,9 @@ void AppMenuModel::filterWindow(KWindowInfo &info)
     }
 }
 
-QHash<int, QByteArray> AppMenuModel::roleNames() const
+QMenu *AppMenuModel::menu() const
 {
-    QHash<int, QByteArray> roleNames;
-    roleNames[MenuRole] = QByteArrayLiteral("activeMenu");
-    roleNames[ActionRole] = QByteArrayLiteral("activeActions");
-    return roleNames;
-}
-
-QVariant AppMenuModel::data(const QModelIndex &index, int role) const
-{
-    const int row = index.row();
-
-    if (row < 0 || !m_menuAvailable || !m_menu) {
-        return QVariant();
-    }
-
-    const auto actions = m_menu->actions();
-
-    if (row >= actions.count()) {
-        return QVariant();
-    }
-
-    if (role == MenuRole) { // TODO this should be Qt::DisplayRole
-        return actions.at(row)->text();
-    } else if (role == ActionRole) {
-        return QVariant::fromValue((void *) actions.at(row));
-    }
-
-    return QVariant();
+    return m_menu.data();
 }
 
 void AppMenuModel::updateApplicationMenu(const QString &serviceName, const QString &menuObjectPath)
@@ -457,27 +420,27 @@ void AppMenuModel::updateApplicationMenu(const QString &serviceName, const QStri
         }
 
         //cache first layer of sub menus, which we'll be popping up
-        for (QAction *a : m_menu->actions()) {
+        // for (QAction *a : m_menu->actions()) {
 
-            // signal dataChanged when the action changes
-            connect(a, &QAction::changed, this, [this, a] {
-                if (m_menuAvailable && m_menu)
-                {
-                    const int actionIdx = m_menu->actions().indexOf(a);
+        //     // signal dataChanged when the action changes
+        //     connect(a, &QAction::changed, this, [this, a] {
+        //         if (m_menuAvailable && m_menu)
+        //         {
+        //             const int actionIdx = m_menu->actions().indexOf(a);
 
-                    if (actionIdx > -1) {
-                        const QModelIndex modelIdx = index(actionIdx, 0);
-                        emit dataChanged(modelIdx, modelIdx);
-                    }
-                }
-            });
+        //             if (actionIdx > -1) {
+        //                 const QModelIndex modelIdx = index(actionIdx, 0);
+        //                 emit dataChanged(modelIdx, modelIdx);
+        //             }
+        //         }
+        //     });
 
-            connect(a, &QAction::destroyed, this, &AppMenuModel::modelNeedsUpdate);
+        //     // connect(a, &QAction::destroyed, this, &AppMenuModel::modelNeedsUpdate);
 
-            if (a->menu()) {
-                m_importer->updateMenu(a->menu());
-            }
-        }
+        //     if (a->menu()) {
+        //         m_importer->updateMenu(a->menu());
+        //     }
+        // }
 
         setMenuAvailable(true);
         emit modelNeedsUpdate();

@@ -74,7 +74,7 @@ void MainPanelControl::insertItem(int index, DockItem *item)
             break;
         case DockItem::TrayPlugin:
             qDebug() << "Add tray plugin item";
-            addTrayAreaItem(index, item);
+            // addTrayAreaItem(index, item);
             break;
         case DockItem::Plugins:
             // todo

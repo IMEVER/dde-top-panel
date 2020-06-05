@@ -9,7 +9,7 @@
 #include <QBoxLayout>
 #include "item/traypluginitem.h"
 #include <com_deepin_dde_daemon_dock_entry.h>
-#include <controller/dockitemmanager.h>
+#include "../controller/dockitemmanager.h"
 #include "../widgets/ActiveWindowControlWidget.h"
 
 using DockEntryInter = com::deepin::dde::daemon::dock::Entry;

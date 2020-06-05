@@ -22,12 +22,12 @@
 #ifndef APPMENUMODEL_H
 #define APPMENUMODEL_H
 
-#include <QAbstractListModel>
 #include <QAbstractNativeEventFilter>
 #include <QStringList>
 #include <KWindowSystem>
 #include <QPointer>
 #include <QRect>
+#include <QVariant>
 
 class QMenu;
 class QAction;
@@ -35,7 +35,7 @@ class QModelIndex;
 class QDBusServiceWatcher;
 class KDBusMenuImporter;
 
-class AppMenuModel : public QAbstractListModel, public QAbstractNativeEventFilter
+class AppMenuModel : public QObject, public QAbstractNativeEventFilter
 {
     Q_OBJECT
 
@@ -52,15 +52,8 @@ public:
     explicit AppMenuModel(QObject *parent = nullptr);
     ~AppMenuModel() override;
 
-    enum AppMenuRole
-    {
-        MenuRole = Qt::UserRole + 1, // TODO this should be Qt::DisplayRole
-        ActionRole
-    };
-
-    QVariant data(const QModelIndex &index, int role) const override;
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    QHash<int, QByteArray> roleNames() const override;
+    QMenu *menu() const;
+    int rowCount() const;
 
     void updateApplicationMenu(const QString &serviceName, const QString &menuObjectPath);
 

@@ -13,7 +13,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
 {
     this->m_layout = new QHBoxLayout(this);
     this->m_layout->setSpacing(12);
-    this->m_layout->setContentsMargins(10, 5, 0, 5);
+    this->m_layout->setContentsMargins(10, 0, 0, 0);
     this->setLayout(this->m_layout);
 
     this->m_iconLabel = new QLabel(this);
@@ -47,11 +47,23 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->m_buttonLayout->addWidget(this->maxButton);
     this->m_layout->addWidget(this->m_buttonWidget);
 
-    this->m_menuWidget = new QWidget(this);
-    this->m_layout->addWidget(this->m_menuWidget);
-    this->m_menuLayout = new QHBoxLayout(this->m_menuWidget);
-    this->m_menuLayout->setContentsMargins(0, 0, 0, 0);
-    this->m_menuLayout->setSpacing(2);
+    QLabel *l1 = new QLabel("[", this);
+    this->m_layout->addWidget(l1);
+
+    this->menuBar = new QMenuBar(this);
+    this->menuBar->setContentsMargins(0, 0, 0, 0);
+    this->menuBar->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    this->menuBar->setFixedHeight(28);
+    // this->menuBar->adjustSize();
+    // this->menuBar->addMenu("Test")->addAction("Hello");
+
+    this->menuBar->setStyleSheet("font-size: 12px; line-height: 100%; color: black; background-color: rgba(0,0,0,0)");
+    
+    this->m_layout->addWidget(this->menuBar);
+
+    QLabel *l2 = new QLabel("]", this);
+    this->m_layout->addWidget(l2);
+
 
     this->m_appMenuModel = new AppMenuModel(this);
     connect(this->m_appMenuModel, &AppMenuModel::modelNeedsUpdate, this, &ActiveWindowControlWidget::updateMenu);
@@ -174,124 +186,24 @@ void ActiveWindowControlWidget::mouseDoubleClickEvent(QMouseEvent *event) {
 }
 
 void ActiveWindowControlWidget::updateMenu() {
-    this->m_menuWidget->hide();
-    for (auto m_label : this->buttonLabelList) {
-        this->m_menuLayout->removeWidget(m_label);
-        m_label->close();
-        delete m_label;
+    foreach (QAction *action, this->menuBar->actions())
+    {
+        this->menuBar->removeAction(action);
     }
-    this->buttonLabelList.clear();
-
-    QList<QString> existedMenu;  // tricks for twice menu of libreoffice
-    for (int r = 0; r < m_appMenuModel->rowCount(); ++r) {
-        QString menuStr = m_appMenuModel->data(m_appMenuModel->index(r, 0), AppMenuModel::MenuRole).toString();
-
-        if (existedMenu.contains(menuStr)) {
-            int index = existedMenu.indexOf(menuStr);
-            auto *m_label = this->buttonLabelList.at(index);
-            m_label->hide();
-        }
-
-        existedMenu.append(menuStr);
-        auto *m_label = new QClickableLabel(this->m_menuWidget);
-        m_label->setText(QString("  %1  ").arg(menuStr.remove('&')));
-        m_label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-        connect(m_label, &QClickableLabel::clicked, this, &ActiveWindowControlWidget::menuLabelClicked);
-        this->m_menuLayout->addWidget(m_label);
-        this->buttonLabelList.append(m_label);
-
-        if (menuStr.isEmpty()) {
-            m_label->hide();
-        }
-    }
-    this->m_menuWidget->show();
-
-    if (this->buttonLabelList.isEmpty()) {
+        
+    if (m_appMenuModel->rowCount() == 0 || m_appMenuModel->visible() == false)
+    {
         this->m_winTitleLabel->show();
-    } else {
+        this->menuBar->hide();
+    } 
+    else 
+    {
+        QMenu *menu = m_appMenuModel->menu();
         this->m_winTitleLabel->hide();
-    }
-}
-
-void ActiveWindowControlWidget::menuLabelClicked() {
-    QClickableLabel *label = dynamic_cast<QClickableLabel*>(sender());
-    int index = this->buttonLabelList.indexOf(label);
-    this->trigger(label, index);
-}
-
-QMenu *ActiveWindowControlWidget::createMenu(int idx) const {
-    QMenu *menu = nullptr;
-    QAction *action = nullptr;
-
-    const QModelIndex index = m_appMenuModel->index(idx, 0);
-    const QVariant data = m_appMenuModel->data(index, AppMenuModel::ActionRole);
-    action = (QAction *)data.value<void *>();
-    if (action) {
-        menu = action->menu();
-    }
-
-    return menu;
-}
-
-void ActiveWindowControlWidget::trigger(QWidget *ctx, int idx) {
-    QMenu *actionMenu = createMenu(idx);
-    if (actionMenu) {
-
-        //this is a workaround where Qt will fail to realise a mouse has been released
-        // this happens if a window which does not accept focus spawns a new window that takes focus and X grab
-        // whilst the mouse is depressed
-        // https://bugreports.qt.io/browse/QTBUG-59044
-        // this causes the next click to go missing
-
-        //by releasing manually we avoid that situation
-//        auto ungrabMouseHack = [ctx]() {
-//            if (ctx && ctx->window() && ctx->window()->mouseGrabberItem()) {
-//                // FIXME event forge thing enters press and hold move mode :/
-//                ctx->window()->mouseGrabberItem()->ungrabMouse();
-//            }
-//        };
-//
-//        QTimer::singleShot(0, ctx, ungrabMouseHack);
-        //end workaround
-
-//        const auto &geo = ctx->window()->screen()->availableVirtualGeometry();
-//
-//        QPoint pos = ctx->window()->mapToGlobal(ctx->mapToScene(QPointF()).toPoint());
-//        if (location() == Plasma::Types::TopEdge) {
-//            pos.setY(pos.y() + ctx->height());
-//        }
-
-        actionMenu->adjustSize();
-
-//        pos = QPoint(qBound(geo.x(), pos.x(), geo.x() + geo.width() - actionMenu->width()),
-//                     qBound(geo.y(), pos.y(), geo.y() + geo.height() - actionMenu->height()));
-
-//        if (view() == FullView) {
-//            actionMenu->installEventFilter(this);
-//        }
-
-        actionMenu->winId();//create window handle
-        actionMenu->windowHandle()->setTransientParent(this->windowHandle());
-        actionMenu->popup(this->m_menuWidget->mapToGlobal(ctx->geometry().bottomLeft()));
-
-//        if (view() == FullView) {
-//            // hide the old menu only after showing the new one to avoid brief flickering
-//            // in other windows as they briefly re-gain focus
-//            QMenu *oldMenu = m_currentMenu;
-//            m_currentMenu = actionMenu;
-//            if (oldMenu && oldMenu != actionMenu) {
-//                //! dont trigger initialization of index because there is a new menu created
-//                disconnect(oldMenu, &QMenu::aboutToHide, this, &AppMenuApplet::onMenuAboutToHide);
-//
-//                oldMenu->hide();
-//            }
-//        }
-
-//        setCurrentIndex(idx);
-
-        // FIXME TODO connect only once
-//        connect(actionMenu, &QMenu::aboutToHide, this, &AppMenuApplet::onMenuAboutToHide, Qt::UniqueConnection);
-        return;
+        this->menuBar->addActions(menu->actions());
+        this->menuBar->show();
+        qDebug()<<"menuBar is hidden: " << this->menuBar->isHidden() <<", action count: "<<menu->actions().count();
+        // qDebug()<<"action count: "<<menu->actions().count();
     }
 }
 
