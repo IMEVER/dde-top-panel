@@ -7,5 +7,6 @@
         <file alias="maximum.svg">resources/icons/maximum.svg</file>
         <file alias="minimum.svg">resources/icons/minimum.svg</file>
         <file alias="linux.svg">resources/icons/linux.svg</file>
+        <file alias="launcher.svg">resources/icons/deepin-launcher.svg</file>
     </qresource>
 </RCC>

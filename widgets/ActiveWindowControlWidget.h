@@ -10,10 +10,12 @@
 #include <QHBoxLayout>
 #include <QToolButton>
 #include <com_deepin_dde_daemon_dock.h>
+#include <com_deepin_wm.h>
 #include <QMenuBar>
 #include "../appmenu/appmenumodel.h"
 
 using DBusDock = com::deepin::dde::daemon::Dock;
+using DBusWM = com::deepin::wm;
 
 class ActiveWindowControlWidget : public QWidget {
 
@@ -41,7 +43,7 @@ private slots:
     void minButtonClicked();
     void closeButtonClicked();
     void updateMenu();
-    void windowChanged();
+    void windowChanged(WId, NET::Properties, NET::Properties2);
 
 private:
     QHBoxLayout *m_layout;
@@ -61,9 +63,21 @@ private:
     AppMenuModel *m_appMenuModel;
 
     DBusDock *m_appInter;
+    DBusWM  *m_wmInter;
+    bool mouseClicked;
+
+protected:
+    void mouseReleaseEvent(QMouseEvent *event) override;
+
+    void mouseMoveEvent(QMouseEvent *event) override;
+
+    void mousePressEvent(QMouseEvent *event) override;
+
+private:
 
     QPropertyAnimation *m_buttonShowAnimation;
     QPropertyAnimation *m_buttonHideAnimation;
+    QTimer *m_fixTimer;
 };
 
 

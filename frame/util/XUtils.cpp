@@ -46,21 +46,20 @@ QString XUtils::getWindowName(int winId) {
         return "";
     }
 
+    if (windowName == nullptr)
+        return "";
     QString result;
     char name[nameLen + 1];
     for (int i = 0; i < nameLen; ++i) {
         name[i] = windowName[i];
     }
     name[nameLen] = '\0';
-    free(windowName);
+    XFree(windowName);
     return QString(name);
 }
 
 bool XUtils::checkIfBadWindow(int winId) {
     openXdo();
-
-    unsigned char *value;
-    long n;
 
     Atom atom = XInternAtom(m_xdo->xdpy, "_NET_WM_NAME", false);
     Atom actualType;
@@ -70,6 +69,8 @@ bool XUtils::checkIfBadWindow(int winId) {
     unsigned char *prop;
 
     int status = XGetWindowProperty(m_xdo->xdpy, winId, atom, 0, (~0L), False, AnyPropertyType, &actualType, &actualFormat, &ntimes, &bytes_after, &prop);
+    XFree(prop);
+
     return status == BadWindow;
 }
 
@@ -85,7 +86,6 @@ int XUtils::getFocusWindowIdByX() {
     Window w;
     int revert_to;
     XGetInputFocus(m_display, &w, &revert_to);
-    std::cout << "==================> X: " << w << std::endl;
 }
 
 bool XUtils::checkIfWinMaximum(int winId) {
@@ -111,7 +111,7 @@ bool XUtils::checkIfWinMaximum(int winId) {
             vMaxFlag = true;
         }
     }
-    free(value);
+    XFree(value);
     return hMaxFlag && vMaxFlag;
 }
 
@@ -180,6 +180,7 @@ QPixmap XUtils::getWindowIconName(int winId) {
         }
     }
 
+    delete[] imgData;
     return QPixmap::fromImage(image);
 }
 

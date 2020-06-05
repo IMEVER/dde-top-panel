@@ -30,6 +30,8 @@ int main(int argc, char *argv[]) {
     app.setAttribute(Qt::AA_EnableHighDpiScaling, true);
     app.setAttribute(Qt::AA_UseHighDpiPixmaps, false);
 
+    qDebug()<<"Current system theme: "<<app.theme();
+
 //    MainWindow mw(qApp->primaryScreen());
 //    mw.loadPlugins();
 

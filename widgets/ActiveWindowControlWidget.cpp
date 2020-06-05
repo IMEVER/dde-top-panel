@@ -6,15 +6,33 @@
 #include <QWindow>
 #include "ActiveWindowControlWidget.h"
 #include "util/XUtils.h"
+#include <QMouseEvent>
+#include <NETWM>
+#include <QtX11Extras/QX11Info>
+#include <QProcess>
+
+#include "QClickableLabel.h"
 
 ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     : QWidget(parent)
     , m_appInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
+    , m_wmInter(new DBusWM("com.deepin.wm", "/com/deepin/wm", QDBusConnection::sessionBus(), this))
+    , mouseClicked(false)
 {
     this->m_layout = new QHBoxLayout(this);
     this->m_layout->setSpacing(12);
     this->m_layout->setContentsMargins(10, 0, 0, 0);
     this->setLayout(this->m_layout);
+
+    QClickableLabel *launchLabel = new QClickableLabel(this);
+    launchLabel->setStyleSheet("QLabel{background-color: rgba(0,0,0,0);}");
+    launchLabel->setPixmap(QPixmap(":/icons/launcher.svg"));
+    launchLabel->setFixedSize(22, 22);
+    launchLabel->setScaledContents(true);
+    connect(launchLabel, &QClickableLabel::clicked, this, [=](){
+        QProcess::startDetached("dde-launcher -s");
+    });
+    this->m_layout->addWidget(launchLabel);
 
     this->m_iconLabel = new QLabel(this);
     this->m_iconLabel->setFixedSize(22, 22);
@@ -34,17 +52,17 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->closeButton->setIconSize(QSize(buttonSize - 8, buttonSize - 8));
     this->m_buttonLayout->addWidget(this->closeButton);
 
-    this->minButton = new QToolButton(this->m_buttonWidget);
-    this->minButton->setFixedSize(buttonSize, buttonSize);
-    this->minButton->setIcon(QIcon(":/icons/minimum.svg"));
-    this->minButton->setIconSize(QSize(buttonSize - 8, buttonSize - 8));
-    this->m_buttonLayout->addWidget(this->minButton);
-
     this->maxButton = new QToolButton(this->m_buttonWidget);
     this->maxButton->setFixedSize(buttonSize, buttonSize);
     this->maxButton->setIcon(QIcon(":/icons/maximum.svg"));
     this->maxButton->setIconSize(QSize(buttonSize - 8, buttonSize - 8));
     this->m_buttonLayout->addWidget(this->maxButton);
+
+    this->minButton = new QToolButton(this->m_buttonWidget);
+    this->minButton->setFixedSize(buttonSize, buttonSize);
+    this->minButton->setIcon(QIcon(":/icons/minimum.svg"));
+    this->minButton->setIconSize(QSize(buttonSize - 8, buttonSize - 8));
+    this->m_buttonLayout->addWidget(this->minButton);
     this->m_layout->addWidget(this->m_buttonWidget);
 
     QLabel *l1 = new QLabel("[", this);
@@ -95,7 +113,17 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     connect(this->closeButton, &QToolButton::clicked, this, &ActiveWindowControlWidget::closeButtonClicked);
 
     // detect whether active window maximized signal
-    connect(KWindowSystem::self(), qOverload<WId>(&KWindowSystem::windowChanged), this, &ActiveWindowControlWidget::windowChanged);
+    connect(KWindowSystem::self(), qOverload<WId, NET::Properties, NET::Properties2>(&KWindowSystem::windowChanged), this, &ActiveWindowControlWidget::windowChanged);
+
+    this->m_fixTimer = new QTimer(this);
+    this->m_fixTimer->setSingleShot(true);
+    this->m_fixTimer->setInterval(100);
+    connect(this->m_fixTimer, &QTimer::timeout, this, &ActiveWindowControlWidget::activeWindowInfoChanged);
+    // some applications like Gtk based and electron based seems still holds the focus after clicking the close button for a little while
+    // Thus, we need to check the active window when some windows are closed.
+    // However, we will use the dock dbus signal instead of other X operations.
+    connect(this->m_appInter, &DBusDock::EntryRemoved, this->m_fixTimer, qOverload<>(&QTimer::start));
+    connect(this->m_appInter, &DBusDock::EntryAdded, this->m_fixTimer, qOverload<>(&QTimer::start));
 }
 
 void ActiveWindowControlWidget::activeWindowInfoChanged() {
@@ -131,6 +159,18 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
     if (!activeWinTitle.isEmpty()) {
         this->m_iconLabel->setPixmap(XUtils::getWindowIconName(this->currActiveWinId));
     }
+
+    // KWindowSystem will not update menu for desktop when focusing on the desktop
+    // It is not a good idea to do the filter here instead of the AppmenModel.
+    // However, it works, and works pretty well.
+    if (activeWinTitle == tr("桌面")) {
+        this->menuBar->hide();
+        this->m_winTitleLabel->show();
+    }
+
+    // some applications like KWrite will expose its global menu with an invalid dbus path
+    //   thus we need to recheck it again :(
+    this->m_appMenuModel->setWinId(this->currActiveWinId);
 }
 
 void ActiveWindowControlWidget::setButtonsVisible(bool visible) {
@@ -207,11 +247,42 @@ void ActiveWindowControlWidget::updateMenu() {
     }
 }
 
-void ActiveWindowControlWidget::windowChanged() {
+void ActiveWindowControlWidget::windowChanged(WId id, NET::Properties properties, NET::Properties2 properties2) {
     // we still don't know why active window is 0 when pressing alt in some applications like chrome.
     if (KWindowSystem::activeWindow() != this->currActiveWinId && KWindowSystem::activeWindow() != 0) {
         return;
     }
 
     this->setButtonsVisible(XUtils::checkIfWinMaximum(this->currActiveWinId));
+}
+
+void ActiveWindowControlWidget::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        QWidget *pressedWidget = childAt(event->pos());
+        if (pressedWidget == nullptr || pressedWidget == m_winTitleLabel) {
+            this->mouseClicked = !this->mouseClicked;
+        }
+    }
+    QWidget::mousePressEvent(event);
+}
+
+void ActiveWindowControlWidget::mouseReleaseEvent(QMouseEvent *event) {
+    this->mouseClicked = false;
+    QWidget::mouseReleaseEvent(event);
+}
+
+void ActiveWindowControlWidget::mouseMoveEvent(QMouseEvent *event) {
+    if (this->mouseClicked) {
+        if (XUtils::checkIfWinMaximum(this->currActiveWinId)) {
+            NETRootInfo ri(QX11Info::connection(), NET::WMMoveResize);
+            ri.moveResizeRequest(
+                    this->currActiveWinId,
+                    event->globalX() * this->devicePixelRatio(),
+                    (this->height() + event->globalY()) * this->devicePixelRatio(),
+                    NET::Move
+            );
+            this->mouseClicked = false;
+        }
+    }
+    QWidget::mouseMoveEvent(event);
 }

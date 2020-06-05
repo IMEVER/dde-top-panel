@@ -121,6 +121,7 @@ void PluginsItem::refershIcon()
 }
 
 void PluginsItem::onGSettingsChanged(const QString& key) {
+    return;
     if (key != "enable" || !m_gsettings) {
         return;
     }
