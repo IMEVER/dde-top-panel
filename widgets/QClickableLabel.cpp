@@ -4,6 +4,7 @@
 
 #include "QClickableLabel.h"
 #include <QDebug>
+#include <QMouseEvent>
 
 QClickableLabel::QClickableLabel(QWidget *parent)
     : QLabel(parent)
@@ -27,10 +28,22 @@ void QClickableLabel::leaveEvent(QEvent *event) {
 }
 
 void QClickableLabel::mousePressEvent(QMouseEvent *ev) {
+    if (ev->button() != Qt::LeftButton) {
+        return;
+    }
+
     Q_EMIT clicked();
     QLabel::mousePressEvent(ev);
 }
 
 void QClickableLabel::mouseReleaseEvent(QMouseEvent *ev) {
     QLabel::mouseReleaseEvent(ev);
+}
+
+void QClickableLabel::setDefaultFontColor(const QColor &defaultFontColor) {
+    this->defaultFontColor = defaultFontColor;
+    QPalette palette = this->palette();
+    palette.setColor(QPalette::WindowText, this->defaultFontColor);
+    this->setPalette(palette);
+    this->repaint();
 }

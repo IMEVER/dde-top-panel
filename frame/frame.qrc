@@ -8,5 +8,8 @@
         <file alias="minimum.svg">resources/icons/minimum.svg</file>
         <file alias="linux.svg">resources/icons/linux.svg</file>
         <file alias="launcher.svg">resources/icons/deepin-launcher.svg</file>
+        <file alias="reset.svg">resources/icons/reset.svg</file>
+        <file alias="config.svg">resources/icons/config.svg</file>
+        <file alias="doge.gif">resources/icons/doge.gif</file>
     </qresource>
 </RCC>
