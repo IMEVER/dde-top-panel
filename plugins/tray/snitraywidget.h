@@ -57,7 +57,7 @@ public:
     void sendClick(uint8_t mouseButton, int x, int y) Q_DECL_OVERRIDE;
     const QImage trayImage() Q_DECL_OVERRIDE;
 
-    bool isValid();
+    bool isValid() override;
     SNITrayWidget::ItemStatus status();
     SNITrayWidget::ItemCategory category();
 

@@ -34,7 +34,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     launchLabel->setFixedSize(22, 22);
     launchLabel->setScaledContents(true);
     connect(launchLabel, &QClickableLabel::clicked, this, [=](){
-        QProcess::startDetached("dde-launcher -s");
+        QProcess::startDetached("dde-launcher -p");
     });
     this->m_layout->addWidget(launchLabel);
 
@@ -69,23 +69,11 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->m_buttonLayout->addWidget(this->minButton);
     this->m_layout->addWidget(this->m_buttonWidget);
 
-    QLabel *l1 = new QLabel("[", this);
-    this->m_layout->addWidget(l1);
-
     this->menuBar = new QMenuBar(this);
-    this->menuBar->setContentsMargins(0, 0, 0, 0);
-    this->menuBar->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    this->menuBar->setFixedHeight(28);
-    // this->menuBar->adjustSize();
-    // this->menuBar->addMenu("Test")->addAction("Hello");
-
-    this->menuBar->setStyleSheet("font-size: 12px; line-height: 100%; color: black; background-color: rgba(0,0,0,0)");
-    
+    this->menuBar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    // this->menuBar->setFixedHeight(28);
+    this->menuBar->setStyleSheet("font-size: 14px; line-height: 100%; background-color: rgba(0,0,0,0)");    
     this->m_layout->addWidget(this->menuBar);
-
-    QLabel *l2 = new QLabel("]", this);
-    this->m_layout->addWidget(l2);
-
 
     this->m_appMenuModel = new AppMenuModel(this);
     connect(this->m_appMenuModel, &AppMenuModel::modelNeedsUpdate, this, &ActiveWindowControlWidget::updateMenu);
@@ -244,8 +232,8 @@ void ActiveWindowControlWidget::updateMenu() {
         this->m_winTitleLabel->hide();
         this->menuBar->addActions(menu->actions());
         this->menuBar->show();
-        qDebug()<<"menuBar is hidden: " << this->menuBar->isHidden() <<", action count: "<<menu->actions().count();
-        // qDebug()<<"action count: "<<menu->actions().count();
+        this->menuBar->adjustSize();
+        // qDebug()<<"menuBar is hidden: " << this->menuBar->isHidden() <<", action count: "<<menu->actions().count();
     }
 }
 
@@ -290,16 +278,9 @@ void ActiveWindowControlWidget::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void ActiveWindowControlWidget::applyCustomSettings(const CustomSettings& settings) {
-    // title
-    QPalette palette = this->m_winTitleLabel->palette();
-    palette.setColor(QPalette::WindowText, settings.getActiveFontColor());
-    this->m_winTitleLabel->setPalette(palette);
-    this->m_winTitleLabel->setFont(settings.getActiveFont());
-
     // buttons
     this->closeButton->setIcon(QIcon(settings.getActiveCloseIconPath()));
     this->maxButton->setIcon(QIcon(settings.getActiveUnmaximizedIconPath()));
     this->minButton->setIcon(QIcon(settings.getActiveMinimizedIconPath()));
-
     // todo: default app icon
 }
