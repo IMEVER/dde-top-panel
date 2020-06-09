@@ -29,9 +29,7 @@ public:
     inline const QRect primaryRawRect() const { return m_primaryRawRect; }
     inline const QSize windowSize() const { return m_mainWindowSize; }
 
-    const QRect windowRect(const Position position, const bool hide) const;
-
-    const int dockMargin() const;
+    const QRect windowRect() const;
 
     const QRect primaryRect() const;
 
@@ -60,9 +58,10 @@ private:
 private:
     DBusDock *m_dockInter;
     int m_dockWindowSize;
-    Position m_position;
+        Position m_position;
 
     DisplayMode m_displayMode;
+
     DBusDisplay *m_displayInter;
     QRect m_primaryRawRect;
     QMenu m_settingsMenu;

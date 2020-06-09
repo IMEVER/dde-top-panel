@@ -61,12 +61,6 @@ DockSettings::DockSettings(QWidget *parent)
     , m_menuVisible(true)
     , m_autoHide(true)
     , m_opacity(0.4)
-    , m_fashionModeAct(tr("Fashion Mode"), this)
-    , m_efficientModeAct(tr("Efficient Mode"), this)
-    , m_topPosAct(tr("Top"), this)
-    , m_bottomPosAct(tr("Bottom"), this)
-    , m_leftPosAct(tr("Left"), this)
-    , m_rightPosAct(tr("Right"), this)
     , m_keepShownAct(tr("Keep Shown"), this)
     , m_keepHiddenAct(tr("Keep Hidden"), this)
     , m_smartHideAct(tr("Smart Hide"), this)
@@ -81,18 +75,8 @@ DockSettings::DockSettings(QWidget *parent)
     m_screenRawHeight = m_displayInter->screenRawHeight();
     m_screenRawWidth = m_displayInter->screenRawWidth();
 
-    m_position = Dock::Position(m_dockInter->position());
-    m_position = Dock::Top;
-
-    m_displayMode = Dock::DisplayMode(m_dockInter->displayMode());
-    m_displayMode = Dock::Efficient;
-
     m_hideMode = Dock::HideMode(m_dockInter->hideMode());
     m_hideState = Dock::HideState(m_dockInter->hideState());
-    DockItem::setDockPosition(m_position);
-    qApp->setProperty(PROP_POSITION, QVariant::fromValue(m_position));
-    DockItem::setDockDisplayMode(m_displayMode);
-    qApp->setProperty(PROP_DISPLAY_MODE, QVariant::fromValue(m_displayMode));
 
     m_fashionModeAct.setCheckable(true);
     m_efficientModeAct.setCheckable(true);
@@ -141,14 +125,10 @@ DockSettings::DockSettings(QWidget *parent)
 
     connect(&m_settingsMenu, &QMenu::triggered, this, &DockSettings::menuActionClicked);
     connect(GSettingsByMenu(), &QGSettings::changed, this, &DockSettings::onGSettingsChanged);
-    connect(m_dockInter, &DBusDock::PositionChanged, this, &DockSettings::onPositionChanged);
-    connect(m_dockInter, &DBusDock::DisplayModeChanged, this, &DockSettings::onDisplayModeChanged);
     connect(m_dockInter, &DBusDock::HideModeChanged, this, &DockSettings::hideModeChanged, Qt::QueuedConnection);
     connect(m_dockInter, &DBusDock::HideStateChanged, this, &DockSettings::hideStateChanged);
     connect(m_dockInter, &DBusDock::ServiceRestarted, this, &DockSettings::resetFrontendGeometry);
     connect(m_dockInter, &DBusDock::OpacityChanged, this, &DockSettings::onOpacityChanged);
-    connect(m_dockInter, &DBusDock::WindowSizeEfficientChanged, this, &DockSettings::onWindowSizeChanged);
-    connect(m_dockInter, &DBusDock::WindowSizeFashionChanged, this, &DockSettings::onWindowSizeChanged);
 
     connect(m_itemManager, &DockItemManager::itemInserted, this, &DockSettings::dockItemCountChanged, Qt::QueuedConnection);
     connect(m_itemManager, &DockItemManager::itemRemoved, this, &DockSettings::dockItemCountChanged, Qt::QueuedConnection);
@@ -167,7 +147,6 @@ DockSettings::DockSettings(QWidget *parent)
     }
 
     calculateWindowConfig();
-    updateForbidPostions();
     resetFrontendGeometry();
 
     QTimer::singleShot(0, this, [ = ] {onOpacityChanged(m_dockInter->opacity());});
@@ -193,51 +172,25 @@ const QRect DockSettings::primaryRect() const
     return rect;
 }
 
-const int DockSettings::dockMargin() const
-{
-    if (m_displayMode == Dock::Efficient)
-        return 0;
-
-    return 10;
-}
-
 const QSize DockSettings::panelSize() const
 {
     return m_mainWindowSize;
 }
 
-const QRect DockSettings::windowRect(const Position position, const bool hide) const
+const QRect DockSettings::windowRect( const bool hide) const
 {
     QSize size = m_mainWindowSize;
     if (hide) {
-        switch (position) {
-        case Top:
-        case Bottom:    size.setHeight(2);      break;
-        case Left:
-        case Right:     size.setWidth(2);       break;
-        }
+        size.setHeight(2);
     }
 
     const QRect primaryRect = this->primaryRect();
     const int offsetX = (primaryRect.width() - size.width()) / 2;
     const int offsetY = (primaryRect.height() - size.height()) / 2;
-    int margin = hide ?  0 : this->dockMargin();
     QPoint p(0, 0);
-    switch (position) {
-    case Top:
-        p = QPoint(offsetX, margin);
-        break;
-    case Left:
-        p = QPoint(margin, offsetY);
-        break;
-    case Right:
-        p = QPoint(primaryRect.width() - size.width() - margin, offsetY);
-        break;
-    case Bottom:
-        p = QPoint(offsetX, primaryRect.height() - size.height() - margin);
-        break;
-    default: Q_UNREACHABLE();
-    }
+
+    p = QPoint(offsetX, 0);
+
 
     return QRect(primaryRect.topLeft() + p, size);
 }
@@ -283,16 +236,6 @@ void DockSettings::showDockSettingsMenu()
     for (auto act : actions)
         m_hideSubMenu->addAction(act);
 
-    m_fashionModeAct.setChecked(m_displayMode == Fashion);
-    m_efficientModeAct.setChecked(m_displayMode == Efficient);
-    m_topPosAct.setChecked(m_position == Top);
-    m_topPosAct.setEnabled(!m_forbidPositions.contains(Top));
-    m_bottomPosAct.setChecked(m_position == Bottom);
-    m_bottomPosAct.setEnabled(!m_forbidPositions.contains(Bottom));
-    m_leftPosAct.setChecked(m_position == Left);
-    m_leftPosAct.setEnabled(!m_forbidPositions.contains(Left));
-    m_rightPosAct.setChecked(m_position == Right);
-    m_rightPosAct.setEnabled(!m_forbidPositions.contains(Right));
     m_keepShownAct.setChecked(m_hideMode == KeepShowing);
     m_keepHiddenAct.setChecked(m_hideMode == KeepHidden);
     m_smartHideAct.setChecked(m_hideMode == SmartHide);
@@ -320,19 +263,6 @@ void DockSettings::menuActionClicked(QAction *action)
 {
     Q_ASSERT(action);
 
-    if (action == &m_fashionModeAct)
-        return m_dockInter->setDisplayMode(Fashion);
-    if (action == &m_efficientModeAct)
-        return m_dockInter->setDisplayMode(Efficient);
-
-    if (action == &m_topPosAct)
-        return m_dockInter->setPosition(Top);
-    if (action == &m_bottomPosAct)
-        return m_dockInter->setPosition(Bottom);
-    if (action == &m_leftPosAct)
-        return m_dockInter->setPosition(Left);
-    if (action == &m_rightPosAct)
-        return m_dockInter->setPosition(Right);
     if (action == &m_keepShownAct)
         return m_dockInter->setHideMode(KeepShowing);
     if (action == &m_keepHiddenAct)
@@ -362,40 +292,6 @@ void DockSettings::onGSettingsChanged(const QString &key)
         const bool isEnable = GSettingsByMenu()->keys().contains("enable") && GSettingsByMenu()->get("enable").toBool();
         m_menuVisible=isEnable && setting->get("enable").toBool();
     }
-}
-
-void DockSettings::onPositionChanged()
-{
-    const Position prevPos = m_position;
-    const Position nextPos = Dock::Position(m_dockInter->position());
-
-    if (prevPos == nextPos)
-        return;
-
-    emit positionChanged(prevPos, nextPos);
-
-    QTimer::singleShot(200, this, [this, nextPos] {
-        m_position = nextPos;
-        DockItem::setDockPosition(nextPos);
-        qApp->setProperty(PROP_POSITION, QVariant::fromValue(nextPos));
-
-        calculateWindowConfig();
-
-        m_itemManager->refershItemsIcon();
-    });
-}
-
-void DockSettings::onDisplayModeChanged()
-{
-//    qDebug() << Q_FUNC_INFO;
-    m_displayMode = Dock::DisplayMode(m_dockInter->displayMode());
-    DockItem::setDockDisplayMode(m_displayMode);
-    qApp->setProperty(PROP_DISPLAY_MODE, QVariant::fromValue(m_displayMode));
-
-    emit displayModeChanegd();
-    calculateWindowConfig();
-
-   //QTimer::singleShot(1, m_itemManager, &DockItemManager::sortPluginItems);
 }
 
 void DockSettings::hideModeChanged()
@@ -431,7 +327,6 @@ void DockSettings::primaryScreenChanged()
     m_screenRawHeight = m_displayInter->screenRawHeight();
     m_screenRawWidth = m_displayInter->screenRawWidth();
 
-    updateForbidPostions();
     emit dataChanged();
     calculateWindowConfig();
 
@@ -441,7 +336,7 @@ void DockSettings::primaryScreenChanged()
 
 void DockSettings::resetFrontendGeometry()
 {
-    const QRect r = windowRect(m_position);
+    const QRect r = windowRect();
     const qreal ratio = dockRatio();
     const QPoint p = rawXPosition(r.topLeft());
     const uint w = r.width() * ratio;
@@ -456,32 +351,13 @@ void DockSettings::updateFrontendGeometry()
     resetFrontendGeometry();
 }
 
-bool DockSettings::test(const Position pos, const QList<QRect> &otherScreens) const
+bool DockSettings::test(const QList<QRect> &otherScreens) const
 {
     QRect maxStrut(0, 0, m_screenRawWidth, m_screenRawHeight);
-    switch (pos) {
-    case Top:
         maxStrut.setBottom(m_primaryRawRect.top() - 1);
         maxStrut.setLeft(m_primaryRawRect.left());
         maxStrut.setRight(m_primaryRawRect.right());
-        break;
-    case Bottom:
-        maxStrut.setTop(m_primaryRawRect.bottom() + 1);
-        maxStrut.setLeft(m_primaryRawRect.left());
-        maxStrut.setRight(m_primaryRawRect.right());
-        break;
-    case Left:
-        maxStrut.setRight(m_primaryRawRect.left() - 1);
-        maxStrut.setTop(m_primaryRawRect.top());
-        maxStrut.setBottom(m_primaryRawRect.bottom());
-        break;
-    case Right:
-        maxStrut.setLeft(m_primaryRawRect.right() + 1);
-        maxStrut.setTop(m_primaryRawRect.top());
-        maxStrut.setBottom(m_primaryRawRect.bottom());
-        break;
-    default:;
-    }
+
 
     if (maxStrut.width() == 0 || maxStrut.height() == 0)
         return true;
@@ -493,39 +369,6 @@ bool DockSettings::test(const Position pos, const QList<QRect> &otherScreens) co
     return true;
 }
 
-void DockSettings::updateForbidPostions()
-{
-    qDebug() << Q_FUNC_INFO;
-
-    const auto &screens = qApp->screens();
-    if (screens.size() < 2)
-        return m_forbidPositions.clear();
-
-    QSet<Position> forbids;
-    QList<QRect> rawScreenRects;
-    for (auto *s : screens) {
-        qInfo() << s->name() << s->geometry();
-
-        if (s == qApp->primaryScreen())
-            continue;
-
-        const QRect &g = s->geometry();
-        rawScreenRects << QRect(g.topLeft(), g.size() * s->devicePixelRatio());
-    }
-
-    qInfo() << rawScreenRects << m_screenRawWidth << m_screenRawHeight;
-
-    if (!test(Top, rawScreenRects))
-        forbids << Top;
-    if (!test(Bottom, rawScreenRects))
-        forbids << Bottom;
-    if (!test(Left, rawScreenRects))
-        forbids << Left;
-    if (!test(Right, rawScreenRects))
-        forbids << Right;
-
-    m_forbidPositions = std::move(forbids);
-}
 
 void DockSettings::onOpacityChanged(const double value)
 {
@@ -543,55 +386,15 @@ void DockSettings::trayVisableCountChanged(const int &count)
 
 void DockSettings::calculateWindowConfig()
 {
-    if (m_displayMode == Dock::Efficient) {
         m_dockWindowSize = m_dockInter->windowSizeEfficient();
         if (m_dockWindowSize > WINDOW_MAX_SIZE || m_dockWindowSize < WINDOW_MIN_SIZE) {
             m_dockWindowSize = EffICIENT_DEFAULT_HEIGHT;
             m_dockInter->setWindowSize(EffICIENT_DEFAULT_HEIGHT);
         }
 
-        switch (m_position) {
-        case Top:
-        case Bottom:
             m_mainWindowSize.setHeight(m_dockWindowSize);
             m_mainWindowSize.setWidth(primaryRect().width());
-            break;
 
-        case Left:
-        case Right:
-            m_mainWindowSize.setHeight(primaryRect().height());
-            m_mainWindowSize.setWidth(m_dockWindowSize);
-            break;
-
-        default:
-            Q_ASSERT(false);
-        }
-    } else if (m_displayMode == Dock::Fashion) {
-        m_dockWindowSize = m_dockInter->windowSizeFashion();
-        if (m_dockWindowSize > WINDOW_MAX_SIZE || m_dockWindowSize < WINDOW_MIN_SIZE) {
-            m_dockWindowSize = FASHION_DEFAULT_HEIGHT;
-            m_dockInter->setWindowSize(FASHION_DEFAULT_HEIGHT);
-        }
-
-        switch (m_position) {
-        case Top:
-        case Bottom: {
-            m_mainWindowSize.setHeight(m_dockWindowSize);
-            m_mainWindowSize.setWidth(this->primaryRect().width() - MAINWINDOW_MARGIN * 2);
-            break;
-        }
-        case Left:
-        case Right: {
-            m_mainWindowSize.setHeight(this->primaryRect().height() - MAINWINDOW_MARGIN * 2);
-            m_mainWindowSize.setWidth(m_dockWindowSize);
-            break;
-        }
-        default:
-            Q_ASSERT(false);
-        }
-    } else {
-        Q_ASSERT(false);
-    }
 
     resetFrontendGeometry();
 }
@@ -627,8 +430,6 @@ void DockSettings::checkService()
             if (name == serverName && !newOwner.isEmpty()) {
 
                 m_dockInter = new DBusDock(serverName, "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this);
-                onPositionChanged();
-                onDisplayModeChanged();
                 hideModeChanged();
                 hideStateChanged();
                 onOpacityChanged(m_dockInter->opacity());

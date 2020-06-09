@@ -112,24 +112,8 @@ void TopPanelSettings::menuActionClicked(QAction *action)
 
 void TopPanelSettings::calculateWindowConfig()
 {
-    if (m_displayMode == Dock::Efficient) {
-        if (m_dockWindowSize > WINDOW_MAX_SIZE || m_dockWindowSize < WINDOW_MIN_SIZE) {
-            m_dockWindowSize = EffICIENT_DEFAULT_HEIGHT;
-        }
-
-        m_mainWindowSize.setHeight(m_dockWindowSize);
-
-        int dockWidth = 0;
-        if (!this->m_dockInter->hideMode()
-            && this->m_screen == qApp->primaryScreen()
-            && (this->m_dockInter->position() == Left || this->m_dockInter->position() == Right)) {
-            dockWidth = this->m_dockInter->frontendWindowRect().operator QRect().width() / qApp->primaryScreen()->devicePixelRatio();
-        }
-        m_mainWindowSize.setWidth(primaryRect().width() - dockWidth);
-    } else {
-        Q_ASSERT(false);
-    }
-
+    m_mainWindowSize.setHeight(32);
+    m_mainWindowSize.setWidth(primaryRect().width());
     resetFrontendGeometry();
 }
 
@@ -146,7 +130,7 @@ const QRect TopPanelSettings::primaryRect() const
 
 void TopPanelSettings::resetFrontendGeometry()
 {
-    const QRect r = this->windowRect(m_position, false);
+    const QRect r = this->windowRect();
     const qreal ratio = dockRatio();
     const QPoint p = rawXPosition(r.topLeft());
     const uint w = r.width() * ratio;
@@ -155,50 +139,21 @@ void TopPanelSettings::resetFrontendGeometry()
     m_frontendRect = QRect(p.x(), p.y(), w, h);
 }
 
-const QRect TopPanelSettings::windowRect(const Position position, const bool hide) const
+const QRect TopPanelSettings::windowRect() const
 {
     QSize size = m_mainWindowSize;
-    if (hide) {
-        switch (position) {
-            case Top:
-            case Bottom:    size.setHeight(2);      break;
-            case Left:
-            case Right:     size.setWidth(2);       break;
-        }
-    }
 
     const QRect primaryRect = this->primaryRect();
     const int offsetX = (primaryRect.width() - size.width());
     const int offsetY = (primaryRect.height() - size.height());
-    int margin = hide ?  0 : this->dockMargin();
-    QPoint p(0, 0);
-    switch (position) {
-        case Top:
-            p = QPoint(offsetX, margin);
-            break;
-        case Left:
-            p = QPoint(margin, offsetY);
-            break;
-        case Right:
-            p = QPoint(primaryRect.width() - size.width() - margin, offsetY);
-            break;
-        case Bottom:
-            p = QPoint(offsetX, primaryRect.height() - size.height() - margin);
-            break;
-        default: Q_UNREACHABLE();
-    }
+    QPoint p = QPoint(offsetX, 0);
 
     return QRect(primaryRect.topLeft() + p, size);
-}
-
-const int TopPanelSettings::dockMargin() const
-{
-    return 0;
 }
 
 qreal TopPanelSettings::dockRatio() const
 {
     QScreen const *screen = Utils::screenAtByScaled(m_frontendRect.center());
-
+    
     return screen ? screen->devicePixelRatio() : qApp->devicePixelRatio();
 }

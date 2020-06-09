@@ -41,8 +41,7 @@ private slots:
     void onDbusNameOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner);
 
 private:
-    void mousePressEvent(QMouseEvent *e);
-    void resizeMainPanelWindow();
+    void mousePressEvent(QMouseEvent *e) override;
     void clearStrutPartial();
     void setStrutPartial();
     void initConnections();
@@ -54,7 +53,6 @@ private:
     MainPanelControl *m_mainPanel;
     TopPanelSettings *m_settings;
     XcbMisc *m_xcbMisc;
-    Position m_curDockPos;
     DPlatformWindowHandle m_platformWindowHandle;
     QVBoxLayout *m_layout;
     QDBusConnectionInterface *m_dbusDaemonInterface;

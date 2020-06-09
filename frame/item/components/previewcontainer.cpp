@@ -98,10 +98,8 @@ void PreviewContainer::updateSnapshots()
 
 void PreviewContainer::updateLayoutDirection(const Dock::Position dockPos)
 {
-    if (m_wmHelper->hasComposite() && (dockPos == Dock::Top || dockPos == Dock::Bottom))
+    if (m_wmHelper->hasComposite())
         m_windowListLayout->setDirection(QBoxLayout::LeftToRight);
-    else
-        m_windowListLayout->setDirection(QBoxLayout::TopToBottom);
 
     adjustSize();
 }

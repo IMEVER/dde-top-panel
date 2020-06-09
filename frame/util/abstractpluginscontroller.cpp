@@ -278,13 +278,5 @@ bool AbstractPluginsController::eventFilter(QObject *o, QEvent *e)
     if (e->type() != QEvent::DynamicPropertyChange)
         return false;
 
-    QDynamicPropertyChangeEvent *const dpce = static_cast<QDynamicPropertyChangeEvent *>(e);
-    const QString propertyName = dpce->propertyName();
-
-    if (propertyName == PROP_POSITION)
-        positionChanged();
-    else if (propertyName == PROP_DISPLAY_MODE)
-        displayModeChanged();
-
     return false;
 }

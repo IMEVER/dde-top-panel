@@ -297,12 +297,7 @@ void DockItem::showPopupWindow(QWidget *const content, const bool model)
     if (lastContent)
         lastContent->setVisible(false);
 
-    switch (DockPosition) {
-    case Top:   popup->setArrowDirection(DockPopupWindow::ArrowTop);     break;
-    case Bottom: popup->setArrowDirection(DockPopupWindow::ArrowBottom);  break;
-    case Left:  popup->setArrowDirection(DockPopupWindow::ArrowLeft);    break;
-    case Right: popup->setArrowDirection(DockPopupWindow::ArrowRight);   break;
-    }
+    popup->setArrowDirection(DockPopupWindow::ArrowTop);
     popup->resize(content->sizeHint());
     popup->setContent(content);
 
@@ -374,40 +369,13 @@ const QPoint DockItem::popupMarkPoint()
         }
     }
     const QRect r = rect();
-    switch (DockPosition) {
-    case Top: {
+
         if (itemType() == Plugins) {
             p += QPoint(r.width() / 2, r.height() + margin);
         } else {
             p += QPoint(r.width() / 2, r.height());
         }
-        break;
-    }
-    case Bottom: {
-        if (itemType() == Plugins) {
-            p += QPoint(r.width() / 2, 0 - margin);
-        } else {
-            p += QPoint(r.width() / 2, 0);
-        }
-        break;
-    }
-    case Left: {
-        if (itemType() == Plugins) {
-            p += QPoint(r.width() + margin, r.height() / 2);
-        } else {
-            p += QPoint(r.width(), r.height() / 2);
-        }
-        break;
-    }
-    case Right: {
-        if (itemType() == Plugins) {
-            p += QPoint(0 - margin, r.height() / 2);
-        } else {
-            p += QPoint(0, r.height() / 2);
-        }
-        break;
-        }
-    }
+
     return p;
 }
 

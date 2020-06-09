@@ -31,26 +31,22 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     this->setLayout(this->m_layout);
     this->m_layout->addWidget(m_mainPanel);
     this->setFixedHeight(32);
+    this->setFixedWidth(screen->size().width());
     this->m_layout->setContentsMargins(0, 0, 0, 0);
     this->m_layout->setSpacing(0);
     this->m_layout->setMargin(0);
 
     m_settings = new TopPanelSettings(m_itemManager, screen, this);
     m_xcbMisc->set_window_type(winId(), XcbMisc::Dock);
-    m_mainPanel->setDisplayMode(m_settings->displayMode());
-    m_mainPanel->move(0, 0);
 
     this->initSNIHost();
     this->initConnections();
-    this->resizeMainPanelWindow();
 
     for (auto item : m_itemManager->itemList())
         m_mainPanel->insertItem(-1, item);
 
-    m_curDockPos = m_settings->position();
     setStrutPartial();
 
-//    this->windowHandle()->setScreen(screen);
     this->move(m_settings->m_frontendRect.topLeft() / m_settings->m_screen->devicePixelRatio());
 
     setVisible(true);
@@ -64,27 +60,6 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     m_platformWindowHandle.setBorderWidth(1);
 
     this->applyCustomSettings(*CustomSettings::instance());
-}
-
-void MainWindow::resizeMainPanelWindow()
-{
-    m_settings->calculateWindowConfig();
-    m_mainPanel->setFixedSize(m_settings->m_mainWindowSize);
-//    switch (m_curDockPos) {
-//        case Dock::Top:
-//            m_dragWidget->setGeometry(0, height() - DRAG_AREA_SIZE, width(), DRAG_AREA_SIZE);
-//            break;
-//        case Dock::Bottom:
-//            m_dragWidget->setGeometry(0, 0, width(), DRAG_AREA_SIZE);
-//            break;
-//        case Dock::Left:
-//            m_dragWidget->setGeometry(width() - DRAG_AREA_SIZE, 0, DRAG_AREA_SIZE, height());
-//            break;
-//        case Dock::Right:
-//            m_dragWidget->setGeometry(0, 0, DRAG_AREA_SIZE, height());
-//            break;
-//        default: break;
-//    }
 }
 
 MainWindow::~MainWindow() {
@@ -111,14 +86,10 @@ void MainWindow::setStrutPartial()
     // first, clear old strut partial
     clearStrutPartial();
 
-    // reset env
-    //resetPanelEnvironment(true);
-
     const auto ratio = devicePixelRatioF();
     const int maxScreenHeight = m_settings->screenRawHeight();
     const int maxScreenWidth = m_settings->screenRawWidth();
-    const Position side = m_curDockPos;
-    const QPoint &p = rawXPosition(m_settings->windowRect(Top, false).topLeft());
+    const QPoint &p = rawXPosition(m_settings->windowRect().topLeft());
     const QSize &s = m_settings->windowSize();
     const QRect &primaryRawRect = m_settings->primaryRawRect();
 
@@ -129,48 +100,16 @@ void MainWindow::setStrutPartial()
     uint strutEnd = 0;
 
     QRect strutArea(0, 0, maxScreenWidth, maxScreenHeight);
-    switch (side) {
-        case Position::Top:
-            orientation = XcbMisc::OrientationTop;
-            strut = p.y() + s.height() * ratio;
-            strutTop = p.y();
-            strutStart = p.x();
-            strutEnd = qMin(qRound(p.x() + s.width() * ratio), primaryRawRect.right());
-            strutArea.setTop(strutTop);
-            strutArea.setLeft(strutStart);
-            strutArea.setRight(strutEnd);
-            strutArea.setBottom(strut);
-            break;
-        case Position::Bottom:
-            orientation = XcbMisc::OrientationBottom;
-            strut = maxScreenHeight - p.y();
-            strutStart = p.x();
-            strutEnd = qMin(qRound(p.x() + s.width() * ratio), primaryRawRect.right());
-            strutArea.setLeft(strutStart);
-            strutArea.setRight(strutEnd);
-            strutArea.setTop(p.y());
-            break;
-        case Position::Left:
-            orientation = XcbMisc::OrientationLeft;
-            strut = p.x() + s.width() * ratio;
-            strutStart = p.y();
-            strutEnd = qMin(qRound(p.y() + s.height() * ratio), primaryRawRect.bottom());
-            strutArea.setTop(strutStart);
-            strutArea.setBottom(strutEnd);
-            strutArea.setRight(strut);
-            break;
-        case Position::Right:
-            orientation = XcbMisc::OrientationRight;
-            strut = maxScreenWidth - p.x();
-            strutStart = p.y();
-            strutEnd = qMin(qRound(p.y() + s.height() * ratio), primaryRawRect.bottom());
-            strutArea.setTop(strutStart);
-            strutArea.setBottom(strutEnd);
-            strutArea.setLeft(p.x());
-            break;
-        default:
-            Q_ASSERT(false);
-    }
+
+    orientation = XcbMisc::OrientationTop;
+    strut = p.y() + s.height() * ratio;
+    strutTop = p.y();
+    strutStart = p.x();
+    strutEnd = qMin(qRound(p.x() + s.width() * ratio), primaryRawRect.right());
+    strutArea.setTop(strutTop);
+    strutArea.setLeft(strutStart);
+    strutArea.setRight(strutEnd);
+    strutArea.setBottom(strut);
 
     // pass if strut area is intersect with other screen
     int count = 0;
@@ -185,25 +124,19 @@ void MainWindow::setStrutPartial()
     }
     if (count > 0) {
         qWarning() << "strutArea is intersects with another screen.";
-        qWarning() << maxScreenHeight << maxScreenWidth << side << p << s;
+        qWarning() << maxScreenHeight << maxScreenWidth << p << s;
         return;
     }
-    m_xcbMisc->set_strut_partial(winId(), orientation, strut + m_settings->dockMargin() * ratio, strutStart, strutEnd);
+    m_xcbMisc->set_strut_partial(winId(), orientation, strut, strutStart, strutEnd);
 }
 
 void MainWindow::initConnections() {
-//    connect(m_settings, &DockSettings::windowHideModeChanged, this, &MainWindow::setStrutPartial, Qt::QueuedConnection);
     connect(m_itemManager, &DockItemManager::itemInserted, m_mainPanel, &MainPanelControl::insertItem, Qt::DirectConnection);
     connect(m_itemManager, &DockItemManager::itemUpdated, m_mainPanel, &MainPanelControl::itemUpdated, Qt::DirectConnection);
     connect(m_itemManager, &DockItemManager::itemRemoved, m_mainPanel, &MainPanelControl::removeItem, Qt::DirectConnection);
 
     connect(m_mainPanel, &MainPanelControl::itemMoved, DockItemManager::instance(), &DockItemManager::itemMoved, Qt::DirectConnection);
     connect(m_mainPanel, &MainPanelControl::itemAdded, DockItemManager::instance(), &DockItemManager::itemAdded, Qt::DirectConnection);
-
-    connect(this->m_dockInter, &DBusDock::PositionChanged, this, &MainWindow::resizeMainPanelWindow);
-    connect(this->m_dockInter, &DBusDock::DisplayModeChanged, this, &MainWindow::resizeMainPanelWindow);
-    connect(this->m_dockInter, &DBusDock::HideModeChanged, this, &MainWindow::resizeMainPanelWindow);
-    connect(this->m_dockInter, &DBusDock::WindowSizeChanged, this, &MainWindow::resizeMainPanelWindow);
 
     connect(m_dbusDaemonInterface, &QDBusConnectionInterface::serviceOwnerChanged, this, &MainWindow::onDbusNameOwnerChanged);
     connect(m_settings, &TopPanelSettings::settingActionClicked, this, &MainWindow::settingActionClicked);
@@ -228,7 +161,7 @@ void MainWindow::loadPlugins() {
 void MainWindow::moveToScreen(QScreen *screen) {
     m_settings->moveToScreen(screen);
     this->resize(m_settings->m_mainWindowSize);
-    m_mainPanel->resize(m_settings->m_mainWindowSize);
+    // m_mainPanel->resize(m_settings->m_mainWindowSize);
     m_mainPanel->adjustSize();
     QThread::msleep(100);  // sleep for a short while to make sure the movement is successful
     this->move(m_settings->m_frontendRect.topLeft() / m_settings->m_screen->devicePixelRatio());

@@ -212,29 +212,10 @@ void AppDragWidget::onRemoveAnimationStateChanged(QAbstractAnimation::State newS
 bool AppDragWidget::isRemoveAble()
 {
     const QPoint &p = QCursor::pos();
-    switch (m_dockPosition) {
-        case Dock::Position::Left:
-            if ((p.x() - m_dockGeometry.topRight().x()) > (m_dockGeometry.width() * 3)) {
-                return true;
-            }
-            break;
-        case Dock::Position::Top:
+
             if ((p.y() - m_dockGeometry.bottomLeft().y()) > (m_dockGeometry.height() * 3)) {
                 return true;
             }
-            break;
-        case Dock::Position::Right:
-            if ((m_dockGeometry.topLeft().x() - p.x()) > (m_dockGeometry.width() * 3)) {
-                return true;
-            }
-            break;
-        case Dock::Position::Bottom:
-            if ((m_dockGeometry.topLeft().y() - p.y()) > (m_dockGeometry.height() * 3)) {
-                return true;
-            }
-            break;
-        default:
-            break;
-    }
+
     return false;
 }

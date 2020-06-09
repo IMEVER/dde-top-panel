@@ -204,7 +204,7 @@ void AppItem::paintEvent(QPaintEvent *e)
     if (m_draging)
         return;
 
-    if (m_dragging || (m_swingEffectView != nullptr && DockDisplayMode != Fashion))
+    if (m_dragging || (m_swingEffectView != nullptr))
         return;
 
     QPainter painter(this);
@@ -215,7 +215,6 @@ void AppItem::paintEvent(QPaintEvent *e)
 
     const QRectF itemRect = rect();
 
-    if (DockDisplayMode == Efficient) {
         // draw background
         qreal min = qMin(itemRect.width(), itemRect.height());
         QRectF backgroundRect = QRectF(itemRect.x(), itemRect.y(), min, min);
@@ -233,53 +232,7 @@ void AppItem::paintEvent(QPaintEvent *e)
             else
                 painter.fillPath(path, QColor(0, 0, 0, 255 * 0.3));
         }
-    } else {
-        if (!m_windowInfos.isEmpty()) {
-            QPoint p;
-            QPixmap pixmap;
-            QPixmap activePixmap;
-            if (DGuiApplicationHelper::DarkType == m_themeType) {
-                m_horizontalIndicator = QPixmap(":/indicator/resources/indicator_dark.svg");
-                m_verticalIndicator = QPixmap(":/indicator/resources/indicator_dark_ver.svg");
-            } else {
-                m_horizontalIndicator = QPixmap(":/indicator/resources/indicator.svg");
-                m_verticalIndicator = QPixmap(":/indicator/resources/indicator_ver.svg");
-            }
-            m_activeHorizontalIndicator = QPixmap(":/indicator/resources/indicator_active.svg");
-            m_activeVerticalIndicator = QPixmap(":/indicator/resources/indicator_active_ver.svg");
-            switch (DockPosition) {
-            case Top:
-                pixmap = m_horizontalIndicator;
-                activePixmap = m_activeHorizontalIndicator;
-                p.setX((itemRect.width() - pixmap.width()) / 2);
-                p.setY(1);
-                break;
-            case Bottom:
-                pixmap = m_horizontalIndicator;
-                activePixmap = m_activeHorizontalIndicator;
-                p.setX((itemRect.width() - pixmap.width()) / 2);
-                p.setY(itemRect.height() - pixmap.height() - 1);
-                break;
-            case Left:
-                pixmap = m_verticalIndicator;
-                activePixmap = m_activeVerticalIndicator;
-                p.setX(1);
-                p.setY((itemRect.height() - pixmap.height()) / 2);
-                break;
-            case Right:
-                pixmap = m_verticalIndicator;
-                activePixmap = m_activeVerticalIndicator;
-                p.setX(itemRect.width() - pixmap.width() - 1);
-                p.setY((itemRect.height() - pixmap.height()) / 2);
-                break;
-            }
 
-            if (m_active)
-                painter.drawPixmap(p, activePixmap);
-            else
-                painter.drawPixmap(p, pixmap);
-        }
-    }
 
     if (m_swingEffectView != nullptr)
         return;
@@ -590,8 +543,6 @@ void AppItem::updateWindowInfos(const WindowInfoMap &info)
 
     // process attention effect
     if (hasAttention()) {
-        if (DockDisplayMode == DisplayMode::Fashion)
-            playSwingEffect();
     } else {
         stopSwingEffect();
     }
@@ -607,10 +558,8 @@ void AppItem::refershIcon()
     const QString icon = m_itemEntryInter->icon();
     const int iconSize = qMin(width(), height());
 
-    if (DockDisplayMode == Efficient)
         m_appIcon = ThemeAppIcon::getIcon(icon, iconSize * 0.7, devicePixelRatioF());
-    else
-        m_appIcon = ThemeAppIcon::getIcon(icon, iconSize * 0.8, devicePixelRatioF());
+ 
 
     if (m_appIcon.isNull()) {
         if (m_retryTimes < 5) {
@@ -701,10 +650,6 @@ void AppItem::stopSwingEffect()
 
 void AppItem::checkAttentionEffect()
 {
-    QTimer::singleShot(1000, this, [ = ] {
-        if (DockDisplayMode == DisplayMode::Fashion && hasAttention())
-            playSwingEffect();
-    });
 }
 
 void AppItem::onGSettingsChanged(const QString &key)

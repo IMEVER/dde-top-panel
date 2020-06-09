@@ -72,7 +72,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->menuBar = new QMenuBar(this);
     this->menuBar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     // this->menuBar->setFixedHeight(28);
-    this->menuBar->setStyleSheet("font-size: 14px; line-height: 100%; background-color: rgba(0,0,0,0)");    
+    // this->menuBar->setStyleSheet("font-size: 14px; line-height: 100%; background-color: rgba(0,0,0,0)");    
     this->m_layout->addWidget(this->menuBar);
 
     this->m_appMenuModel = new AppMenuModel(this);

@@ -25,12 +25,12 @@ public:
     // Tray area
     void addTrayAreaItem(int index, QWidget *wdg);
     void removeTrayAreaItem(QWidget *wdg);
-    void getTrayVisableItemCount();
     void addFixedAreaItem(int index, QWidget *wdg);
     void removePluginAreaItem(QWidget *wdg);
     void addPluginAreaItem(int index, QWidget *wdg);
+    void addFixedPluginAreaItem(int index, QWidget *wdg);
+    void removeFixedPluginAreaItem(QWidget *wdg);
 
-    void setDisplayMode(DisplayMode mode);
     void applyCustomSettings(const CustomSettings& customSettings);
 
 public slots:
@@ -45,15 +45,12 @@ signals:
 
 private:
     void init();
-    void resizeDockIcon();
 
 protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
-
     void dragLeaveEvent(QDragLeaveEvent *event) override;
-
     void dragEnterEvent(QDragEnterEvent *event) override;
 
 public:
@@ -64,7 +61,6 @@ private:
     void handleDragMove(QDragMoveEvent *e);
     DockItem *dropTargetItem(DockItem *sourceItem, QPoint point);
     void moveItem(DockItem *sourceItem, DockItem *targetItem);
-    void calcuDockIconSize(const int w, const int h, PluginsItem *trashPlugin, PluginsItem *shutdownPlugin, PluginsItem *keyboardPlugin);
 
 private:
     QBoxLayout *m_mainPanelLayout;
@@ -72,10 +68,9 @@ private:
     QBoxLayout *m_trayAreaLayout;
     QWidget *m_pluginAreaWidget;
     QBoxLayout *m_pluginLayout;
+    QWidget *m_fixedPluginWidget;
+    QHBoxLayout *m_fixedPluginLayout;
     DockItemManager *m_itemManager;
-    Position m_position;
-
-    int m_trayIconCount;
 
     TrayPluginItem *m_tray = nullptr;
     ActiveWindowControlWidget *activeWindowControlWidget;
