@@ -79,7 +79,7 @@ void MainPanelControl::insertItem(int index, DockItem *item)
         case DockItem::Launcher:        
         case DockItem::App:
         case DockItem::Placeholder:
-            qDebug() << "Abandon the plugin" << item->objectName() << "due to the unnecessary plugin type";
+//            qDebug() << "Abandon the plugin" << item->objectName() << "due to the unnecessary plugin type";
             break;
         case DockItem::TrayPlugin:
             addTrayAreaItem(index, item);
