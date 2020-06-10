@@ -113,6 +113,9 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     connect(this->m_appInter, &DBusDock::EntryAdded, this->m_fixTimer, qOverload<>(&QTimer::start));
 
     applyCustomSettings(*CustomSettings::instance());
+
+    connect(DGuiApplicationHelper::instance(), &DGuiApplicationHelper::themeTypeChanged, this, &ActiveWindowControlWidget::themeTypeChanged);
+    themeTypeChanged(DGuiApplicationHelper::instance()->themeType());
 }
 
 void ActiveWindowControlWidget::activeWindowInfoChanged() {
@@ -244,6 +247,23 @@ void ActiveWindowControlWidget::windowChanged(WId id, NET::Properties properties
     }
 
     this->setButtonsVisible(XUtils::checkIfWinMaximum(this->currActiveWinId));
+}
+
+void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorType themeType){
+    switch (themeType)
+    {
+        case DGuiApplicationHelper::LightType:
+            this->closeButton->setIcon(QIcon(":/icons/close.svg"));
+            this->maxButton->setIcon(QIcon(":/icons/maximum.svg"));
+            this->minButton->setIcon(QIcon(":/icons/minimum.svg"));
+            break;
+        case DGuiApplicationHelper::DarkType:
+            this->closeButton->setIcon(QIcon(":/icons/close-white.svg"));
+            this->maxButton->setIcon(QIcon(":/icons/maximum-white.svg"));
+            this->minButton->setIcon(QIcon(":/icons/minimum-white.svg"));
+        default:
+            break;
+    }
 }
 
 void ActiveWindowControlWidget::mousePressEvent(QMouseEvent *event) {

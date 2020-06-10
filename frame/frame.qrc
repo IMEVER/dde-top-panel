@@ -6,6 +6,11 @@
         <file alias="close.svg">resources/icons/close.svg</file>
         <file alias="maximum.svg">resources/icons/maximum.svg</file>
         <file alias="minimum.svg">resources/icons/minimum.svg</file>
+        
+        <file alias="close-white.svg">resources/icons/close-white.svg</file>
+        <file alias="maximum-white.svg">resources/icons/maximum-white.svg</file>
+        <file alias="minimum-white.svg">resources/icons/minimum-white.svg</file>
+
         <file alias="linux.svg">resources/icons/linux.svg</file>
         <file alias="launcher.svg">resources/icons/deepin-launcher.svg</file>
         <file alias="reset.svg">resources/icons/reset.svg</file>

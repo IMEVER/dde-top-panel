@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <QHBoxLayout>
 #include <QToolButton>
+#include <DGuiApplicationHelper>
 #include <com_deepin_dde_daemon_dock.h>
 #include <com_deepin_wm.h>
 #include <QMenuBar>
@@ -19,6 +20,7 @@
 
 using DBusDock = com::deepin::dde::daemon::Dock;
 using DBusWM = com::deepin::wm;
+using Dtk::Gui::DGuiApplicationHelper;
 
 class ActiveWindowControlWidget : public QWidget {
 
@@ -49,6 +51,7 @@ private slots:
     void closeButtonClicked();
     void updateMenu();
     void windowChanged(WId, NET::Properties, NET::Properties2);
+    void themeTypeChanged(DGuiApplicationHelper::ColorType themeType);
 
 private:
     QHBoxLayout *m_layout;
