@@ -30,13 +30,15 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
 
     this->setLayout(this->m_layout);
     this->m_layout->addWidget(m_mainPanel);
-    this->setFixedHeight(32);
-    this->setFixedWidth(screen->size().width());
+
     this->m_layout->setContentsMargins(0, 0, 0, 0);
     this->m_layout->setSpacing(0);
     this->m_layout->setMargin(0);
 
     m_settings = new TopPanelSettings(m_itemManager, screen, this);
+
+    this->setFixedSize(m_settings->m_mainWindowSize);
+
     m_xcbMisc->set_window_type(winId(), XcbMisc::Dock);
 
     this->initSNIHost();
@@ -47,7 +49,7 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
 
     setStrutPartial();
 
-    this->move(m_settings->m_frontendRect.topLeft() / m_settings->m_screen->devicePixelRatio());
+    this->move(m_settings->primaryRect().topLeft());
 
     setVisible(true);
     // platformwindowhandle only works when the widget is visible...
@@ -69,11 +71,7 @@ MainWindow::~MainWindow() {
 const QPoint rawXPosition(const QPoint &scaledPos)
 {
     QScreen const *screen = Utils::screenAtByScaled(scaledPos);
-
-    return screen ? screen->geometry().topLeft() +
-                    (scaledPos - screen->geometry().topLeft()) *
-                    screen->devicePixelRatio()
-                  : scaledPos;
+    return screen ? scaledPos * screen->devicePixelRatio() : scaledPos;
 }
 
 void MainWindow::clearStrutPartial()
@@ -93,7 +91,6 @@ void MainWindow::setStrutPartial()
     const QSize &s = m_settings->windowSize();
     const QRect &primaryRawRect = m_settings->primaryRawRect();
 
-    XcbMisc::Orientation orientation = XcbMisc::OrientationTop;
     uint strut = 0;
     uint strutTop = 0;
     uint strutStart = 0;
@@ -101,11 +98,10 @@ void MainWindow::setStrutPartial()
 
     QRect strutArea(0, 0, maxScreenWidth, maxScreenHeight);
 
-    orientation = XcbMisc::OrientationTop;
-    strut = p.y() + s.height() * ratio;
-    strutTop = p.y();
-    strutStart = p.x();
-    strutEnd = qMin(qRound(p.x() + s.width() * ratio), primaryRawRect.right());
+    strut = primaryRawRect.top() + s.height() * ratio;
+    strutTop = primaryRawRect.top();
+    strutStart = primaryRawRect.left();
+    strutEnd = primaryRawRect.right();
     strutArea.setTop(strutTop);
     strutArea.setLeft(strutStart);
     strutArea.setRight(strutEnd);
@@ -127,7 +123,7 @@ void MainWindow::setStrutPartial()
         qWarning() << maxScreenHeight << maxScreenWidth << p << s;
         return;
     }
-    m_xcbMisc->set_strut_partial(winId(), orientation, strut, strutStart, strutEnd);
+    m_xcbMisc->set_strut_partial(winId(), XcbMisc::OrientationTop, strut, strutStart, strutEnd);
 }
 
 void MainWindow::initConnections() {
@@ -164,12 +160,8 @@ void MainWindow::moveToScreen(QScreen *screen) {
     // m_mainPanel->resize(m_settings->m_mainWindowSize);
     m_mainPanel->adjustSize();
     QThread::msleep(100);  // sleep for a short while to make sure the movement is successful
-    this->move(m_settings->m_frontendRect.topLeft() / m_settings->m_screen->devicePixelRatio());
+    this->move(m_settings->primaryRect().topLeft());
     this->setStrutPartial();
-}
-
-void MainWindow::setRaidus(int radius) {
-    m_platformWindowHandle.setWindowRadius(radius);  // have no idea why it doesn't work :(
 }
 
 void MainWindow::adjustPanelSize() {
@@ -228,7 +220,6 @@ void TopPanelLauncher::rearrange() {
             mwMap[p_screen]->hide();
             mwMap[p_screen]->moveToScreen(p_screen);
             mwMap[p_screen]->show();
-            mwMap[p_screen]->setRaidus(0);
             continue;
         }
 
@@ -292,11 +283,9 @@ void TopPanelLauncher::primaryChanged() {
             mwMap.insert(currPrimaryScreen, pMw);
         }
         pMw->show();
-        pMw->setRaidus(0);
 
         if (ifRawPrimaryExists) {
             mwMap[primaryScreen]->show();
-            mwMap[primaryScreen]->setRaidus(0);
         } else {
             mwMap.remove(primaryScreen);
         }

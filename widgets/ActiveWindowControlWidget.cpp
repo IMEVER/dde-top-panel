@@ -29,6 +29,8 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->setLayout(this->m_layout);
 
     QClickableLabel *launchLabel = new QClickableLabel(this);
+    launchLabel->setToolTip("启动器");
+    launchLabel->setToolTipDuration(5000);
     launchLabel->setStyleSheet("QLabel{background-color: rgba(0,0,0,0);}");
     launchLabel->setPixmap(QPixmap(":/icons/launcher.svg"));
     launchLabel->setFixedSize(22, 22);
@@ -137,6 +139,7 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
 
     if (activeWinId != this->currActiveWinId) {
         this->currActiveWinId = activeWinId;
+        this->m_iconLabel->setPixmap(XUtils::getWindowIconName(this->currActiveWinId));
         // todo
     }
 
@@ -146,10 +149,7 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
     if (activeWinTitle != this->currActiveWinTitle) {
         this->currActiveWinTitle = activeWinTitle;
         this->m_winTitleLabel->setText(this->currActiveWinTitle);
-    }
-
-    if (!activeWinTitle.isEmpty()) {
-        this->m_iconLabel->setPixmap(XUtils::getWindowIconName(this->currActiveWinId));
+        this->m_iconLabel->setToolTip(activeWinTitle);
     }
 
     // KWindowSystem will not update menu for desktop when focusing on the desktop
@@ -158,6 +158,7 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
     if (activeWinTitle == tr("桌面")) {
         // hide buttons
         this->setButtonsVisible(false);
+        this->m_appMenuModel->setMenuAvailable(false);
         this->updateMenu();
     }
 
@@ -256,11 +257,13 @@ void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorTyp
             this->closeButton->setIcon(QIcon(":/icons/close.svg"));
             this->maxButton->setIcon(QIcon(":/icons/maximum.svg"));
             this->minButton->setIcon(QIcon(":/icons/minimum.svg"));
+            this->menuBar->setStyleSheet("QMenuBar {color: black; background-color: rgba(0,0,0,0); margin: 0 5 0 5;} ");
             break;
         case DGuiApplicationHelper::DarkType:
             this->closeButton->setIcon(QIcon(":/icons/close-white.svg"));
             this->maxButton->setIcon(QIcon(":/icons/maximum-white.svg"));
             this->minButton->setIcon(QIcon(":/icons/minimum-white.svg"));
+            this->menuBar->setStyleSheet("QMenuBar {color: white; background-color: rgba(0,0,0,0); margin: 0 5 0 5;} ");
         default:
             break;
     }

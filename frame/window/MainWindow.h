@@ -30,7 +30,6 @@ public:
 
     void loadPlugins();
     void moveToScreen(QScreen *screen);
-    void setRaidus(int radius);
     void adjustPanelSize();
     void applyCustomSettings(const CustomSettings& customSettings);
 signals:

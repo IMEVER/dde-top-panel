@@ -15,22 +15,23 @@ DCORE_USE_NAMESPACE
 DUTIL_USE_NAMESPACE
 #endif
 
-
 int main(int argc, char *argv[]) {
 
     DGuiApplicationHelper::setUseInactiveColorGroup(false);
     DApplication::loadDXcbPlugin();
     DApplication app(argc, argv);
 
-    app.setOrganizationName("septemberhx");
+    app.setOrganizationName("IMEVER");
     app.setApplicationName("dde-top-panel");
     app.setApplicationDisplayName("DDE Top Panel");
-    app.setApplicationVersion("0.4.0");
+    app.setApplicationVersion("1.0.0");
     app.loadTranslator();
     app.setAttribute(Qt::AA_EnableHighDpiScaling, true);
     app.setAttribute(Qt::AA_UseHighDpiPixmaps, false);
 
-    qDebug()<<"Current system theme: "<<app.theme();
+    DGuiApplicationHelper::ColorType themeType = DGuiApplicationHelper::instance()->themeType();
+
+    qDebug()<<"Current system theme: "<<(themeType == DGuiApplicationHelper::DarkType ? "dark" : (themeType == DGuiApplicationHelper::LightType ? "light" : "unknow"));
 
 //    MainWindow mw(qApp->primaryScreen());
 //    mw.loadPlugins();

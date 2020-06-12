@@ -19,8 +19,6 @@ TopPanelSettings::TopPanelSettings(DockItemManager *itemManager, QScreen *screen
         : QObject(parent)
         , m_dockInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
         , m_dockWindowSize(EffICIENT_DEFAULT_HEIGHT)
-        , m_position(Top)
-        , m_displayMode(Dock::Efficient)
         , m_displayInter(new DBusDisplay(this))
         , m_itemManager(itemManager)
         , m_screen(screen)
@@ -113,8 +111,7 @@ void TopPanelSettings::menuActionClicked(QAction *action)
 void TopPanelSettings::calculateWindowConfig()
 {
     m_mainWindowSize.setHeight(32);
-    m_mainWindowSize.setWidth(primaryRect().width());
-    resetFrontendGeometry();
+    m_mainWindowSize.setWidth(m_screenRawWidth / m_screen->devicePixelRatio());
 }
 
 const QRect TopPanelSettings::primaryRect() const
@@ -128,32 +125,12 @@ const QRect TopPanelSettings::primaryRect() const
     return rect;
 }
 
-void TopPanelSettings::resetFrontendGeometry()
-{
-    const QRect r = this->windowRect();
-    const qreal ratio = dockRatio();
-    const QPoint p = rawXPosition(r.topLeft());
-    const uint w = r.width() * ratio;
-    const uint h = r.height() * ratio;
-
-    m_frontendRect = QRect(p.x(), p.y(), w, h);
-}
-
 const QRect TopPanelSettings::windowRect() const
 {
-    QSize size = m_mainWindowSize;
-
-    const QRect primaryRect = this->primaryRect();
-    const int offsetX = (primaryRect.width() - size.width());
-    const int offsetY = (primaryRect.height() - size.height());
-    QPoint p = QPoint(offsetX, 0);
-
-    return QRect(primaryRect.topLeft() + p, size);
+    return QRect(primaryRect().topLeft(), m_mainWindowSize);
 }
 
 qreal TopPanelSettings::dockRatio() const
 {
-    QScreen const *screen = Utils::screenAtByScaled(m_frontendRect.center());
-    
-    return screen ? screen->devicePixelRatio() : qApp->devicePixelRatio();
+    return m_screen->devicePixelRatio();
 }
