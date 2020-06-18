@@ -10,10 +10,9 @@
 #include "../panel/MainPanelControl.h"
 #include "util/TopPanelSettings.h"
 #include "xcb/xcb_misc.h"
-#include "dbus/sni/statusnotifierwatcher_interface.h"
 #include "util/CustomSettings.h"
 #include "../widgets/mainsettingwidget.h"
-
+#include "../dbus/dbusdisplay.h"
 
 DWIDGET_USE_NAMESPACE
 
@@ -32,19 +31,20 @@ public:
     void moveToScreen(QScreen *screen);
     void adjustPanelSize();
     void applyCustomSettings(const CustomSettings& customSettings);
+    void showOverFullscreen();
+
 signals:
     void panelGeometryChanged();
     void settingActionClicked();
 
-private slots:
-    void onDbusNameOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner);
+protected:
+    bool event(QEvent *event) override;
 
 private:
     void mousePressEvent(QMouseEvent *e) override;
     void clearStrutPartial();
     void setStrutPartial();
     void initConnections();
-    void initSNIHost();
 
 private:
     DockItemManager *m_itemManager;
@@ -54,9 +54,7 @@ private:
     XcbMisc *m_xcbMisc;
     DPlatformWindowHandle m_platformWindowHandle;
     QVBoxLayout *m_layout;
-    QDBusConnectionInterface *m_dbusDaemonInterface;
-    org::kde::StatusNotifierWatcher *m_sniWatcher;
-    QString m_sniHostService;
+    Qt::WindowFlags oldFlags;
 };
 
 class TopPanelLauncher : public QObject {
@@ -74,7 +72,7 @@ private:
 
     QScreen *primaryScreen;
     DBusDisplay *m_display;
-    QMap<QScreen *, MainWindow *> mwMap;
+    QMap<QScreen *, MainWindow *> mwMap;    
     void rearrange();
 };
 

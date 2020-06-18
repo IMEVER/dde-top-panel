@@ -4,6 +4,7 @@
 
 #include "MainPanelControl.h"
 #include <QApplication>
+#include <QDrag>
 
 #define PLUGIN_MAX_SIZE  40
 
@@ -76,11 +77,6 @@ void MainPanelControl::insertItem(int index, DockItem *item)
     item->installEventFilter(this);
 
     switch (item->itemType()) {
-        case DockItem::Launcher:        
-        case DockItem::App:
-        case DockItem::Placeholder:
-//            qDebug() << "Abandon the plugin" << item->objectName() << "due to the unnecessary plugin type";
-            break;
         case DockItem::TrayPlugin:
             addTrayAreaItem(index, item);
             break;
@@ -98,10 +94,6 @@ void MainPanelControl::insertItem(int index, DockItem *item)
 void MainPanelControl::removeItem(DockItem *item)
 {
     switch (item->itemType()) {
-        case DockItem::Launcher:
-        case DockItem::App:
-        case DockItem::Placeholder:
-            break;
         case DockItem::TrayPlugin:
             removeTrayAreaItem(item);
             break;
@@ -284,7 +276,6 @@ void MainPanelControl::startDrag(DockItem *item) {
     drag->setMimeData(new QMimeData);
     drag->exec(Qt::MoveAction);
 
-    m_appDragWidget = nullptr;
     item->setDraging(false);
     item->update();
 }

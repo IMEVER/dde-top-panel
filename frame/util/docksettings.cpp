@@ -20,7 +20,6 @@
  */
 
 #include "docksettings.h"
-#include "item/appitem.h"
 #include "util/utils.h"
 
 #include <QDebug>
@@ -129,10 +128,6 @@ DockSettings::DockSettings(QWidget *parent)
     connect(m_dockInter, &DBusDock::HideStateChanged, this, &DockSettings::hideStateChanged);
     connect(m_dockInter, &DBusDock::ServiceRestarted, this, &DockSettings::resetFrontendGeometry);
     connect(m_dockInter, &DBusDock::OpacityChanged, this, &DockSettings::onOpacityChanged);
-
-    connect(m_itemManager, &DockItemManager::itemInserted, this, &DockSettings::dockItemCountChanged, Qt::QueuedConnection);
-    connect(m_itemManager, &DockItemManager::itemRemoved, this, &DockSettings::dockItemCountChanged, Qt::QueuedConnection);
-    connect(m_itemManager, &DockItemManager::trayVisableCountChanged, this, &DockSettings::trayVisableCountChanged, Qt::QueuedConnection);
 
     connect(m_displayInter, &DBusDisplay::PrimaryRectChanged, this, &DockSettings::primaryScreenChanged, Qt::QueuedConnection);
     connect(m_displayInter, &DBusDisplay::ScreenHeightChanged, this, &DockSettings::primaryScreenChanged, Qt::QueuedConnection);
@@ -315,11 +310,6 @@ void DockSettings::hideStateChanged()
     emit windowVisibleChanged();
 }
 
-void DockSettings::dockItemCountChanged()
-{
-    emit windowGeometryChanged();
-}
-
 void DockSettings::primaryScreenChanged()
 {
 //    qDebug() << Q_FUNC_INFO;
@@ -379,11 +369,6 @@ void DockSettings::onOpacityChanged(const double value)
     emit opacityChanged(value * 255);
 }
 
-void DockSettings::trayVisableCountChanged(const int &count)
-{
-    emit trayCountChanged();
-}
-
 void DockSettings::calculateWindowConfig()
 {
         m_dockWindowSize = m_dockInter->windowSizeEfficient();
@@ -415,7 +400,6 @@ qreal DockSettings::dockRatio() const
 void DockSettings::onWindowSizeChanged()
 {
     calculateWindowConfig();
-    emit windowGeometryChanged();
 }
 
 void DockSettings::checkService()

@@ -23,7 +23,6 @@
 #define DOCKSETTINGS_H
 
 #include "constants.h"
-#include "dbus/dbusmenumanager.h"
 #include "dbus/dbusdisplay.h"
 #include "controller/dockitemmanager.h"
 
@@ -78,7 +77,6 @@ signals:
     void autoHideChanged(const bool autoHide) const;
     void windowVisibleChanged() const;
     void windowHideModeChanged() const;
-    void windowGeometryChanged() const;
     void opacityChanged(const quint8 value) const;
     void trayCountChanged() const;
 
@@ -91,11 +89,9 @@ private slots:
     void onGSettingsChanged(const QString &key);
     void hideModeChanged();
     void hideStateChanged();
-    void dockItemCountChanged();
     void primaryScreenChanged();
     void resetFrontendGeometry();
     void onOpacityChanged(const double value);
-    void trayVisableCountChanged(const int &count);
     void onWindowSizeChanged();
     void onTrashGSettingsChanged(const QString &key);
 

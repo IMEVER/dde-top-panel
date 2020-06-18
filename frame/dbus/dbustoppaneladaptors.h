@@ -19,8 +19,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DBUSDOCKADAPTORS_H
-#define DBUSDOCKADAPTORS_H
+#ifndef DBUSTopPanelADAPTORS_H
+#define DBUSTopPanelADAPTORS_H
 
 #include <QtDBus/QtDBus>
 #include "window/MainWindow.h"
@@ -29,31 +29,24 @@ class MainWindow;
  * Adaptor class for interface com.deepin.dde.Dock
  */
 
-class DBusDockAdaptors: public QDBusAbstractAdaptor
+class DBusTopPanelAdaptors: public QDBusAbstractAdaptor
 {
     Q_OBJECT
-    Q_CLASSINFO("D-Bus Interface", "com.deepin.dde.Dock")
+    Q_CLASSINFO("D-Bus Interface", "com.deepin.dde.TopPanel")
     Q_CLASSINFO("D-Bus Introspection", ""
-                                       "  <interface name=\"com.deepin.dde.Dock\">\n"
-                                       "    <property access=\"read\" type=\"(iiii)\" name=\"geometry\"/>\n"
-                                       "    <signal name=\"geometryChanged\">"
-                                                "<arg name=\"geometry\" type=\"(iiii)\"/>"
-                                            "</signal>"
+                                       "  <interface name=\"com.deepin.dde.TopPanel\">\n"
+                                       "  <method name=\"ActivateWindow\"></method>\n"
                                        "  </interface>\n"
                                        "")
 
 public:
-    DBusDockAdaptors(MainWindow *parent);
-    virtual ~DBusDockAdaptors();
+    DBusTopPanelAdaptors(MainWindow *parent);
+    virtual ~DBusTopPanelAdaptors();
 
     MainWindow *parent() const;
 
-public: // PROPERTIES
-    Q_PROPERTY(QRect geometry READ geometry NOTIFY geometryChanged)
-    QRect geometry() const;
-
-signals:
-    void geometryChanged(QRect geometry);
+public Q_SLOTS: // PROPERTIES
+    void ActivateWindow();
 };
 
-#endif //DBUSDOCKADAPTORS
+#endif //DBUSTopPanelADAPTORS

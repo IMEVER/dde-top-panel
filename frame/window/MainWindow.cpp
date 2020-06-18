@@ -6,22 +6,20 @@
 #include "MainWindow.h"
 #include "controller/dockitemmanager.h"
 #include "util/utils.h"
-
-#define SNI_WATCHER_SERVICE "org.kde.StatusNotifierWatcher"
-#define SNI_WATCHER_PATH "/StatusNotifierWatcher"
+#include "../dbus/dbustoppaneladaptors.h"
+#include <QDBusConnection>
 
 MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     : DBlurEffectWidget(parent)
-    , m_itemManager(new DockItemManager(this, enableBlacklist))
+    , m_itemManager(new DockItemManager(this))
     , m_dockInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
     , m_mainPanel(new MainPanelControl(this))
     , m_xcbMisc(XcbMisc::instance())
     , m_platformWindowHandle(this, this)
     , m_layout(new QVBoxLayout(this))
-    , m_dbusDaemonInterface(QDBusConnection::sessionBus().interface())
-    , m_sniWatcher(new org::kde::StatusNotifierWatcher(SNI_WATCHER_SERVICE, SNI_WATCHER_PATH, QDBusConnection::sessionBus(), this))
 {
 //    setWindowFlag(Qt::WindowDoesNotAcceptFocus);
+    setWindowFlags(Qt::WindowStaysOnTopHint);
     setAccessibleName("dock-top-panel-mainwindow");
     m_mainPanel->setAccessibleName("dock-top-panel-mainpanel");
     setAttribute(Qt::WA_TranslucentBackground);
@@ -41,7 +39,6 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
 
     m_xcbMisc->set_window_type(winId(), XcbMisc::Dock);
 
-    this->initSNIHost();
     this->initConnections();
 
     for (auto item : m_itemManager->itemList())
@@ -52,6 +49,7 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     this->move(m_settings->primaryRect().topLeft());
 
     setVisible(true);
+    setRadius(0);
     // platformwindowhandle only works when the widget is visible...
     DPlatformWindowHandle::enableDXcbForWindow(this, true);
     m_platformWindowHandle.setEnableBlurWindow(true);
@@ -85,11 +83,11 @@ void MainWindow::setStrutPartial()
     clearStrutPartial();
 
     const auto ratio = devicePixelRatioF();
-    const int maxScreenHeight = m_settings->screenRawHeight();
-    const int maxScreenWidth = m_settings->screenRawWidth();
+    const QRect &primaryRawRect = m_settings->primaryRawRect();
+    const int maxScreenHeight = primaryRawRect.height();
+    const int maxScreenWidth = primaryRawRect.width();
     const QPoint &p = rawXPosition(m_settings->windowRect().topLeft());
     const QSize &s = m_settings->windowSize();
-    const QRect &primaryRawRect = m_settings->primaryRawRect();
 
     uint strut = 0;
     uint strutTop = 0;
@@ -132,9 +130,7 @@ void MainWindow::initConnections() {
     connect(m_itemManager, &DockItemManager::itemRemoved, m_mainPanel, &MainPanelControl::removeItem, Qt::DirectConnection);
 
     connect(m_mainPanel, &MainPanelControl::itemMoved, DockItemManager::instance(), &DockItemManager::itemMoved, Qt::DirectConnection);
-    connect(m_mainPanel, &MainPanelControl::itemAdded, DockItemManager::instance(), &DockItemManager::itemAdded, Qt::DirectConnection);
 
-    connect(m_dbusDaemonInterface, &QDBusConnectionInterface::serviceOwnerChanged, this, &MainWindow::onDbusNameOwnerChanged);
     connect(m_settings, &TopPanelSettings::settingActionClicked, this, &MainWindow::settingActionClicked);
     connect(CustomSettings::instance(), &CustomSettings::settingsChanged, this, [this]() {
         this->applyCustomSettings(*CustomSettings::instance());
@@ -157,7 +153,6 @@ void MainWindow::loadPlugins() {
 void MainWindow::moveToScreen(QScreen *screen) {
     m_settings->moveToScreen(screen);
     this->resize(m_settings->m_mainWindowSize);
-    // m_mainPanel->resize(m_settings->m_mainWindowSize);
     m_mainPanel->adjustSize();
     QThread::msleep(100);  // sleep for a short while to make sure the movement is successful
     this->move(m_settings->primaryRect().topLeft());
@@ -168,34 +163,34 @@ void MainWindow::adjustPanelSize() {
     this->m_mainPanel->adjustSize();
 }
 
-void MainWindow::onDbusNameOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner) {
-    Q_UNUSED(oldOwner)
-
-    if (name == SNI_WATCHER_SERVICE && !newOwner.isEmpty()) {
-        qDebug() << SNI_WATCHER_SERVICE << "SNI watcher daemon started, register dock to watcher as SNI Host";
-        m_sniWatcher->RegisterStatusNotifierHost(m_sniHostService);
-    }
-}
-
-void MainWindow::initSNIHost()
-{
-    // registor dock as SNI Host on dbus
-    QDBusConnection dbusConn = QDBusConnection::sessionBus();
-    m_sniHostService = QString("org.kde.StatusNotifierHost-") + QString::number(qApp->applicationPid());
-    dbusConn.registerService(m_sniHostService);
-    dbusConn.registerObject("/StatusNotifierHost", this);
-
-    if (m_sniWatcher->isValid()) {
-        m_sniWatcher->RegisterStatusNotifierHost(m_sniHostService);
-    } else {
-        qDebug() << SNI_WATCHER_SERVICE << "SNI watcher daemon is not exist for now!";
-    }
-}
-
 void MainWindow::applyCustomSettings(const CustomSettings &customSettings) {
     this->setMaskAlpha(customSettings.getPanelOpacity());
     this->setMaskColor(customSettings.getPanelBgColor());
     this->m_mainPanel->applyCustomSettings(customSettings);
+}
+
+void MainWindow::showOverFullscreen()
+{
+    if (!isVisible())
+    {
+        oldFlags = windowFlags();
+        setWindowFlag(Qt::X11BypassWindowManagerHint);
+        show();
+        activateWindow();
+        raise();
+    }
+}
+
+bool MainWindow::event(QEvent *event)
+{
+    if (event->type() == QEvent::WindowDeactivate)
+    {
+        setWindowFlags(oldFlags);
+        m_xcbMisc->set_window_type(winId(), XcbMisc::Dock);
+        setStrutPartial();
+        show();
+    }
+    return QWidget::event(event);
 }
 
 TopPanelLauncher::TopPanelLauncher()
@@ -203,7 +198,7 @@ TopPanelLauncher::TopPanelLauncher()
 {
     this->m_settingWidget = new MainSettingWidget();
     connect(m_display, &DBusDisplay::MonitorsChanged, this, &TopPanelLauncher::monitorsChanged);
-//    connect(m_display, &DBusDisplay::PrimaryChanged, this, &TopPanelLauncher::primaryChanged);
+    connect(m_display, &DBusDisplay::PrimaryChanged, this, &TopPanelLauncher::primaryChanged);
     this->rearrange();
 }
 
@@ -234,6 +229,11 @@ void TopPanelLauncher::rearrange() {
             mw->loadPlugins();
         }
         mwMap.insert(p_screen, mw);
+
+        new DBusTopPanelAdaptors (mw);
+        QDBusConnection::sessionBus().registerService("com.deepin.dde.TopPanel");
+        // QDBusConnection::sessionBus().registerObject("/com/deepin/dde/TopPanel", "com.deepin.dde.TopPanel", mw);
+        QDBusConnection::sessionBus().registerObject("/com/deepin/dde/TopPanel", mw);
     }
 
     for (auto screen : mwMap.keys()) {

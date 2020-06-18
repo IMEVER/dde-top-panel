@@ -20,7 +20,6 @@
  */
 
 #include "dockitemmanager.h"
-#include "item/appitem.h"
 #include "item/pluginsitem.h"
 #include "item/traypluginitem.h"
 #include "util/docksettings.h"
@@ -36,19 +35,11 @@ DockItemManager::DockItemManager(QObject *parent, bool enableBlacklist)
     , m_appInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
     , m_pluginsInter(new DockPluginsController(enableBlacklist, this))
 {
-    // 应用区域
-    for (auto entry : m_appInter->entries()) {
-        AppItem *it = new AppItem(entry);
-        manageItem(it);
 
-        connect(it, &AppItem::requestActivateWindow, m_appInter, &DBusDock::ActivateWindow, Qt::QueuedConnection);
-        connect(it, &AppItem::requestPreviewWindow, m_appInter, &DBusDock::PreviewWindow);
-        connect(it, &AppItem::requestCancelPreview, m_appInter, &DBusDock::CancelPreviewWindow);
-        connect(it, &AppItem::windowInfoChanged, this, &DockItemManager::windowInfoChanged);
-
-        m_itemList.append(it);
-    }
-
+        for (auto entry : m_appInter->entries()) 
+        {
+            reloadAppItems();
+        }
     // 托盘区域和插件区域 由DockPluginsController获取
 
     // 更新插件顺序
@@ -71,7 +62,6 @@ DockItemManager::DockItemManager(QObject *parent, bool enableBlacklist)
     QMetaObject::invokeMethod(this, "refershItemsIcon", Qt::QueuedConnection);
 }
 
-
 DockItemManager *DockItemManager::instance(QObject *parent)
 {
     if (!INSTANCE)
@@ -88,11 +78,6 @@ const QList<QPointer<DockItem>> DockItemManager::itemList() const
 const QList<PluginsItemInterface *> DockItemManager::pluginList() const
 {
     return m_pluginsInter->pluginsMap().keys();
-}
-
-bool DockItemManager::appIsOnDock(const QString &appDesktop) const
-{
-    return m_appInter->IsOnDock(appDesktop);
 }
 
 void DockItemManager::startLoadPlugins() const
@@ -137,11 +122,6 @@ void DockItemManager::itemMoved(DockItem *const sourceItem, DockItem *const targ
     const DockItem::ItemType moveType = sourceItem->itemType();
     const DockItem::ItemType replaceType = targetItem->itemType();
 
-    // app move
-    if (moveType == DockItem::App || moveType == DockItem::Placeholder)
-        if (replaceType != DockItem::App)
-            return;
-
     // plugins move
     if (moveType == DockItem::Plugins || moveType == DockItem::TrayPlugin)
         if (replaceType != DockItem::Plugins && replaceType != DockItem::TrayPlugin)
@@ -158,79 +138,37 @@ void DockItemManager::itemMoved(DockItem *const sourceItem, DockItem *const targ
             || moveType == DockItem::TrayPlugin || replaceType == DockItem::TrayPlugin
             || moveType == DockItem::FixedPlugin || replaceType == DockItem::FixedPlugin)
         m_updatePluginsOrderTimer->start();
-
-    // for app move, index 0 is launcher item, need to pass it.
-    if (moveType == DockItem::App && replaceType == DockItem::App)
-        m_appInter->MoveEntry(moveIndex - 1, replaceIndex - 1);
 }
 
 void DockItemManager::itemAdded(const QString &appDesktop, int idx)
 {
-    m_appInter->RequestDock(appDesktop, idx);
+    // m_appInter->RequestDock(appDesktop, idx);
 }
 
 void DockItemManager::appItemAdded(const QDBusObjectPath &path, const int index)
 {
-    // 第一个是启动器
-    int insertIndex = 1;
-
-    // -1 for append to app list end
-    if (index != -1) {
-        insertIndex += index;
-    } else {
-        for (auto item : m_itemList)
-            if (item->itemType() == DockItem::App)
-                ++insertIndex;
-    }
-
     AppItem *item = new AppItem(path);
-    manageItem(item);
-
-    connect(item, &AppItem::requestActivateWindow, m_appInter, &DBusDock::ActivateWindow, Qt::QueuedConnection);
-    connect(item, &AppItem::requestPreviewWindow, m_appInter, &DBusDock::PreviewWindow);
-    connect(item, &AppItem::requestCancelPreview, m_appInter, &DBusDock::CancelPreviewWindow);
     connect(item, &AppItem::windowInfoChanged, this, &DockItemManager::windowInfoChanged);
-
-    m_itemList.insert(insertIndex, item);
-
-    if (index != -1) {
-        emit itemInserted(insertIndex - 1, item);
-        return;
-    }
-
-    emit itemInserted(insertIndex, item);
+    m_appItemList.append(item);
 }
-
 void DockItemManager::appItemRemoved(const QString &appId)
 {
-    for (int i(0); i < m_itemList.size(); ++i) {
-        if (m_itemList[i]->itemType() != DockItem::App)
-            continue;
-
-        AppItem *app = static_cast<AppItem *>(m_itemList[i].data());
-        if (!app) {
-            continue;
-        }
+    for (int i(0); i < m_appItemList.size(); ++i) {
+        AppItem *app = m_appItemList[i].data();
         if (!app->isValid() || app->appId() == appId) {
             appItemRemoved(app);
         }
     }
 }
-
 void DockItemManager::appItemRemoved(AppItem *appItem)
 {
-    emit itemRemoved(appItem);
-    m_itemList.removeOne(appItem);
-
-    if (appItem->isDragging()) {
-        QDrag::cancel();
-    }
+    m_appItemList.removeOne(appItem);
     appItem->deleteLater();
 }
-
 void DockItemManager::pluginItemInserted(PluginsItem *item)
 {
-    manageItem(item);
+    connect(item, &DockItem::requestRefreshWindowVisible, this, &DockItemManager::requestRefershWindowVisible, Qt::UniqueConnection);
+    connect(item, &DockItem::requestWindowAutoHide, this, &DockItemManager::requestWindowAutoHide, Qt::UniqueConnection);
 
     DockItem::ItemType pluginType = item->itemType();
 
@@ -296,11 +234,8 @@ void DockItemManager::pluginItemRemoved(PluginsItem *item)
 
 void DockItemManager::reloadAppItems()
 {
-    // remove old item
-    for (auto item : m_itemList)
-        if (item->itemType() == DockItem::App)
-            appItemRemoved(static_cast<AppItem *>(item.data()));
-
+    for (auto item : m_appItemList)
+        appItemRemoved(item.data());
     // append new item
     for (auto path : m_appInter->entries())
         appItemAdded(path, -1);
@@ -340,10 +275,4 @@ void DockItemManager::sortPluginItems()
         emit itemRemoved(m_itemList[i]);
         emit itemInserted(-1, m_itemList[i]);
     }
-}
-
-void DockItemManager::manageItem(DockItem *item)
-{
-    connect(item, &DockItem::requestRefreshWindowVisible, this, &DockItemManager::requestRefershWindowVisible, Qt::UniqueConnection);
-    connect(item, &DockItem::requestWindowAutoHide, this, &DockItemManager::requestWindowAutoHide, Qt::UniqueConnection);
 }

@@ -11,6 +11,7 @@
 #include <QtX11Extras/QX11Info>
 #include <QProcess>
 
+#include "../frame/item/components/hoverhighlighteffect.h"
 #include "QClickableLabel.h"
 
 ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
@@ -35,6 +36,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     launchLabel->setPixmap(QPixmap(":/icons/launcher.svg"));
     launchLabel->setFixedSize(22, 22);
     launchLabel->setScaledContents(true);
+    launchLabel->setGraphicsEffect(new HoverHighlightEffect(this));
     connect(launchLabel, &QClickableLabel::clicked, this, [=](){
         QProcess::startDetached("dde-launcher -p");
     });
@@ -43,6 +45,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->m_iconLabel = new QLabel(this);
     this->m_iconLabel->setFixedSize(22, 22);
     this->m_iconLabel->setScaledContents(true);
+    this->m_iconLabel->setGraphicsEffect(new HoverHighlightEffect(this));
     this->m_layout->addWidget(this->m_iconLabel);
 
     int buttonSize = 22;
@@ -258,12 +261,14 @@ void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorTyp
             this->maxButton->setIcon(QIcon(":/icons/maximum.svg"));
             this->minButton->setIcon(QIcon(":/icons/minimum.svg"));
             this->menuBar->setStyleSheet("QMenuBar {color: black; background-color: rgba(0,0,0,0); margin: 0 5 0 5;} ");
+            this->m_winTitleLabel->setStyleSheet("QLabel { color: black; }");
             break;
         case DGuiApplicationHelper::DarkType:
             this->closeButton->setIcon(QIcon(":/icons/close-white.svg"));
             this->maxButton->setIcon(QIcon(":/icons/maximum-white.svg"));
             this->minButton->setIcon(QIcon(":/icons/minimum-white.svg"));
             this->menuBar->setStyleSheet("QMenuBar {color: white; background-color: rgba(0,0,0,0); margin: 0 5 0 5;} ");
+            this->m_winTitleLabel->setStyleSheet("QLabel { color: white; }");
         default:
             break;
     }

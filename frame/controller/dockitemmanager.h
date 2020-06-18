@@ -44,7 +44,6 @@ public:
 
     const QList<QPointer<DockItem> > itemList() const;
     const QList<PluginsItemInterface *> pluginList() const;
-    bool appIsOnDock(const QString &appDesktop) const;
     void startLoadPlugins() const;
 
 signals:
@@ -73,16 +72,17 @@ private:
     void pluginItemInserted(PluginsItem *item);
     void pluginItemRemoved(PluginsItem *item);
     void reloadAppItems();
-    void manageItem(DockItem *item);
 
 private:
     QTimer *m_updatePluginsOrderTimer;
     DBusDock *m_appInter;
+
     DockPluginsController *m_pluginsInter;
 
     static DockItemManager *INSTANCE;
 
     QList<QPointer<DockItem>> m_itemList;
+    QList<QPointer<AppItem>> m_appItemList;
 
     bool enableBlacklist;
 };

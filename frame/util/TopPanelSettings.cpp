@@ -8,26 +8,18 @@
 #include <QScreen>
 #include <QAction>
 
-#define EffICIENT_DEFAULT_HEIGHT 32
-#define WINDOW_MAX_SIZE          100
-#define WINDOW_MIN_SIZE          32
+#define DEFAULT_HEIGHT 32
 
 extern const QPoint rawXPosition(const QPoint &scaledPos);
 
-
 TopPanelSettings::TopPanelSettings(DockItemManager *itemManager, QScreen *screen, QWidget *parent)
         : QObject(parent)
-        , m_dockInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
-        , m_dockWindowSize(EffICIENT_DEFAULT_HEIGHT)
-        , m_displayInter(new DBusDisplay(this))
-        , m_itemManager(itemManager)
         , m_screen(screen)
+        , m_itemManager(itemManager)
 {
     m_primaryRawRect = screen->geometry();
     m_primaryRawRect.setHeight(m_primaryRawRect.height() * screen->devicePixelRatio());
     m_primaryRawRect.setWidth(m_primaryRawRect.width() * screen->devicePixelRatio());
-    m_screenRawHeight = m_primaryRawRect.height();
-    m_screenRawWidth = m_primaryRawRect.width();
 
     m_hideSubMenu = new QMenu(&m_settingsMenu);
     m_hideSubMenu->setAccessibleName("pluginsmenu");
@@ -51,8 +43,6 @@ void TopPanelSettings::moveToScreen(QScreen *screen) {
     m_primaryRawRect = screen->geometry();
     m_primaryRawRect.setHeight(m_primaryRawRect.height() * screen->devicePixelRatio());
     m_primaryRawRect.setWidth(m_primaryRawRect.width() * screen->devicePixelRatio());
-    m_screenRawWidth = m_primaryRawRect.width();
-    m_screenRawHeight = m_primaryRawRect.height();
 
     calculateWindowConfig();
 }
@@ -68,10 +58,6 @@ void TopPanelSettings::showDockSettingsMenu()
         const bool enable = !p->pluginIsDisable();
         const QString &name = p->pluginName();
         const QString &display = p->pluginDisplayName();
-
-//        if (!m_trashPluginShow && name == "trash") {
-//            continue;
-//        }
 
         QAction *act = new QAction(display, this);
         act->setCheckable(true);
@@ -110,19 +96,13 @@ void TopPanelSettings::menuActionClicked(QAction *action)
 
 void TopPanelSettings::calculateWindowConfig()
 {
-    m_mainWindowSize.setHeight(32);
-    m_mainWindowSize.setWidth(m_screenRawWidth / m_screen->devicePixelRatio());
+    m_mainWindowSize.setHeight(DEFAULT_HEIGHT);
+    m_mainWindowSize.setWidth(m_screen->geometry().width());
 }
 
 const QRect TopPanelSettings::primaryRect() const
 {
-    QRect rect = m_primaryRawRect;
-    qreal scale = this->m_screen->devicePixelRatio();
-
-    rect.setWidth(std::round(qreal(rect.width()) / scale));
-    rect.setHeight(std::round(qreal(rect.height()) / scale));
-
-    return rect;
+    return m_screen->geometry();
 }
 
 const QRect TopPanelSettings::windowRect() const

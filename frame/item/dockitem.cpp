@@ -29,8 +29,6 @@
 
 #define PLUGIN_MARGIN  10
 
-Position DockItem::DockPosition = Position::Top;
-DisplayMode DockItem::DockDisplayMode = DisplayMode::Efficient;
 QPointer<DockPopupWindow> DockItem::PopupWindow(nullptr);
 
 DockItem::DockItem(QWidget *parent)
@@ -88,16 +86,6 @@ DockItem::~DockItem()
 {
     if (m_popupShown)
         popupWindowAccept();
-}
-
-void DockItem::setDockPosition(const Position side)
-{
-    DockPosition = side;
-}
-
-void DockItem::setDockDisplayMode(const DisplayMode mode)
-{
-    DockDisplayMode = mode;
 }
 
 void DockItem::gestureEvent(QGestureEvent *event)

@@ -55,8 +55,8 @@ protected Q_SLOTS:
     void startLoader(PluginLoader *loader);
 
 private slots:
-    void displayModeChanged();
-    void positionChanged();
+    void displayModeChanged(){};
+    void positionChanged(){};
     void loadPlugin(const QString &pluginFile);
     void initPlugin(PluginsItemInterface *interface);
     void refreshPluginSettings();

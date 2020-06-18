@@ -41,7 +41,6 @@ public slots:
 signals:
     void emptyAreaDoubleClicked();
     void itemMoved(DockItem *sourceItem, DockItem *targetItem);
-    void itemAdded(const QString &appDesktop, int idx);
 
 private:
     void init();
@@ -75,7 +74,6 @@ private:
     TrayPluginItem *m_tray = nullptr;
     ActiveWindowControlWidget *activeWindowControlWidget;
     QPoint m_mousePressPos;
-    AppDragWidget *m_appDragWidget;
 };
 
 
