@@ -21,10 +21,10 @@
 
 #include "snitraywidget.h"
 #include "util/themeappicon.h"
-#include <dbusmenu-qt5/dbusmenuimporter.h>
 #include <QPainter>
 #include <QApplication>
 
+#include <dbusmenu-qt5/dbusmenuimporter.h>
 #include <xcb/xproto.h>
 
 #define IconSize 20

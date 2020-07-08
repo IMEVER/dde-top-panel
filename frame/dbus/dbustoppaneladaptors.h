@@ -36,6 +36,9 @@ class DBusTopPanelAdaptors: public QDBusAbstractAdaptor
     Q_CLASSINFO("D-Bus Introspection", ""
                                        "  <interface name=\"com.deepin.dde.TopPanel\">\n"
                                        "  <method name=\"ActivateWindow\"></method>\n"
+                                       "  <method name=\"Activate\">\n"
+                                       "  <arg type=\"b\" direction=\"out\"></arg>\n"
+                                       "  </method>\n"
                                        "  </interface>\n"
                                        "")
 
@@ -47,6 +50,7 @@ public:
 
 public Q_SLOTS: // PROPERTIES
     void ActivateWindow();
+    bool Activate();
 };
 
 #endif //DBUSTopPanelADAPTORS

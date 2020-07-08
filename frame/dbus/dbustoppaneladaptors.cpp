@@ -42,3 +42,9 @@ void DBusTopPanelAdaptors::ActivateWindow()
 {
     parent()->showOverFullscreen();
 }
+
+bool DBusTopPanelAdaptors::Activate()
+{
+    qDebug()<<"Activate";
+    return true;
+}

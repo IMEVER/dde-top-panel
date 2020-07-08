@@ -22,13 +22,24 @@ MainSettingWidget::MainSettingWidget(QWidget *parent) :
     ui->unmaxButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveUnmaximizedIconPath()).pixmap(ui->unmaxButtonLabel->size()));
     ui->minButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveMinimizedIconPath()).pixmap(ui->minButtonLabel->size()));
     ui->defaultIconLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveDefaultAppIconPath()).pixmap(ui->defaultIconLabel->size()));
+    ui->menuOnHoverCheckBox->setChecked(CustomSettings::instance()->isShowGlobalMenuOnHover());
 
     ui->appNameLabel->setText(QApplication::applicationDisplayName());
     ui->appVersionLabel->setText(QApplication::applicationVersion());
 
+    ui->panelColorToolButton->setIcon(QIcon(":/icons/config.svg"));
+    ui->fontColorToolButton->setIcon(QIcon(":/icons/config.svg"));
+    ui->defaultIconResetToolButton->setIcon(QIcon(":/icons/reset.svg"));
+    ui->defaultIconToolButton->setIcon(QIcon(":/icons/config.svg"));
+    ui->minToolButton->setIcon(QIcon(":/icons/config.svg"));
+    ui->minResetToolButton->setIcon(QIcon(":/icons/reset.svg"));
+    ui->unmaxButtonToolButton->setIcon(QIcon(":/icons/config.svg"));
+    ui->unmaxResetToolButton->setIcon(QIcon(":/icons/reset.svg"));
+    ui->closeButtonToolButton->setIcon(QIcon(":/icons/config.svg"));
+    ui->closeResetToolButton->setIcon(QIcon(":/icons/reset.svg"));
+
     movie = new QMovie(":/icons/doge.gif");
     ui->pMovieLabel->setMovie(movie);
-    movie->start();
 
     connect(ui->opacitySpinBox, qOverload<int>(&QSpinBox::valueChanged), this, &MainSettingWidget::opacityValueChanged);
     connect(ui->panelColorToolButton, &QToolButton::clicked, this, &MainSettingWidget::panelColorButtonClicked);
@@ -41,6 +52,9 @@ MainSettingWidget::MainSettingWidget(QWidget *parent) :
     connect(ui->minResetToolButton, &QToolButton::clicked, this, &MainSettingWidget::minResetButtonClicked);
     connect(ui->defaultIconToolButton, &QToolButton::clicked, this, &MainSettingWidget::defaultButtonClicked);
     connect(ui->defaultIconResetToolButton, &QToolButton::clicked, this, &MainSettingWidget::defaultResetButtonClicked);
+    connect(ui->menuOnHoverCheckBox, &QCheckBox::stateChanged, this, [this]() {
+        CustomSettings::instance()->setShowGlobalMenuOnHover(ui->menuOnHoverCheckBox->isChecked());
+    });
 }
 
 MainSettingWidget::~MainSettingWidget()
@@ -115,4 +129,19 @@ void MainSettingWidget::defaultButtonClicked() {
 void MainSettingWidget::defaultResetButtonClicked() {
     CustomSettings::instance()->resetDefaultIconPath();
     ui->defaultIconLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveDefaultAppIconPath()).pixmap(ui->defaultIconLabel->size()));
+}
+
+void MainSettingWidget::showEvent(QShowEvent *event) {
+    movie->start();
+    QWidget::showEvent(event);
+}
+
+void MainSettingWidget::hideEvent(QHideEvent *event) {
+    movie->stop();
+    QWidget::hideEvent(event);
+}
+
+void MainSettingWidget::closeEvent(QCloseEvent *event) {
+    movie->stop();
+    QWidget::closeEvent(event);
 }

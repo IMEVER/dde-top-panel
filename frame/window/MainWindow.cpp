@@ -7,7 +7,11 @@
 #include "controller/dockitemmanager.h"
 #include "util/utils.h"
 #include "../dbus/dbustoppaneladaptors.h"
-#include <QDBusConnection>
+
+// #include <QDBusConnection>
+
+#define SNI_WATCHER_SERVICE "org.kde.StatusNotifierWatcher"
+#define SNI_WATCHER_PATH "/StatusNotifierWatcher"
 
 MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     : DBlurEffectWidget(parent)
@@ -16,6 +20,8 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     , m_mainPanel(new MainPanelControl(this))
     , m_xcbMisc(XcbMisc::instance())
     , m_platformWindowHandle(this, this)
+    , m_dbusDaemonInterface(QDBusConnection::sessionBus().interface())
+    , m_sniWatcher(new StatusNotifierWatcher(SNI_WATCHER_SERVICE, SNI_WATCHER_PATH, QDBusConnection::sessionBus(), this))
     , m_layout(new QVBoxLayout(this))
 {
 //    setWindowFlag(Qt::WindowDoesNotAcceptFocus);
@@ -39,6 +45,7 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
 
     m_xcbMisc->set_window_type(winId(), XcbMisc::Dock);
 
+    initSNIHost();
     this->initConnections();
 
     for (auto item : m_itemManager->itemList())
@@ -50,6 +57,7 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
 
     setVisible(true);
     setRadius(0);
+
     // platformwindowhandle only works when the widget is visible...
     DPlatformWindowHandle::enableDXcbForWindow(this, true);
     m_platformWindowHandle.setEnableBlurWindow(true);
@@ -124,12 +132,39 @@ void MainWindow::setStrutPartial()
     m_xcbMisc->set_strut_partial(winId(), XcbMisc::OrientationTop, strut, strutStart, strutEnd);
 }
 
+void MainWindow::initSNIHost()
+{
+    // registor dock as SNI Host on dbus
+    QDBusConnection dbusConn = QDBusConnection::sessionBus();
+    m_sniHostService = QString("org.kde.StatusNotifierHost-") + QString::number(qApp->applicationPid());
+    dbusConn.registerService(m_sniHostService);
+    dbusConn.registerObject("/StatusNotifierHost", this);
+
+    if (m_sniWatcher->isValid()) {
+        m_sniWatcher->RegisterStatusNotifierHost(m_sniHostService);
+    } else {
+        qDebug() << SNI_WATCHER_SERVICE << "SNI watcher daemon is not exist for now!";
+    }
+}
+
+void MainWindow::onDbusNameOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner)
+{
+    Q_UNUSED(oldOwner);
+
+    if (name == SNI_WATCHER_SERVICE && !newOwner.isEmpty()) {
+        qDebug() << SNI_WATCHER_SERVICE << "SNI watcher daemon started, register dock to watcher as SNI Host";
+        m_sniWatcher->RegisterStatusNotifierHost(m_sniHostService);
+    }
+}
+
 void MainWindow::initConnections() {
     connect(m_itemManager, &DockItemManager::itemInserted, m_mainPanel, &MainPanelControl::insertItem, Qt::DirectConnection);
     connect(m_itemManager, &DockItemManager::itemUpdated, m_mainPanel, &MainPanelControl::itemUpdated, Qt::DirectConnection);
     connect(m_itemManager, &DockItemManager::itemRemoved, m_mainPanel, &MainPanelControl::removeItem, Qt::DirectConnection);
 
     connect(m_mainPanel, &MainPanelControl::itemMoved, DockItemManager::instance(), &DockItemManager::itemMoved, Qt::DirectConnection);
+
+    connect(m_dbusDaemonInterface, &QDBusConnectionInterface::serviceOwnerChanged, this, &MainWindow::onDbusNameOwnerChanged);
 
     connect(m_settings, &TopPanelSettings::settingActionClicked, this, &MainWindow::settingActionClicked);
     connect(CustomSettings::instance(), &CustomSettings::settingsChanged, this, [this]() {
@@ -232,8 +267,8 @@ void TopPanelLauncher::rearrange() {
 
         new DBusTopPanelAdaptors (mw);
         QDBusConnection::sessionBus().registerService("com.deepin.dde.TopPanel");
-        // QDBusConnection::sessionBus().registerObject("/com/deepin/dde/TopPanel", "com.deepin.dde.TopPanel", mw);
-        QDBusConnection::sessionBus().registerObject("/com/deepin/dde/TopPanel", mw);
+        QDBusConnection::sessionBus().registerObject("/com/deepin/dde/TopPanel", "com.deepin.dde.TopPanel", mw);
+        // QDBusConnection::sessionBus().registerObject("/com/deepin/dde/TopPanel", mw);
     }
 
     for (auto screen : mwMap.keys()) {

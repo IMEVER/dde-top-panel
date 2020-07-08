@@ -38,12 +38,9 @@ public slots:
 protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
 
-protected:
-    void enterEvent(QEvent *event) override;
-    void leaveEvent(QEvent *event) override;
-
 private:
     void setButtonsVisible(bool visible);
+    int currScreenNum();
 
 private slots:
     void maxButtonClicked();
@@ -73,7 +70,6 @@ private:
     DBusDock *m_appInter;
     DBusWM  *m_wmInter;
     bool mouseClicked;
-
 protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
 
@@ -82,7 +78,6 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
 
 private:
-
     QPropertyAnimation *m_buttonShowAnimation;
     QPropertyAnimation *m_buttonHideAnimation;
     QTimer *m_fixTimer;

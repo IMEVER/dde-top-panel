@@ -30,7 +30,9 @@
 #include "indicatortraywidget.h"
 #include "snitraywidget.h"
 #include "system-trays/systemtrayscontroller.h"
-#include "dbus/sni/statusnotifierwatcher_interface.h"
+// #include "dbus/sni/statusnotifierwatcher_interface.h"
+
+#include <org_kde_statusnotifieritem.h>
 
 #include <QSettings>
 #include <QLabel>

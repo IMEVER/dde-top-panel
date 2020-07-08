@@ -3,7 +3,6 @@
 //
 
 #include "QClickableLabel.h"
-#include <QDebug>
 #include <QMouseEvent>
 
 QClickableLabel::QClickableLabel(QWidget *parent)
@@ -17,16 +16,6 @@ QClickableLabel::QClickableLabel(QWidget *parent)
     this->setAutoFillBackground(true);
 }
 
-void QClickableLabel::enterEvent(QEvent *event) {
-    QWidget::enterEvent(event);
-}
-
-void QClickableLabel::leaveEvent(QEvent *event) {
-    this->repaint();
-
-    QWidget::leaveEvent(event);
-}
-
 void QClickableLabel::mousePressEvent(QMouseEvent *ev) {
     if (ev->button() != Qt::LeftButton) {
         return;
@@ -36,13 +25,25 @@ void QClickableLabel::mousePressEvent(QMouseEvent *ev) {
     QLabel::mousePressEvent(ev);
 }
 
-void QClickableLabel::mouseReleaseEvent(QMouseEvent *ev) {
-    QLabel::mouseReleaseEvent(ev);
-}
-
 void QClickableLabel::setDefaultFontColor(const QColor &defaultFontColor) {
     this->defaultFontColor = defaultFontColor;
     QPalette palette = this->palette();
+    palette.setColor(QPalette::WindowText, this->defaultFontColor);
+    this->setPalette(palette);
+    this->repaint();
+}
+
+void QClickableLabel::setSelectedColor() {
+    QPalette palette = this->palette();
+    palette.setColor(QPalette::Background, QColor("#0081FF"));
+    palette.setColor(QPalette::WindowText, Qt::white);
+    this->setPalette(palette);
+    this->repaint();
+}
+
+void QClickableLabel::setNormalColor() {
+    QPalette palette = this->palette();
+    palette.setColor(QPalette::Background, Qt::transparent);
     palette.setColor(QPalette::WindowText, this->defaultFontColor);
     this->setPalette(palette);
     this->repaint();

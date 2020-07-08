@@ -29,6 +29,7 @@
 
 #include <org_kde_statusnotifieritem.h>
 
+
 #include <QMenu>
 #include <QDBusObjectPath>
 DWIDGET_USE_NAMESPACE

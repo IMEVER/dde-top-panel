@@ -13,6 +13,10 @@
 
 #include "../frame/item/components/hoverhighlighteffect.h"
 #include "QClickableLabel.h"
+#include <QApplication>
+#include <QScreen>
+#include <QEvent>
+#include <QDesktopWidget>
 
 ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     : QWidget(parent)
@@ -140,6 +144,21 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
         return;
     }
 
+    int currScreenNum = this->currScreenNum();
+    int activeWinScreenNum = XUtils::getWindowScreenNum(activeWinId);
+    if (activeWinScreenNum >= 0 && activeWinScreenNum != currScreenNum) {
+        if (XUtils::checkIfBadWindow(this->currActiveWinId) || this->currActiveWinId == activeWinId || XUtils::checkIfWinMinimun(this->currActiveWinId)) {
+//            qDebug() << "Screen" << this->currScreenNum()
+//                     << XUtils::checkIfBadWindow(this->currActiveWinId)
+//                     << (this->currActiveWinId == activeWinId)
+//                     << XUtils::checkIfWinMinimun(this->currActiveWinId);
+            this->currActiveWinId = -1;
+            this->m_winTitleLabel->setText(tr("桌面"));
+            this->m_iconLabel->setPixmap(QPixmap(CustomSettings::instance()->getActiveDefaultAppIconPath()));
+        }
+        return;
+    }
+
     if (activeWinId != this->currActiveWinId) {
         this->currActiveWinId = activeWinId;
         this->m_iconLabel->setPixmap(XUtils::getWindowIconName(this->currActiveWinId));
@@ -148,11 +167,12 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
 
     this->setButtonsVisible(XUtils::checkIfWinMaximum(this->currActiveWinId));
 
-    QString activeWinTitle = XUtils::getWindowName(activeWinId);
-    if (activeWinTitle != this->currActiveWinTitle) {
-        this->currActiveWinTitle = activeWinTitle;
-        this->m_winTitleLabel->setText(this->currActiveWinTitle);
-        this->m_iconLabel->setToolTip(activeWinTitle);
+    QString activeWinTitle = XUtils::getWindowName(this->currActiveWinId);
+    this->currActiveWinTitle = activeWinTitle;
+    this->m_winTitleLabel->setText(this->currActiveWinTitle);
+
+    if (!activeWinTitle.isEmpty()) {
+        this->m_iconLabel->setPixmap(XUtils::getWindowIconNameX11(this->currActiveWinId));
     }
 
     // KWindowSystem will not update menu for desktop when focusing on the desktop
@@ -178,14 +198,6 @@ void ActiveWindowControlWidget::setButtonsVisible(bool visible) {
         this->m_buttonHideAnimation->setStartValue(this->m_buttonWidget->width());
         this->m_buttonHideAnimation->start();
     }
-}
-
-void ActiveWindowControlWidget::enterEvent(QEvent *event) {
-    QWidget::enterEvent(event);
-}
-
-void ActiveWindowControlWidget::leaveEvent(QEvent *event) {
-    QWidget::leaveEvent(event);
 }
 
 void ActiveWindowControlWidget::maxButtonClicked() {
@@ -218,7 +230,9 @@ void ActiveWindowControlWidget::maximizeWindow() {
 }
 
 void ActiveWindowControlWidget::mouseDoubleClickEvent(QMouseEvent *event) {
-    this->maximizeWindow();
+    if (this->childAt(event->pos()) != this->menuBar) {
+        this->maximizeWindow();
+    }
     QWidget::mouseDoubleClickEvent(event);
 }
 
@@ -245,6 +259,10 @@ void ActiveWindowControlWidget::updateMenu() {
 }
 
 void ActiveWindowControlWidget::windowChanged(WId id, NET::Properties properties, NET::Properties2 properties2) {
+    if (properties.testFlag(NET::WMGeometry)) {
+        this->activeWindowInfoChanged();
+    }
+
     // we still don't know why active window is 0 when pressing alt in some applications like chrome.
     if (KWindowSystem::activeWindow() != this->currActiveWinId && KWindowSystem::activeWindow() != 0) {
         return;
@@ -311,4 +329,8 @@ void ActiveWindowControlWidget::applyCustomSettings(const CustomSettings& settin
     this->maxButton->setIcon(QIcon(settings.getActiveUnmaximizedIconPath()));
     this->minButton->setIcon(QIcon(settings.getActiveMinimizedIconPath()));
     // todo: default app icon
+}
+
+int ActiveWindowControlWidget::currScreenNum() {
+    return QApplication::desktop()->screenNumber(this);
 }

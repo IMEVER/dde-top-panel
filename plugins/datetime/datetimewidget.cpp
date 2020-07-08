@@ -249,12 +249,12 @@ private:
         if(n<1 || n>24) {return -1;}
         auto _table = sTermInfo[y-1900];
         QStringList _info = {
-            QString::number(QString("0x"+_table.mid(0,5)).toInt()),
-            QString::number(QString("0x"+_table.mid(5,5)).toInt()),
-            QString::number(QString("0x"+_table.mid(10,5)).toInt()),
-            QString::number(QString("0x"+_table.mid(15,5)).toInt()),
-            QString::number(QString("0x"+_table.mid(20,5)).toInt()),
-            QString::number(QString("0x"+_table.mid(25,5)).toInt())
+            QString::number(QString("0x"+_table.mid(0,5)).toInt(nullptr, 16)),
+            QString::number(QString("0x"+_table.mid(5,5)).toInt(nullptr, 16)),
+            QString::number(QString("0x"+_table.mid(10,5)).toInt(nullptr, 16)),
+            QString::number(QString("0x"+_table.mid(15,5)).toInt(nullptr, 16)),
+            QString::number(QString("0x"+_table.mid(20,5)).toInt(nullptr, 16)),
+            QString::number(QString("0x"+_table.mid(25,5)).toInt(nullptr, 16))
         };
         QStringList _calday = {
             _info[0].mid(0,1),
@@ -443,16 +443,17 @@ private:
         // 当月的两个节气
         // bugfix-2017-7-24 11:03:38 use lunar Year Param `y` Not `year`
         auto firstNode  = getTerm(y, m * 2 - 1);//返回当月「节」为几日开始
-        auto secondNode = getTerm(y, m * 2);//返回当月「节」为几日开始
  
         //传入的日期的节气与否
         auto isTerm = false;
         QString Term;
-        if(firstNode == d) {
+        if(firstNode == d) 
+        {
             isTerm  = true;
             Term    = 节气[m*2-2];
         }
-        if(secondNode == d) {
+        else if(getTerm(y, m * 2) == d) 
+        {
             isTerm  = true;
             Term    = 节气[m*2-1];
         }

@@ -4,15 +4,15 @@ set(PLUGIN_NAME "tray")
 project(${PLUGIN_NAME})
 
 # Sources files
-file(GLOB_RECURSE SRCS "*.h" "*.cpp" "../../widgets/*.h" "../../widgets/*.cpp"
+file(GLOB_RECURSE SRCS "*.h" "*.cpp"
     "../../frame/util/themeappicon.h" "../../frame/util/themeappicon.cpp"
     "../../frame/util/dockpopupwindow.h" "../../frame/util/dockpopupwindow.cpp"
     "../../frame/util/abstractpluginscontroller.h" "../../frame/util/abstractpluginscontroller.cpp"
     "../../frame/util/pluginloader.h" "../../frame/util/pluginloader.cpp"
-    "../../frame/dbus/sni/*.h" "../../frame/dbus/sni/*.cpp"
+    #"../../frame/dbus/sni/*.h" "../../frame/dbus/sni/*.cpp"
     "../../frame/dbus/dbusmenu.h" "../../frame/dbus/dbusmenu.cpp"
     "../../frame/dbus/dbusmenumanager.h" "../../frame/dbus/dbusmenumanager.cpp"
-     "../../widgets/*.h" "../../widgets/*.cpp"
+    "../../widgets/*.h" "../../widgets/*.cpp"
      "../../frame/util/imageutil.h" "../../frame/util/imageutil.cpp"
         "../../frame/util/XUtils.h" "../../frame/util/XUtils.cpp")
 

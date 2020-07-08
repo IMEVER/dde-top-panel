@@ -8,6 +8,7 @@
 #include <DBlurEffectWidget>
 #include <DPlatformWindowHandle>
 #include "../panel/MainPanelControl.h"
+#include "dbus/sni/statusnotifierwatcher_interface.h"
 #include "util/TopPanelSettings.h"
 #include "xcb/xcb_misc.h"
 #include "util/CustomSettings.h"
@@ -16,6 +17,7 @@
 
 DWIDGET_USE_NAMESPACE
 
+using org::kde::StatusNotifierWatcher;
 using namespace Dock;
 using DBusDock = com::deepin::dde::daemon::Dock;    // use dbus to get the height/width, position and hide mode of the dock
 
@@ -37,6 +39,9 @@ signals:
     void panelGeometryChanged();
     void settingActionClicked();
 
+private slots:
+    void onDbusNameOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner);
+
 protected:
     bool event(QEvent *event) override;
 
@@ -45,6 +50,7 @@ private:
     void clearStrutPartial();
     void setStrutPartial();
     void initConnections();
+    void initSNIHost();
 
 private:
     DockItemManager *m_itemManager;
@@ -55,6 +61,10 @@ private:
     DPlatformWindowHandle m_platformWindowHandle;
     QVBoxLayout *m_layout;
     Qt::WindowFlags oldFlags;
+
+    QDBusConnectionInterface *m_dbusDaemonInterface;
+    org::kde::StatusNotifierWatcher *m_sniWatcher;
+    QString m_sniHostService;    
 };
 
 class TopPanelLauncher : public QObject {

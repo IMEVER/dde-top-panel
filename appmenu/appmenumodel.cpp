@@ -37,8 +37,15 @@
 #include <QDBusServiceWatcher>
 #include <QGuiApplication>
 #include <QDebug>
+#include <QWindow>
+#include <QScreen>
+#include <QApplication>
+#include <QDesktopWidget>
+#include "../frame/util/XUtils.h"
 
 #include "dbusmenuimporter.h"
+
+// #include <dbusmenu-qt5/dbusmenuimporter.h>
 
 static const QByteArray s_x11AppMenuServiceNamePropertyName = QByteArrayLiteral("_KDE_NET_WM_APPMENU_SERVICE_NAME");
 static const QByteArray s_x11AppMenuObjectPathPropertyName = QByteArrayLiteral("_KDE_NET_WM_APPMENU_OBJECT_PATH");
@@ -68,6 +75,8 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
     if (!KWindowSystem::isPlatformX11()) {
         return;
     }
+
+    invisibleWidget.hide();
 
     connect(this, &AppMenuModel::winIdChanged, this, [this] {
         onActiveWindowChanged(m_winId.toUInt());
@@ -104,6 +113,33 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
         if (serviceName == m_serviceName) {
             setMenuAvailable(false);
             emit modelNeedsUpdate();
+        }
+    });
+
+    connect(KWindowSystem::self(), qOverload<WId, NET::Properties, NET::Properties2>(&KWindowSystem::windowChanged),
+            this, [this](WId id, NET::Properties properties, NET::Properties2 properties2) {
+        if (KWindowSystem::activeWindow() != id) return;
+
+        if (properties.testFlag(NET::WMGeometry)) {
+            int currScreenNum = QApplication::desktop()->screenNumber(qobject_cast<QWidget *>(this->parent()));
+            int activeWinScreenNum = XUtils::getWindowScreenNum(id);
+            if (activeWinScreenNum >= 0 && activeWinScreenNum != currScreenNum) {
+                if (XUtils::checkIfBadWindow(this->m_currentWindowId) || this->m_currentWindowId == id) {
+                    this->m_currentWindowId = -1;
+                    this->m_winId = -1;
+                    this->setMenuAvailable(false);
+                    emit modelNeedsUpdate();
+                }
+                return;
+            } else {
+                KWindowInfo info(id, NET::WMState | NET::WMGeometry);
+                if (XUtils::checkIfWinMinimun(this->m_currentWindowId)) {
+                    this->m_currentWindowId = -1;
+                    this->m_winId = -1;
+                    this->setMenuAvailable(false);
+                    emit modelNeedsUpdate();
+                }
+            }
         }
     });
 }
@@ -217,13 +253,27 @@ void AppMenuModel::onActiveWindowChanged(WId id)
 {
     qApp->removeNativeEventFilter(this);
 
-    if (m_winId!=-1  && m_winId!=id) {
-        //! ignore any other window except the one preferred from plasmoid
-        return;
-    }
+//    if (m_winId!=-1  && m_winId!=id) {
+//        //! ignore any other window except the one preferred from plasmoid
+//        return;
+//    }
 
     if (!id) {
         return;  // temporary fix for losing focus when pressing Alt on deepin v20; or just Alt shortcut ? not sure.
+    }
+
+    int currScreenNum = QApplication::desktop()->screenNumber(qobject_cast<QWidget*>(this->parent()));
+    int activeWinScreenNum = XUtils::getWindowScreenNum(id);
+
+    if (activeWinScreenNum >= 0 && activeWinScreenNum != currScreenNum) {
+        if (XUtils::checkIfBadWindow(m_currentWindowId)) {
+            setMenuAvailable(false);
+            emit modelNeedsUpdate();
+        } else if (XUtils::checkIfWinMinimun(this->m_currentWindowId)) {
+            setMenuAvailable(false);
+            emit modelNeedsUpdate();
+        }
+        return;
     }
 
     if (!id) {
