@@ -32,6 +32,8 @@ public:
     explicit DatetimeWidget(QWidget *parent = 0);
 
     bool is24HourFormat() const { return m_24HourFormat; }
+    bool isShowDate() const { return m_showDate; }
+    bool isShowLunar() const { return m_showLunar; }
     QSize sizeHint() const;
     QStringList dateString();
 
@@ -40,14 +42,17 @@ signals:
 
 public slots:
     void set24HourFormat(const bool value);
+    void setShowDate(const bool value);
+    void setShowLunar(const bool value);
 
 private:
     void paintEvent(QPaintEvent *e);
-    QSize curTimeSize() const;
     QString currentChinaTime() const;
 
 private:
     bool m_24HourFormat;
+    bool m_showDate;
+    bool m_showLunar;
     mutable QFont m_timeFont;
     mutable QFont m_dateFont;
     mutable int m_timeOffset;

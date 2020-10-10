@@ -3,11 +3,11 @@
 
 HoldContainer::HoldContainer(TrayPlugin *trayPlugin, QWidget *parent)
     : AbstractContainer(trayPlugin, parent)
-    , m_mainBoxLayout(new QBoxLayout(QBoxLayout::Direction::LeftToRight, this))
+    // , m_mainBoxLayout(new QBoxLayout(QBoxLayout::Direction::LeftToRight, this))
 {
-    m_mainBoxLayout->setMargin(0);
-    m_mainBoxLayout->setContentsMargins(0, 0, 0, 0);
-    m_mainBoxLayout->setSpacing(TraySpace);
+    // m_mainBoxLayout->setMargin(0);
+    // m_mainBoxLayout->setContentsMargins(0, 0, 0, 0);
+    // m_mainBoxLayout->setSpacing(TraySpace);
 
     QBoxLayout *preLayout = wrapperLayout();
     QBoxLayout *newLayout = new QBoxLayout(QBoxLayout::Direction::LeftToRight, this);
@@ -16,10 +16,11 @@ HoldContainer::HoldContainer(TrayPlugin *trayPlugin, QWidget *parent)
     }
     setWrapperLayout(newLayout);
 
-    m_mainBoxLayout->addLayout(newLayout);
+    // m_mainBoxLayout->addLayout(newLayout);
 
 //    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    setLayout(m_mainBoxLayout);
+    // setLayout(m_mainBoxLayout);
+    setLayout(newLayout);
 }
 
 bool HoldContainer::acceptWrapper(FashionTrayWidgetWrapper *wrapper)
@@ -45,29 +46,3 @@ void HoldContainer::refreshVisible()
 
     setVisible(true);
 }
-
-void HoldContainer::setDockPosition(const Dock::Position pos)
-{
-    if (pos == Dock::Position::Top || pos == Dock::Position::Bottom) {
-        m_mainBoxLayout->setDirection(QBoxLayout::Direction::LeftToRight);
-    } else{
-        m_mainBoxLayout->setDirection(QBoxLayout::Direction::TopToBottom);
-    }
-
-    AbstractContainer::setDockPosition(pos);
-}
-
-//QSize HoldContainer::totalSize() const
-//{
-//    QSize size = AbstractContainer::totalSize();
-
-//    if (expand()) {
-//        if (dockPosition() == Dock::Position::Top || dockPosition() == Dock::Position::Bottom) {
-//            size.setHeight(height());
-//        } else {
-//            size.setWidth(width());
-//        }
-//    }
-
-//    return size;
-//}

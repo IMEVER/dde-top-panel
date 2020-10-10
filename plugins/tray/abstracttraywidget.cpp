@@ -122,13 +122,6 @@ void AbstractTrayWidget::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
 
-    const Dock::Position position = qApp->property(PROP_POSITION).value<Dock::Position>();
-    // 保持横纵比
-    if (position == Dock::Bottom || position == Dock::Top) {
-        setMaximumWidth(height());
-        setMaximumHeight(QWIDGETSIZE_MAX);
-    } else {
-        setMaximumHeight(width());
-        setMaximumWidth(QWIDGETSIZE_MAX);
-    }
+    setMaximumWidth(height());
+    setMaximumHeight(QWIDGETSIZE_MAX);
 }

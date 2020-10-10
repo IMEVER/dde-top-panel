@@ -31,9 +31,7 @@ class FashionTrayControlWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit FashionTrayControlWidget(Dock::Position position, QWidget *parent = nullptr);
-
-    void setDockPostion(Dock::Position pos);
+    explicit FashionTrayControlWidget(QWidget *parent = nullptr);
 
     bool expanded() const;
     void setExpanded(const bool &expanded);
@@ -56,7 +54,6 @@ private:
     QTimer *m_expandDelayTimer;
     QPixmap m_arrowPix;
 
-    Dock::Position m_dockPosition;
     bool m_expanded;
     bool m_hover;
     bool m_pressed;

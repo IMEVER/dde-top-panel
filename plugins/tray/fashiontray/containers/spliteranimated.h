@@ -16,7 +16,6 @@ public:
     void setEndValue(const QVariant &value);
     void startAnimation();
     void stopAnimation();
-    void setDockPosition(const Dock::Position position);
 
 protected:
     void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
@@ -29,8 +28,6 @@ private:
 
     qreal m_opacityChangeStep;
     qreal m_currentOpacity;
-
-    Dock::Position m_dockPosition;
 };
 
 #endif // SPLITERANIMATED_H

@@ -19,7 +19,6 @@ DWIDGET_USE_NAMESPACE
 
 using org::kde::StatusNotifierWatcher;
 using namespace Dock;
-using DBusDock = com::deepin::dde::daemon::Dock;    // use dbus to get the height/width, position and hide mode of the dock
 
 class MainWindow : public DBlurEffectWidget
 {
@@ -42,6 +41,9 @@ signals:
 private slots:
     void onDbusNameOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner);
 
+public Q_SLOTS:
+    void setRadius(int radius) {};
+
 protected:
     bool event(QEvent *event) override;
 
@@ -54,7 +56,6 @@ private:
 
 private:
     DockItemManager *m_itemManager;
-    DBusDock *m_dockInter;
     MainPanelControl *m_mainPanel;
     TopPanelSettings *m_settings;
     XcbMisc *m_xcbMisc;

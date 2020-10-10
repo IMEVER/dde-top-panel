@@ -63,7 +63,8 @@ FashionTrayWidgetWrapper::FashionTrayWidgetWrapper(const QString &itemKey, Abstr
     connect(m_absTrayWidget, &AbstractTrayWidget::needAttention, this, &FashionTrayWidgetWrapper::onTrayWidgetNeedAttention);
     connect(m_absTrayWidget, &AbstractTrayWidget::clicked, this, &FashionTrayWidgetWrapper::onTrayWidgetClicked);
 
-    setMinimumSize(PLUGIN_BACKGROUND_MIN_SIZE, PLUGIN_BACKGROUND_MIN_SIZE);
+    // setMinimumSize(PLUGIN_BACKGROUND_MIN_SIZE, PLUGIN_BACKGROUND_MIN_SIZE);
+    setFixedSize(PLUGIN_BACKGROUND_MIN_SIZE, PLUGIN_BACKGROUND_MIN_SIZE);
 
     m_absTrayWidget->show();
 }
@@ -194,16 +195,8 @@ void FashionTrayWidgetWrapper::leaveEvent(QEvent *event)
 
 void FashionTrayWidgetWrapper::resizeEvent(QResizeEvent *event)
 {
-    const Dock::Position position = qApp->property(PROP_POSITION).value<Dock::Position>();
-    // 保持横纵比
-    if (position == Dock::Bottom || position == Dock::Top) {
-        setMaximumWidth(height());
-        setMaximumHeight(QWIDGETSIZE_MAX);
-    } else {
-        setMaximumHeight(width());
-        setMaximumWidth(QWIDGETSIZE_MAX);
-    }
-
+    setMaximumWidth(height());
+    setMaximumHeight(QWIDGETSIZE_MAX);
     QWidget::resizeEvent(event);
 }
 

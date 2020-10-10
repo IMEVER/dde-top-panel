@@ -62,7 +62,6 @@ signals:
 
 private:
     void loadLocalPlugins();
-    void loadSystemPlugins();
 };
 
 #endif // DOCKPLUGINSCONTROLLER_H

@@ -51,8 +51,6 @@ public:
     void trayWidgetRemoved(AbstractTrayWidget *trayWidget);
     void clearTrayWidgets();
 
-    void setDockPosition(Dock::Position pos);
-
     inline static int trayWidgetWidth() {return TrayWidgetWidth;}
     inline static int trayWidgetHeight() {return TrayWidgetHeight;}
 
@@ -95,7 +93,6 @@ private:
     static int TrayWidgetWidth;
     static int TrayWidgetHeight;
     QWidget *m_leftSpace;
-    Dock::Position m_dockpos;
     int m_iconSize  = 40;
 };
 

@@ -23,22 +23,19 @@
 #include "util/themeappicon.h"
 #include <QPainter>
 #include <QApplication>
-
-#include <dbusmenu-qt5/dbusmenuimporter.h>
 #include <xcb/xproto.h>
 
-#define IconSize 20
+#define IconSize 16
 
 const QStringList ItemCategoryList {"ApplicationStatus", "Communications", "SystemServices", "Hardware"};
 const QStringList ItemStatusList {"Passive", "Active", "NeedsAttention"};
 const QStringList LeftClickInvalidIdList {"sogou-qimpanel",};
 QPointer<DockPopupWindow> SNITrayWidget::PopupWindow = nullptr;
-Dock::Position SNITrayWidget::DockPosition = Dock::Position::Top;
 
 SNITrayWidget::SNITrayWidget(const QString &sniServicePath, QWidget *parent)
     : AbstractTrayWidget(parent),
+    //   m_menu(nullptr),
       m_dbusMenuImporter(nullptr),
-      m_menu(nullptr),
       m_updateIconTimer(new QTimer(this))
     , m_updateOverlayIconTimer(new QTimer(this))
     , m_updateAttentionIconTimer(new QTimer(this))
@@ -143,6 +140,8 @@ SNITrayWidget::~SNITrayWidget()
         m_tipsLabel->deleteLater();
         m_tipsLabel = nullptr;
     }
+    
+    qDebug()<<"delete in snitraywidget";
 }
 
 QString SNITrayWidget::itemKeyForConfig()
@@ -286,9 +285,9 @@ void SNITrayWidget::initMenu()
 
     qDebug() << "generate the sni menu object";
 
-    m_menu = m_dbusMenuImporter->menu();
+    // m_menu = m_dbusMenuImporter->menu();
 
-    qDebug() << "the sni menu obect is:" << m_menu;
+    // qDebug() << "the sni menu obect is:" << m_menu;
 }
 
 void SNITrayWidget::refreshIcon()
@@ -346,13 +345,16 @@ void SNITrayWidget::showContextMenu(int x, int y)
     if (m_sniMenuPath.path().startsWith("/NO_DBUSMENU")) {
         m_sniInter->ContextMenu(x, y);
     } else {
-        if (!m_menu) {
+        if (!m_dbusMenuImporter) {
             qDebug() << "context menu has not be ready, init menu";
             initMenu();
         }
 
+        QMenu *m_menu = m_dbusMenuImporter->menu();
         if (m_menu)
+        {
             m_menu->popup(QPoint(x, y));
+        }
     }
     hidePopup();
 }
@@ -648,20 +650,7 @@ const QPoint SNITrayWidget::popupMarkPoint() const
     const QRect r = rect();
     const QRect wr = window()->rect();
 
-    switch (DockPosition) {
-    case Dock::Position::Top:
-        p += QPoint(r.width() / 2, r.height() + (wr.height() - r.height()) / 2);
-        break;
-    case Dock::Position::Bottom:
-      p += QPoint(r.width() / 2, 0 - (wr.height() - r.height()) / 2);
-        break;
-    case Dock::Position::Left:
-        p += QPoint(r.width() + (wr.width() - r.width()) / 2, r.height() / 2);
-        break;
-    case Dock::Position::Right:
-        p += QPoint(0 - (wr.width() - r.width()) / 2, r.height() / 2);
-        break;
-    }
+    p += QPoint(r.width() / 2, r.height() + (wr.height() - r.height()) / 2);
 
     return p;
 }
@@ -678,12 +667,7 @@ void SNITrayWidget::showPopupWindow(QWidget *const content, const bool model)
     if (lastContent)
         lastContent->setVisible(false);
 
-    switch (DockPosition) {
-    case Dock::Position::Top:   popup->setArrowDirection(DockPopupWindow::ArrowTop);     break;
-    case Dock::Position::Bottom: popup->setArrowDirection(DockPopupWindow::ArrowBottom);  break;
-    case Dock::Position::Left:  popup->setArrowDirection(DockPopupWindow::ArrowLeft);    break;
-    case Dock::Position::Right: popup->setArrowDirection(DockPopupWindow::ArrowRight);   break;
-    }
+    popup->setArrowDirection(DockPopupWindow::ArrowTop);
     popup->resize(content->sizeHint());
     popup->setContent(content);
 

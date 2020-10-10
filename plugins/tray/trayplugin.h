@@ -30,7 +30,7 @@
 #include "indicatortraywidget.h"
 #include "snitraywidget.h"
 #include "system-trays/systemtrayscontroller.h"
-// #include "dbus/sni/statusnotifierwatcher_interface.h"
+#include "dbus/sni/statusnotifierwatcher_interface.h"
 
 #include <org_kde_statusnotifieritem.h>
 
@@ -51,8 +51,6 @@ public:
     const QString pluginName() const Q_DECL_OVERRIDE;
     void init(PluginProxyInterface *proxyInter) Q_DECL_OVERRIDE;
     bool pluginIsDisable() override;
-    void displayModeChanged(const Dock::DisplayMode mode) Q_DECL_OVERRIDE;
-    void positionChanged(const Dock::Position position) Q_DECL_OVERRIDE;
     QWidget *itemWidget(const QString &itemKey) Q_DECL_OVERRIDE;
     QWidget *itemTipsWidget(const QString &itemKey) Q_DECL_OVERRIDE;
     QWidget *itemPopupApplet(const QString &itemKey) Q_DECL_OVERRIDE;
@@ -61,7 +59,6 @@ public:
     void refreshIcon(const QString &itemKey) Q_DECL_OVERRIDE;
     void pluginSettingsChanged() override;
 
-    Dock::Position dockPosition() const;
     bool traysSortedInFashionMode();
     void saveValue(const QString &itemKey, const QString &key, const QVariant &value);
     const QVariant getValue(const QString &itemKey, const QString &key, const QVariant& fallback = QVariant());
@@ -70,7 +67,6 @@ private:
     void loadIndicator();
     bool isSystemTrayItem(const QString &itemKey);
     QString itemKeyOfTrayWidget(AbstractTrayWidget *trayWidget);
-    Dock::DisplayMode displayMode();
 
 private slots:
     void initXEmbed();
@@ -83,7 +79,7 @@ private slots:
     void trayIndicatorAdded(const QString &itemKey, const QString &indicatorName);
     void trayRemoved(const QString &itemKey, const bool deleteObject = true);
     void xembedItemChanged(quint32 winId);
-    void switchToMode(const Dock::DisplayMode mode);
+    void switchToMode();
     void onRequestWindowAutoHide(const bool autoHide);
     void onRequestRefershWindowVisible();
     void onSNIItemStatusChanged(SNITrayWidget::ItemStatus status);

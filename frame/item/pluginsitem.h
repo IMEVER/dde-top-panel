@@ -25,7 +25,6 @@
 #include "dockitem.h"
 #include "pluginsiteminterface.h"
 
-class QGSettings;
 class PluginsItem : public DockItem
 {
     Q_OBJECT
@@ -54,7 +53,6 @@ public:
 
 public slots:
     void refershIcon() override;
-    void onGSettingsChanged(const QString &key);
 
 protected:
     void mousePressEvent(QMouseEvent *e) override;
@@ -63,7 +61,6 @@ protected:
     void enterEvent(QEvent *event) Q_DECL_OVERRIDE;
     void leaveEvent(QEvent *event) Q_DECL_OVERRIDE;
     bool eventFilter(QObject *watched, QEvent *event) Q_DECL_OVERRIDE;
-    void showEvent(QShowEvent *event) override;
 
     void invokedMenuItem(const QString &itemId, const bool checked) override;
     void showPopupWindow(QWidget *const content, const bool model = false) override;
@@ -74,7 +71,6 @@ protected:
 private:
     void startDrag();
     void mouseClicked();
-    bool checkGSettingsControl() const;
 
 private:
     PluginsItemInterface *const m_pluginInter;
@@ -84,7 +80,6 @@ private:
     bool m_dragging;
 
     static QPoint MousePressPoint;
-    QGSettings *m_gsettings;
 };
 
 #endif // PLUGINSITEM_H

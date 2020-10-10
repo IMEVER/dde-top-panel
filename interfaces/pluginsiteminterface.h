@@ -177,45 +177,12 @@ public:
     virtual void pluginStateSwitched() {}
 
     ///
-    /// \brief displayModeChanged
-    /// override this function to receive display mode changed signal
-    /// \param displayMode
-    ///
-    virtual void displayModeChanged(const Dock::DisplayMode displayMode) {Q_UNUSED(displayMode);}
-    ///
-    /// \brief positionChanged
-    /// override this function to receive dock position changed signal
-    /// \param position
-    ///
-    virtual void positionChanged(const Dock::Position position) {Q_UNUSED(position);}
-
-    ///
     /// \brief refreshIcon
     /// refresh item icon, its triggered when system icon theme changed.
     /// \param itemKey
     /// item key
     ///
     virtual void refreshIcon(const QString &itemKey) { Q_UNUSED(itemKey); }
-
-    ///
-    /// \brief displayMode
-    /// get current dock display mode
-    /// \return
-    ///
-    inline Dock::DisplayMode displayMode() const
-    {
-        return qApp->property(PROP_DISPLAY_MODE).value<Dock::DisplayMode>();
-    }
-
-    ///
-    /// \brief position
-    /// get current dock position
-    /// \return
-    ///
-    inline Dock::Position position() const
-    {
-        return qApp->property(PROP_POSITION).value<Dock::Position>();
-    }
     
     ///
     /// \brief settingsChanged

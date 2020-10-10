@@ -8,16 +8,20 @@
 
 #include <QLabel>
 #include "../frame/util/CustomSettings.h"
+#include "../frame/item/components/hoverhighlighteffect.h"
 
 class QClickableLabel : public QLabel {
     Q_OBJECT
 
 public:
     explicit QClickableLabel(QWidget *parent);
+    ~QClickableLabel();
 
     void setDefaultFontColor(const QColor &defaultFontColor);
     void setSelectedColor();
     void setNormalColor();
+    void enterEvent(QEvent *event) override;
+    void leaveEvent(QEvent *event) override;
 
 signals:
     void clicked();
@@ -27,6 +31,7 @@ private:
 
 private:
     QColor defaultFontColor = CustomSettings::instance()->getActiveFontColor();
+    HoverHighlightEffect *hoverHighlightEffect;
 };
 
 

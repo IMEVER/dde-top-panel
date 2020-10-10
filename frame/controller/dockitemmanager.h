@@ -26,10 +26,8 @@
 #include "pluginsiteminterface.h"
 #include "item/dockitem.h"
 #include "item/appitem.h"
-#include "item/placeholderitem.h"
 
 #include <com_deepin_dde_daemon_dock.h>
-
 #include <QObject>
 
 using DBusDock = com::deepin::dde::daemon::Dock;
@@ -63,7 +61,6 @@ public slots:
     void sortPluginItems();
     void updatePluginsItemOrderKey();
     void itemMoved(DockItem *const sourceItem, DockItem *const targetItem);
-    void itemAdded(const QString &appDesktop, int idx);
 
 private:
     void appItemAdded(const QDBusObjectPath &path, const int index);

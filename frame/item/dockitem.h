@@ -28,9 +28,7 @@
 
 #include <QFrame>
 #include <QPointer>
-#include <QGestureEvent>
 #include <QMenu>
-
 #include <memory>
 
 using namespace Dock;
@@ -74,7 +72,6 @@ signals:
 
 protected:
     bool event(QEvent *event) override;
-    void paintEvent(QPaintEvent *e) override;
     void mousePressEvent(QMouseEvent *e) override;
     void enterEvent(QEvent *e) override;
     void leaveEvent(QEvent *e) override;
@@ -91,9 +88,6 @@ protected:
     virtual const QString contextMenu() const;
     virtual QWidget *popupTips();
 
-    bool checkAndResetTapHoldGestureState();
-    virtual void gestureEvent(QGestureEvent *event);
-
 protected slots:
     void showContextMenu();
     void onContextMenuAccepted();
@@ -105,7 +99,6 @@ private:
 protected:
     bool m_hover;
     bool m_popupShown;
-    bool m_tapAndHold;
     bool m_draging;
     QMenu m_contextMenu;
 

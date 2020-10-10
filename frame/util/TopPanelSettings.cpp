@@ -8,8 +8,6 @@
 #include <QScreen>
 #include <QAction>
 
-#define DEFAULT_HEIGHT 32
-
 extern const QPoint rawXPosition(const QPoint &scaledPos);
 
 TopPanelSettings::TopPanelSettings(DockItemManager *itemManager, QScreen *screen, QWidget *parent)

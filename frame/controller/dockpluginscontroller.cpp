@@ -129,7 +129,6 @@ void DockPluginsController::requestSetAppletVisible(PluginsItemInterface *const 
 void DockPluginsController::startLoader()
 {
     loadLocalPlugins();
-    loadSystemPlugins();
 }
 
 void DockPluginsController::loadLocalPlugins()
@@ -141,17 +140,6 @@ void DockPluginsController::loadLocalPlugins()
     }
 
     qDebug() << "using dock local plugins dir:" << pluginsDir;
-
-    AbstractPluginsController::startLoader(new PluginLoader(pluginsDir, this));
-}
-
-void DockPluginsController::loadSystemPlugins()
-{
-    QString pluginsDir("/usr/lib/dde-top-panel/plugins");
-    if (!QDir(pluginsDir).exists()) {
-        pluginsDir = "/usr/lib/dde-top-panel/plugins";
-    }
-    qDebug() << "using dock plugins dir:" << pluginsDir;
 
     AbstractPluginsController::startLoader(new PluginLoader(pluginsDir, this));
 }

@@ -37,7 +37,7 @@ FashionTrayItem::FashionTrayItem(TrayPlugin *trayPlugin, QWidget *parent)
       m_mainBoxLayout(new QBoxLayout(QBoxLayout::Direction::LeftToRight)),
       m_attentionDelayTimer(new QTimer(this)),
       m_trayPlugin(trayPlugin),
-      m_controlWidget(new FashionTrayControlWidget(trayPlugin->dockPosition())),
+      m_controlWidget(new FashionTrayControlWidget()),
       m_currentDraggingTray(nullptr),
       m_normalContainer(new NormalContainer(m_trayPlugin)),
       m_attentionContainer(new AttentionContainer(m_trayPlugin)),
@@ -53,6 +53,7 @@ FashionTrayItem::FashionTrayItem(TrayPlugin *trayPlugin, QWidget *parent)
     m_mainBoxLayout->setMargin(0);
     m_mainBoxLayout->setContentsMargins(0, 0, 0, 0);
     m_mainBoxLayout->setSpacing(0);
+    m_mainBoxLayout->setDirection(QBoxLayout::Direction::LeftToRight);
 
     m_leftSpace->setFixedSize(TraySpace, TraySpace);
     m_leftSpace->setAccessibleName("leftspace");
@@ -145,26 +146,6 @@ void FashionTrayItem::clearTrayWidgets()
     requestResize();
 }
 
-void FashionTrayItem::setDockPosition(Dock::Position pos)
-{
-    m_dockpos = pos;
-    m_controlWidget->setDockPostion(pos);
-    SystemTrayItem::setDockPostion(pos);
-    SNITrayWidget::setDockPostion(pos);
-
-    m_normalContainer->setDockPosition(pos);
-    m_attentionContainer->setDockPosition(pos);
-    m_holdContainer->setDockPosition(pos);
-
-    if (pos == Dock::Position::Top || pos == Dock::Position::Bottom) {
-        m_mainBoxLayout->setDirection(QBoxLayout::Direction::LeftToRight);
-    } else {
-        m_mainBoxLayout->setDirection(QBoxLayout::Direction::TopToBottom);
-    }
-
-    requestResize();
-}
-
 void FashionTrayItem::onExpandChanged(const bool expand)
 {
     m_trayPlugin->saveValue(FASHION_MODE_ITEM_KEY, ExpandedKey, expand);
@@ -228,7 +209,6 @@ void FashionTrayItem::init()
 {
     qDebug() << "init Fashion mode tray plugin item";
     m_controlWidget->setExpanded(m_trayPlugin->getValue(FASHION_MODE_ITEM_KEY, ExpandedKey, true).toBool());
-    setDockPosition(m_trayPlugin->dockPosition());
     onExpandChanged(m_controlWidget->expanded());
 }
 
@@ -355,33 +335,18 @@ void FashionTrayItem::resizeTray()
     if (!m_iconSize)
         return;
 
-    if (m_dockpos == Dock::Position::Top || m_dockpos == Dock::Position::Bottom) {
-        if (m_attentionContainer->itemCount() != 0){
-            m_mainBoxLayout->setContentsMargins(0, 0, TraySpace, 0);
-        } else {
-            m_mainBoxLayout->setContentsMargins(0, 0, 0, 0);
-        }
-        m_holdContainer->setFixedWidth((m_iconSize + TraySpace) * m_holdContainer->itemCount() + TraySpace);
-        m_holdContainer->setFixedHeight(QWIDGETSIZE_MAX);
-
-        m_attentionContainer->setFixedWidth(m_iconSize * m_attentionContainer->itemCount());
-        m_attentionContainer->setFixedHeight(QWIDGETSIZE_MAX);
-
-        m_controlWidget->setFixedSize(m_iconSize, QWIDGETSIZE_MAX);
+    if (m_attentionContainer->itemCount() != 0){
+        m_mainBoxLayout->setContentsMargins(0, 0, TraySpace, 0);
     } else {
-        m_holdContainer->setFixedWidth(QWIDGETSIZE_MAX);
-        if (m_attentionContainer->itemCount() != 0){
-            m_mainBoxLayout->setContentsMargins(0, 0, 0, TraySpace);
-        } else {
-            m_mainBoxLayout->setContentsMargins(0, 0, 0, 0);
-        }
+        m_mainBoxLayout->setContentsMargins(0, 0, 0, 0);
+    }
+    m_holdContainer->setFixedWidth((m_iconSize + TraySpace) * m_holdContainer->itemCount() + TraySpace);
+    m_holdContainer->setFixedHeight(QWIDGETSIZE_MAX);
 
-         m_holdContainer->setFixedHeight((m_iconSize + TraySpace) * m_holdContainer->itemCount() + TraySpace);
-        m_attentionContainer->setFixedWidth(QWIDGETSIZE_MAX);
-        m_attentionContainer->setFixedHeight(m_iconSize * m_attentionContainer->itemCount());
+    m_attentionContainer->setFixedWidth(m_iconSize * m_attentionContainer->itemCount());
+    m_attentionContainer->setFixedHeight(QWIDGETSIZE_MAX);
 
-        m_controlWidget->setFixedSize(QWIDGETSIZE_MAX, m_iconSize);
-    }    
+    // m_controlWidget->setFixedSize(m_iconSize, QWIDGETSIZE_MAX);
 
     m_normalContainer->updateSize();
 }

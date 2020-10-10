@@ -20,7 +20,6 @@ public:
     virtual bool removeWrapper(FashionTrayWidgetWrapper *wrapper);
     virtual bool removeWrapperByTrayWidget(AbstractTrayWidget *trayWidget);
     virtual FashionTrayWidgetWrapper *takeWrapper(FashionTrayWidgetWrapper *wrapper);
-    virtual void setDockPosition(const Dock::Position pos);
     virtual void setExpand(const bool expand);
     virtual QSize totalSize() const;
     virtual int itemCount();
@@ -50,7 +49,6 @@ protected:
     QBoxLayout *wrapperLayout() const;
     void setWrapperLayout(QBoxLayout *layout);
     bool expand() const;
-    Dock::Position dockPosition() const;
     QSize wrapperSize() const;
 
 protected:
@@ -71,7 +69,6 @@ private:
     QList<QPointer<FashionTrayWidgetWrapper>> m_wrapperList;
 
     bool m_expand;
-    Dock::Position m_dockPosition;
 
     QSize m_wrapperSize;
     int m_itemSize = 40;

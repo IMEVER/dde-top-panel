@@ -34,10 +34,9 @@ DWIDGET_USE_NAMESPACE
 
 #define ExpandedKey "fashion-tray-expanded"
 
-FashionTrayControlWidget::FashionTrayControlWidget(Dock::Position position, QWidget *parent)
+FashionTrayControlWidget::FashionTrayControlWidget(QWidget *parent)
     : QWidget(parent),
       m_expandDelayTimer(new QTimer(this)),
-      m_dockPosition(position),
       m_expanded(true),
       m_hover(false),
       m_pressed(false)
@@ -45,20 +44,15 @@ FashionTrayControlWidget::FashionTrayControlWidget(Dock::Position position, QWid
     m_expandDelayTimer->setInterval(400);
     m_expandDelayTimer->setSingleShot(true);
 
-    setDockPostion(m_dockPosition);
     setExpanded(m_expanded);
 
-    setMinimumSize(PLUGIN_BACKGROUND_MIN_SIZE, PLUGIN_BACKGROUND_MIN_SIZE);
-    setMaximumSize(PLUGIN_BACKGROUND_MAX_SIZE, PLUGIN_BACKGROUND_MAX_SIZE);
+    // setMinimumSize(PLUGIN_BACKGROUND_MIN_SIZE, PLUGIN_BACKGROUND_MIN_SIZE);
+    // setMaximumSize(PLUGIN_BACKGROUND_MAX_SIZE, PLUGIN_BACKGROUND_MAX_SIZE);
+    setFixedSize(PLUGIN_BACKGROUND_MIN_SIZE, PLUGIN_BACKGROUND_MIN_SIZE);
 
     connect(DGuiApplicationHelper::instance(), &DGuiApplicationHelper::themeTypeChanged, this, [ = ] {
         update();
     });
-}
-
-void FashionTrayControlWidget::setDockPostion(Dock::Position pos)
-{
-    m_dockPosition = pos;
     refreshArrowPixmap();
 }
 
@@ -109,19 +103,6 @@ void FashionTrayControlWidget::paintEvent(QPaintEvent *event)
         }
     }
 
-    // draw background
-    QPainterPath path;
-    if (rect().height() > PLUGIN_BACKGROUND_MIN_SIZE) {
-        DStyleHelper dstyle(style());
-        const int radius = dstyle.pixelMetric(DStyle::PM_FrameRadius);
-
-        int minSize = std::min(width(), height());
-        QRect rc(0, 0, minSize, minSize);
-        rc.moveTo(rect().center() - rc.center());
-
-        path.addRoundedRect(rc, radius, radius);
-        painter.fillPath(path, color);
-    }
     // reset opacity
     painter.setOpacity(1);
 
@@ -191,20 +172,9 @@ void FashionTrayControlWidget::resizeEvent(QResizeEvent *event)
 
 void FashionTrayControlWidget::refreshArrowPixmap()
 {
-    QString iconPath;
+    QString iconPath = m_expanded ? "arrow-right" : "arrow-left";
 
-    switch (m_dockPosition) {
-    case Dock::Top:
-    case Dock::Bottom:
-        iconPath = m_expanded ? "arrow-right" : "arrow-left";
-        break;
-    case Dock::Left:
-    case Dock::Right:
-        iconPath = m_expanded ?  "arrow-down" : "arrow-up";
-        break;
-    }
-
-    if (height() <= PLUGIN_BACKGROUND_MIN_SIZE && DGuiApplicationHelper::instance()->themeType() == DGuiApplicationHelper::LightType) {
+    if (DGuiApplicationHelper::instance()->themeType() == DGuiApplicationHelper::LightType) {
         iconPath.append("-dark");
     }
 

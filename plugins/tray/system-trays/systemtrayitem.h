@@ -53,8 +53,6 @@ public:
     const QString contextMenu() const;
     void invokedMenuItem(const QString &menuId, const bool checked);
 
-    static void setDockPostion(const Dock::Position pos) { DockPosition = pos; }
-
     QWidget *centralWidget() const;
     void detachPluginWidget();
     void showContextMenu();
@@ -109,7 +107,6 @@ private:
     QPointer<QWidget> m_lastPopupWidget;
     QString m_itemKey;
 
-    static Dock::Position DockPosition;
     static QPointer<DockPopupWindow> PopupWindow;
     QGSettings* m_gsettings;
 };

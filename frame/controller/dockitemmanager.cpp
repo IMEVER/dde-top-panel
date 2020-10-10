@@ -22,10 +22,6 @@
 #include "dockitemmanager.h"
 #include "item/pluginsitem.h"
 #include "item/traypluginitem.h"
-#include "util/docksettings.h"
-
-#include <QDebug>
-#include <QGSettings>
 
 DockItemManager *DockItemManager::INSTANCE = nullptr;
 
@@ -35,11 +31,7 @@ DockItemManager::DockItemManager(QObject *parent, bool enableBlacklist)
     , m_appInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
     , m_pluginsInter(new DockPluginsController(enableBlacklist, this))
 {
-
-        for (auto entry : m_appInter->entries()) 
-        {
-            reloadAppItems();
-        }
+    reloadAppItems();
     // 托盘区域和插件区域 由DockPluginsController获取
 
     // 更新插件顺序
@@ -82,9 +74,7 @@ const QList<PluginsItemInterface *> DockItemManager::pluginList() const
 
 void DockItemManager::startLoadPlugins() const
 {
-    QGSettings gsetting("com.deepin.dde.dock", "/com/deepin/dde/dock/");
-
-    QTimer::singleShot(gsetting.get("delay-plugins-time").toUInt(), m_pluginsInter, &DockPluginsController::startLoader);
+    m_pluginsInter->startLoader();
 }
 
 void DockItemManager::refershItemsIcon()
@@ -138,11 +128,6 @@ void DockItemManager::itemMoved(DockItem *const sourceItem, DockItem *const targ
             || moveType == DockItem::TrayPlugin || replaceType == DockItem::TrayPlugin
             || moveType == DockItem::FixedPlugin || replaceType == DockItem::FixedPlugin)
         m_updatePluginsOrderTimer->start();
-}
-
-void DockItemManager::itemAdded(const QString &appDesktop, int idx)
-{
-    // m_appInter->RequestDock(appDesktop, idx);
 }
 
 void DockItemManager::appItemAdded(const QDBusObjectPath &path, const int index)

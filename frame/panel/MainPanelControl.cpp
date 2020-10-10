@@ -6,6 +6,8 @@
 #include <QApplication>
 #include <QDrag>
 
+#include "../widgets/ShowDesktopWidget.h"
+
 #define PLUGIN_MAX_SIZE  40
 
 MainPanelControl::MainPanelControl(QWidget *parent)
@@ -22,7 +24,7 @@ MainPanelControl::MainPanelControl(QWidget *parent)
 {
     this->init();
 
-    this->setFixedHeight(32);
+    this->setFixedHeight(DEFAULT_HEIGHT);
     this->setMouseTracking(true);
     this->setAcceptDrops(true);
 
@@ -36,24 +38,25 @@ void MainPanelControl::init() {
     this->m_mainPanelLayout->addWidget(this->m_trayAreaWidget);
     this->m_mainPanelLayout->addWidget(this->m_pluginAreaWidget);
     this->m_mainPanelLayout->addWidget(this->m_fixedPluginWidget);
+    this->m_mainPanelLayout->addWidget(new ShowDesktopWidget(this));
 
     m_mainPanelLayout->setMargin(0);
     m_mainPanelLayout->setContentsMargins(0, 0, 0, 0);
-    m_mainPanelLayout->setSpacing(5);
+    m_mainPanelLayout->setSpacing(0);
 
     // 托盘
     m_trayAreaWidget->setLayout(m_trayAreaLayout);
     m_trayAreaWidget->setAccessibleName("trayarea");
     m_trayAreaLayout->setMargin(0);
     m_trayAreaLayout->setSpacing(0);
-    m_trayAreaLayout->setContentsMargins(0, 6, 0, 6);
+    m_trayAreaLayout->setContentsMargins(0, 3, 0, 3);
 
     // 插件
     m_pluginAreaWidget->setLayout(m_pluginLayout);
     m_pluginAreaWidget->setAcceptDrops(true);
     m_pluginAreaWidget->setAccessibleName("pluginarea");
     m_pluginLayout->setMargin(0);
-    m_pluginLayout->setSpacing(1);
+    m_pluginLayout->setSpacing(5);
     // m_pluginLayout->setContentsMargins(5, 0, 5, 0);
 
     m_pluginAreaWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
@@ -61,7 +64,7 @@ void MainPanelControl::init() {
 
     m_fixedPluginWidget->setLayout(m_fixedPluginLayout);
     m_fixedPluginLayout->setMargin(0);
-    m_fixedPluginLayout->setSpacing(1);
+    m_fixedPluginLayout->setSpacing(5);
     // m_fixedPluginLayout->setContentsMargins(5, 0, 5, 0);
     // m_fixedPluginWidget->setFixedWidth(100);
     m_fixedPluginWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);

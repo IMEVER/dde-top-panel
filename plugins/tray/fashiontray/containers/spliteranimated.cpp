@@ -10,8 +10,7 @@
 SpliterAnimated::SpliterAnimated(QWidget *parent)
     : QWidget(parent),
       m_sizeAnimation(new QVariantAnimation(this)),
-      m_currentOpacity(OpacityMini),
-      m_dockPosition(Dock::Position::Bottom)
+      m_currentOpacity(OpacityMini)
 {
     m_sizeAnimation->setDuration(500);
     m_sizeAnimation->setLoopCount(-1);
@@ -37,15 +36,7 @@ void SpliterAnimated::startAnimation()
 
     m_currentOpacity = OpacityMini;
 
-    if (m_dockPosition == Dock::Position::Top || m_dockPosition == Dock::Position::Bottom) {
-        m_opacityChangeStep = (OpacityMax - OpacityMini) /
-                (m_sizeAnimation->endValue().toSizeF().height() -
-                 m_sizeAnimation->startValue().toSizeF().height());
-    } else {
-        m_opacityChangeStep = (OpacityMax - OpacityMini) /
-                (m_sizeAnimation->endValue().toSizeF().width() -
-                 m_sizeAnimation->startValue().toSizeF().width());
-    }
+    m_opacityChangeStep = (OpacityMax - OpacityMini) / (m_sizeAnimation->endValue().toSizeF().height() - m_sizeAnimation->startValue().toSizeF().height());
 
     m_sizeAnimation->start();
 
@@ -58,11 +49,6 @@ void SpliterAnimated::stopAnimation()
     m_currentOpacity = OpacityMini;
 
     update();
-}
-
-void SpliterAnimated::setDockPosition(const Dock::Position position)
-{
-    m_dockPosition = position;
 }
 
 void SpliterAnimated::paintEvent(QPaintEvent *event)

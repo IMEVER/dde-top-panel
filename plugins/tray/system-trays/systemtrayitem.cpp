@@ -27,7 +27,6 @@
 #include <xcb/xproto.h>
 #include <QGSettings>
 
-Dock::Position SystemTrayItem::DockPosition = Dock::Position::Top;
 QPointer<DockPopupWindow> SystemTrayItem::PopupWindow = nullptr;
 
 SystemTrayItem::SystemTrayItem(PluginsItemInterface *const pluginInter, const QString &itemKey, QWidget *parent)
@@ -274,20 +273,7 @@ const QPoint SystemTrayItem::popupMarkPoint() const
     const QRect r = rect();
     const QRect wr = window()->rect();
 
-    switch (DockPosition) {
-    case Dock::Position::Top:
-        p += QPoint(r.width() / 2, r.height() + (wr.height() - r.height()) / 2);
-        break;
-    case Dock::Position::Bottom:
-        p += QPoint(r.width() / 2, 0 - (wr.height() - r.height()) / 2);
-        break;
-    case Dock::Position::Left:
-        p += QPoint(r.width() + (wr.width() - r.width()) / 2, r.height() / 2);
-        break;
-    case Dock::Position::Right:
-        p += QPoint(0 - (wr.width() - r.width()) / 2, r.height() / 2);
-        break;
-    }
+    p += QPoint(r.width() / 2, r.height() + (wr.height() - r.height()) / 2);
 
     return p;
 }
@@ -359,12 +345,8 @@ void SystemTrayItem::showPopupWindow(QWidget *const content, const bool model)
     if (lastContent)
         lastContent->setVisible(false);
 
-    switch (DockPosition) {
-    case Dock::Position::Top:   popup->setArrowDirection(DockPopupWindow::ArrowTop);     break;
-    case Dock::Position::Bottom: popup->setArrowDirection(DockPopupWindow::ArrowBottom);  break;
-    case Dock::Position::Left:  popup->setArrowDirection(DockPopupWindow::ArrowLeft);    break;
-    case Dock::Position::Right: popup->setArrowDirection(DockPopupWindow::ArrowRight);   break;
-    }
+    popup->setArrowDirection(DockPopupWindow::ArrowTop);
+
     popup->resize(content->sizeHint());
     popup->setContent(content);
 

@@ -44,7 +44,7 @@
 #define WINE_WINDOW_PROP_NAME "__wine_prefix"
 #define IS_WINE_WINDOW_BY_WM_CLASS "explorer.exe"
 
-static const qreal iconSize = PLUGIN_ICON_MAX_SIZE;
+static const qreal iconSize = 16;
 
 // this static var hold all suffix of tray widget keys.
 // that is in order to fix can not show multiple trays provide by one application,

@@ -21,38 +21,40 @@
 ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     : QWidget(parent)
     , m_appInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
-    , m_wmInter(new DBusWM("com.deepin.wm", "/com/deepin/wm", QDBusConnection::sessionBus(), this))
     , mouseClicked(false)
+    , m_currentIndex(-1)
 {
     QPalette palette1 = this->palette();
     palette1.setColor(QPalette::Background, Qt::transparent);
     this->setPalette(palette1);
 
     this->m_layout = new QHBoxLayout(this);
-    this->m_layout->setSpacing(12);
-    this->m_layout->setContentsMargins(10, 0, 0, 0);
+    this->m_layout->setSpacing(10);
+    this->m_layout->setContentsMargins(2, 0, 0, 0);
     this->setLayout(this->m_layout);
 
     QClickableLabel *launchLabel = new QClickableLabel(this);
+    
     launchLabel->setToolTip("启动器");
     launchLabel->setToolTipDuration(5000);
     launchLabel->setStyleSheet("QLabel{background-color: rgba(0,0,0,0);}");
     launchLabel->setPixmap(QPixmap(":/icons/launcher.svg"));
-    launchLabel->setFixedSize(22, 22);
+    launchLabel->setFixedSize(18, 18);
     launchLabel->setScaledContents(true);
-    launchLabel->setGraphicsEffect(new HoverHighlightEffect(this));
+    // launchLabel->setGraphicsEffect(new HoverHighlightEffect(this));
     connect(launchLabel, &QClickableLabel::clicked, this, [=](){
-        QProcess::startDetached("dde-launcher -p");
+        QProcess::startDetached("dde-launcher -t");
     });
     this->m_layout->addWidget(launchLabel);
 
     this->m_iconLabel = new QLabel(this);
-    this->m_iconLabel->setFixedSize(22, 22);
+    this->m_iconLabel->setFixedSize(18, 18);
     this->m_iconLabel->setScaledContents(true);
     this->m_iconLabel->setGraphicsEffect(new HoverHighlightEffect(this));
+    
     this->m_layout->addWidget(this->m_iconLabel);
 
-    int buttonSize = 22;
+    int buttonSize = 18;
     this->m_buttonWidget = new QWidget(this);
     this->m_buttonLayout = new QHBoxLayout(this->m_buttonWidget);
     this->m_buttonLayout->setContentsMargins(0, 0, 0, 0);
@@ -60,18 +62,21 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->m_buttonLayout->setMargin(0);
 
     this->closeButton = new QToolButton(this->m_buttonWidget);
+    this->closeButton->setToolTip("关闭");
     this->closeButton->setFixedSize(buttonSize, buttonSize);
     this->closeButton->setIcon(QIcon(":/icons/close.svg"));
     this->closeButton->setIconSize(QSize(buttonSize - 8, buttonSize - 8));
     this->m_buttonLayout->addWidget(this->closeButton);
 
     this->maxButton = new QToolButton(this->m_buttonWidget);
+    this->maxButton->setToolTip("还原");
     this->maxButton->setFixedSize(buttonSize, buttonSize);
     this->maxButton->setIcon(QIcon(":/icons/maximum.svg"));
     this->maxButton->setIconSize(QSize(buttonSize - 8, buttonSize - 8));
     this->m_buttonLayout->addWidget(this->maxButton);
 
     this->minButton = new QToolButton(this->m_buttonWidget);
+    this->minButton->setToolTip("最小化");
     this->minButton->setFixedSize(buttonSize, buttonSize);
     this->minButton->setIcon(QIcon(":/icons/minimum.svg"));
     this->minButton->setIconSize(QSize(buttonSize - 8, buttonSize - 8));
@@ -79,9 +84,12 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->m_layout->addWidget(this->m_buttonWidget);
 
     this->menuBar = new QMenuBar(this);
-    this->menuBar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-    // this->menuBar->setFixedHeight(28);
-    // this->menuBar->setStyleSheet("font-size: 14px; line-height: 100%; background-color: rgba(0,0,0,0)");    
+    // this->menuBar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    // this->menuBar->setFixedHeight(20);
+    // QFont font = this->menuBar->font();font.setPointSize(10);this->menuBar->setFont(font);
+    // this->menuBar->setMaximumHeight(20);
+    // this->menuBar->setStyleSheet("QMenuBar {font-size: 12px;}");
+    // this->menuBar->setStyleSheet("QMenuBar::item { height: 18px; font-size: 12px; margin: 0px; padding: 0px}");    
     this->m_layout->addWidget(this->menuBar);
 
     this->m_appMenuModel = new AppMenuModel(this);
@@ -96,10 +104,15 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->m_buttonShowAnimation = new QPropertyAnimation(this->m_buttonWidget, "maximumWidth");
     this->m_buttonShowAnimation->setEndValue(this->m_buttonWidget->width());
     this->m_buttonShowAnimation->setDuration(150);
+    this->m_buttonShowAnimation->setEasingCurve(QEasingCurve::Linear);
 
     this->m_buttonHideAnimation = new QPropertyAnimation(this->m_buttonWidget, "maximumWidth");
     this->m_buttonHideAnimation->setEndValue(0);
     this->m_buttonHideAnimation->setDuration(150);
+    this->m_buttonHideAnimation->setEasingCurve(QEasingCurve::Linear);
+    connect(this->m_buttonHideAnimation, &QPropertyAnimation::finished, this, [this](){
+        this->m_buttonWidget->hide();
+    });
 
     this->setButtonsVisible(false);
     this->setMouseTracking(true);
@@ -147,22 +160,41 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
     int currScreenNum = this->currScreenNum();
     int activeWinScreenNum = XUtils::getWindowScreenNum(activeWinId);
     if (activeWinScreenNum >= 0 && activeWinScreenNum != currScreenNum) {
+        bool ifFoundPrevActiveWinId = false;
         if (XUtils::checkIfBadWindow(this->currActiveWinId) || this->currActiveWinId == activeWinId || XUtils::checkIfWinMinimun(this->currActiveWinId)) {
-//            qDebug() << "Screen" << this->currScreenNum()
-//                     << XUtils::checkIfBadWindow(this->currActiveWinId)
-//                     << (this->currActiveWinId == activeWinId)
-//                     << XUtils::checkIfWinMinimun(this->currActiveWinId);
-            this->currActiveWinId = -1;
-            this->m_winTitleLabel->setText(tr("桌面"));
-            this->m_iconLabel->setPixmap(QPixmap(CustomSettings::instance()->getActiveDefaultAppIconPath()));
+            int newCurActiveWinId = -1;
+            while (!this->activeIdStack.isEmpty()) {
+                int prevActiveId = this->activeIdStack.pop();
+                if (XUtils::checkIfBadWindow(prevActiveId) || this->currActiveWinId == prevActiveId || XUtils::checkIfWinMinimun(prevActiveId)) {
+                    continue;
+                }
+
+                int sNum = XUtils::getWindowScreenNum(prevActiveId);
+                if (sNum != currScreenNum) {
+                    continue;
+                }
+
+                newCurActiveWinId = prevActiveId;
+                break;
+            }
+
+            if (newCurActiveWinId < 0) {
+                this->currActiveWinId = -1;
+                this->m_winTitleLabel->setText(tr("桌面"));
+                this->m_iconLabel->setPixmap(QPixmap(CustomSettings::instance()->getActiveDefaultAppIconPath()));
+            } else {
+                activeWinId = newCurActiveWinId;
+                ifFoundPrevActiveWinId = true;
+            }
         }
-        return;
+        if (!ifFoundPrevActiveWinId) {
+            return;
+        }
     }
 
     if (activeWinId != this->currActiveWinId) {
         this->currActiveWinId = activeWinId;
-        this->m_iconLabel->setPixmap(XUtils::getWindowIconName(this->currActiveWinId));
-        // todo
+        this->activeIdStack.push(this->currActiveWinId);
     }
 
     this->setButtonsVisible(XUtils::checkIfWinMaximum(this->currActiveWinId));
@@ -173,6 +205,7 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
 
     if (!activeWinTitle.isEmpty()) {
         this->m_iconLabel->setPixmap(XUtils::getWindowIconNameX11(this->currActiveWinId));
+        this->m_iconLabel->setToolTip(XUtils::getWindowAppName(this->currActiveWinId));
     }
 
     // KWindowSystem will not update menu for desktop when focusing on the desktop
@@ -191,12 +224,15 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
 }
 
 void ActiveWindowControlWidget::setButtonsVisible(bool visible) {
-    if (visible) {
-        this->m_buttonShowAnimation->setStartValue(this->m_buttonWidget->width());
-        this->m_buttonShowAnimation->start();
-    } else {
-        this->m_buttonHideAnimation->setStartValue(this->m_buttonWidget->width());
-        this->m_buttonHideAnimation->start();
+    if (CustomSettings::instance()->isShowControlButtons()) {
+        if (visible) {
+            this->m_buttonWidget->show();
+            this->m_buttonShowAnimation->setStartValue(this->m_buttonWidget->width());
+            this->m_buttonShowAnimation->start();
+        } else {
+            this->m_buttonHideAnimation->setStartValue(this->m_buttonWidget->width());
+            this->m_buttonHideAnimation->start();
+        }
     }
 }
 
@@ -278,18 +314,19 @@ void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorTyp
             this->closeButton->setIcon(QIcon(":/icons/close.svg"));
             this->maxButton->setIcon(QIcon(":/icons/maximum.svg"));
             this->minButton->setIcon(QIcon(":/icons/minimum.svg"));
-            this->menuBar->setStyleSheet("QMenuBar {color: black; background-color: rgba(0,0,0,0); margin: 0 5 0 5;} ");
+            this->menuBar->setStyleSheet("QMenuBar {font-size: 14px; color: black; background-color: rgba(0,0,0,0); margin: 0 0 0 0;} ");
             this->m_winTitleLabel->setStyleSheet("QLabel { color: black; }");
             break;
         case DGuiApplicationHelper::DarkType:
             this->closeButton->setIcon(QIcon(":/icons/close-white.svg"));
             this->maxButton->setIcon(QIcon(":/icons/maximum-white.svg"));
             this->minButton->setIcon(QIcon(":/icons/minimum-white.svg"));
-            this->menuBar->setStyleSheet("QMenuBar {color: white; background-color: rgba(0,0,0,0); margin: 0 5 0 5;} ");
+            this->menuBar->setStyleSheet("QMenuBar {font-size: 14px; color: white; background-color: rgba(0,0,0,0); margin: 0 0 0 0;} ");
             this->m_winTitleLabel->setStyleSheet("QLabel { color: white; }");
         default:
             break;
     }
+    qDebug()<<"QmenuBar size: "<<this->menuBar->size();
 }
 
 void ActiveWindowControlWidget::mousePressEvent(QMouseEvent *event) {
@@ -297,7 +334,10 @@ void ActiveWindowControlWidget::mousePressEvent(QMouseEvent *event) {
         QWidget *pressedWidget = childAt(event->pos());
         if (pressedWidget == nullptr || pressedWidget == m_winTitleLabel) {
             this->mouseClicked = !this->mouseClicked;
+        } else if (qobject_cast<QLabel*>(pressedWidget) == this->m_iconLabel) {
+
         }
+        KWindowSystem::activateWindow(this->currActiveWinId);
     }
     QWidget::mousePressEvent(event);
 }
@@ -325,6 +365,7 @@ void ActiveWindowControlWidget::mouseMoveEvent(QMouseEvent *event) {
 
 void ActiveWindowControlWidget::applyCustomSettings(const CustomSettings& settings) {
     // buttons
+    this->m_buttonWidget->setVisible(settings.isShowControlButtons());
     this->closeButton->setIcon(QIcon(settings.getActiveCloseIconPath()));
     this->maxButton->setIcon(QIcon(settings.getActiveUnmaximizedIconPath()));
     this->minButton->setIcon(QIcon(settings.getActiveMinimizedIconPath()));

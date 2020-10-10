@@ -9,12 +9,10 @@ file(GLOB_RECURSE SRCS "*.h" "*.cpp"
     "../../frame/util/dockpopupwindow.h" "../../frame/util/dockpopupwindow.cpp"
     "../../frame/util/abstractpluginscontroller.h" "../../frame/util/abstractpluginscontroller.cpp"
     "../../frame/util/pluginloader.h" "../../frame/util/pluginloader.cpp"
-    #"../../frame/dbus/sni/*.h" "../../frame/dbus/sni/*.cpp"
-    "../../frame/dbus/dbusmenu.h" "../../frame/dbus/dbusmenu.cpp"
-    "../../frame/dbus/dbusmenumanager.h" "../../frame/dbus/dbusmenumanager.cpp"
-    "../../widgets/*.h" "../../widgets/*.cpp"
+    "../../frame/dbus/sni/*.h" "../../frame/dbus/sni/*.cpp"
+    "../../widgets/tipswidget.h" "../../widgets/tipswidget.cpp"
      "../../frame/util/imageutil.h" "../../frame/util/imageutil.cpp"
-        "../../frame/util/XUtils.h" "../../frame/util/XUtils.cpp")
+)
 
 find_package(PkgConfig REQUIRED)
 find_package(Qt5Widgets REQUIRED)
@@ -49,7 +47,6 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
     ${DDE-Network-Utils_LIBRARIES}
     ${DFrameworkDBus_LIBRARIES}
     ${QGSettings_LIBRARIES}
-    dde-appmenu
     pthread
     xdo
 )

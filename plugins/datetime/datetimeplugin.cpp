@@ -30,6 +30,8 @@
 
 #define PLUGIN_STATE_KEY "enable"
 #define TIME_FORMAT_KEY "Use24HourFormat"
+#define DATE_SHOW_KEY "showDate"
+#define LUNAR_SHOW_KEY "showLunar"
 
 DatetimePlugin::DatetimePlugin(QObject *parent)
     : QObject(parent)
@@ -54,15 +56,6 @@ void DatetimePlugin::init(PluginProxyInterface *proxyInter)
 {
     m_proxyInter = proxyInter;
 
-    // transfer config
-    QSettings settings("deepin", "dde-dock-datetime");
-    if (QFile::exists(settings.fileName())) {
-        Dock::DisplayMode mode = displayMode();
-        const QString     key  = QString("pos_%1").arg(mode);
-        proxyInter->saveValue(this, key, settings.value(key, mode == Dock::DisplayMode::Fashion ? 5 : -1));
-        QFile::remove(settings.fileName());
-    }
-
     if (pluginIsDisable()) {
         return;
     }
@@ -84,6 +77,8 @@ void DatetimePlugin::loadPlugin()
     m_refershTimer->start();
 
     m_centralWidget = new DatetimeWidget;
+    m_centralWidget->setShowDate(m_proxyInter->getValue(this, DATE_SHOW_KEY, true).toBool());
+    m_centralWidget->setShowLunar(m_proxyInter->getValue(this, LUNAR_SHOW_KEY, true).toBool());
 
     connect(m_centralWidget, &DatetimeWidget::requestUpdateGeometry, [this] { m_proxyInter->itemUpdate(this, pluginName()); });
     connect(m_refershTimer, &QTimer::timeout, this, &DatetimePlugin::updateCurrentTimeString);
@@ -108,17 +103,13 @@ bool DatetimePlugin::pluginIsDisable()
 int DatetimePlugin::itemSortKey(const QString &itemKey)
 {
     Q_UNUSED(itemKey);
-
-    const QString key = QString("pos_%1").arg(Dock::Efficient);
-    return m_proxyInter->getValue(this, key, 5).toInt();
+    return m_proxyInter->getValue(this, "pos", 5).toInt();
 }
 
 void DatetimePlugin::setSortKey(const QString &itemKey, const int order)
 {
     Q_UNUSED(itemKey);
-
-    const QString key = QString("pos_%1").arg(Dock::Efficient);
-    m_proxyInter->saveValue(this, key, order);
+    m_proxyInter->saveValue(this, "pos", order);
 }
 
 QWidget *DatetimePlugin::itemWidget(const QString &itemKey)
@@ -152,11 +143,23 @@ const QString DatetimePlugin::itemContextMenu(const QString &itemKey)
     QMap<QString, QVariant> settings;
     settings["itemId"] = "settings";
     if (m_centralWidget->is24HourFormat())
-        settings["itemText"] = tr("12-hour time");
+        settings["itemText"] = "12小时制";
     else
-        settings["itemText"] = tr("24-hour time");
+        settings["itemText"] = "24小时制";
     settings["isActive"] = true;
     items.push_back(settings);
+
+    QMap<QString, QVariant> showDate;
+    showDate["itemId"] = "showDate";
+    showDate["itemText"] = m_centralWidget->isShowDate() ? "隐藏日期" : "显示日期";
+    showDate["isActive"] = true;
+    items.push_back(showDate);
+
+    QMap<QString, QVariant> showLunar;
+    showLunar["itemId"] = "showLunar";
+    showLunar["itemText"] = m_centralWidget->isShowLunar() ? "隐藏六十甲子" : "显示六十甲子";
+    showLunar["isActive"] = true;
+    items.push_back(showLunar);
 
     QMap<QString, QVariant> open;
     open["itemId"] = "open";
@@ -177,7 +180,8 @@ void DatetimePlugin::invokedMenuItem(const QString &itemKey, const QString &menu
     Q_UNUSED(itemKey)
     Q_UNUSED(checked)
 
-    if (menuId == "open") {
+    if (menuId == "open") 
+    {
         DDBusSender()
         .service("com.deepin.dde.ControlCenter")
         .interface("com.deepin.dde.ControlCenter")
@@ -185,7 +189,19 @@ void DatetimePlugin::invokedMenuItem(const QString &itemKey, const QString &menu
         .method(QString("ShowModule"))
         .arg(QString("datetime"))
         .call();
-    } else {
+    }
+    else if (menuId == "showDate")
+    {
+        m_centralWidget->setShowDate(!m_centralWidget->isShowDate());
+        m_proxyInter->saveValue(this, DATE_SHOW_KEY, m_centralWidget->isShowDate());
+    }
+    else if (menuId == "showLunar")
+    {
+        m_centralWidget->setShowLunar(!m_centralWidget->isShowLunar());
+        m_proxyInter->saveValue(this, LUNAR_SHOW_KEY, m_centralWidget->isShowLunar());
+    }    
+    else
+    {
         const bool value = timedateInterface()->property(TIME_FORMAT_KEY).toBool();
         timedateInterface()->setProperty(TIME_FORMAT_KEY, !value);
         m_centralWidget->set24HourFormat(!value);

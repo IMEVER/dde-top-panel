@@ -47,6 +47,7 @@ public:
     void pluginStateSwitched() override;
     bool pluginIsAllowDisable() override { return true; }
     bool pluginIsDisable() override;
+    PluginType type() override { return Fixed; }
 
     int itemSortKey(const QString &itemKey) Q_DECL_OVERRIDE;
     void setSortKey(const QString &itemKey, const int order) Q_DECL_OVERRIDE;

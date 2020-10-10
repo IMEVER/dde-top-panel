@@ -4,9 +4,8 @@
 
 #include <DApplication>
 #include <DGuiApplicationHelper>
-#include <controller/dockitemmanager.h>
+#include <unistd.h>
 #include "window/MainWindow.h"
-#include "../appmenu/menuimporter.h"
 
 DWIDGET_USE_NAMESPACE
 #ifdef DCORE_NAMESPACE
@@ -28,13 +27,6 @@ int main(int argc, char *argv[]) {
     app.loadTranslator();
     app.setAttribute(Qt::AA_EnableHighDpiScaling, true);
     app.setAttribute(Qt::AA_UseHighDpiPixmaps, false);
-
-    DGuiApplicationHelper::ColorType themeType = DGuiApplicationHelper::instance()->themeType();
-
-    qDebug()<<"Current system theme: "<<(themeType == DGuiApplicationHelper::DarkType ? "dark" : (themeType == DGuiApplicationHelper::LightType ? "light" : "unknow"));
-
-//    MainWindow mw(qApp->primaryScreen());
-//    mw.loadPlugins();
 
     TopPanelLauncher launcher;
 

@@ -26,14 +26,14 @@ find_package(KF5WindowSystem REQUIRED)
 
 
 set(SRCS
-        menuimporter.h menuimporter.cpp
+        # menuimporter.h menuimporter.cpp
         dbusmenutypes_p.h dbusmenutypes_p.cpp
         dbusmenushortcut_p.h dbusmenushortcut_p.cpp
         appmenumodel.h appmenumodel.cpp
         dbusmenuimporter.h dbusmenuimporter.cpp
         dbusmenu_interface.h dbusmenu_interface.cpp
         utils_p.h utils.cpp
-        menuimporteradaptor.h menuimporteradaptor.cpp
+        # menuimporteradaptor.h menuimporteradaptor.cpp
         )
 
 #qt5_add_dbus_adaptor(SRCS com.canonical.AppMenu.Registrar.xml

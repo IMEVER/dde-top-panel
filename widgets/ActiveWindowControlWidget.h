@@ -28,11 +28,11 @@ class ActiveWindowControlWidget : public QWidget {
 
 public:
     explicit ActiveWindowControlWidget(QWidget *parent = 0);
+    // bool eventFilter(QObject *watched, QEvent *event) override;
 
 public slots:
     void activeWindowInfoChanged();
     void maximizeWindow();
-
     void applyCustomSettings(const CustomSettings& settings);
 
 protected:
@@ -41,6 +41,10 @@ protected:
 private:
     void setButtonsVisible(bool visible);
     int currScreenNum();
+
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
 
 private slots:
     void maxButtonClicked();
@@ -54,6 +58,7 @@ private:
     QHBoxLayout *m_layout;
     QLabel *m_winTitleLabel;
 
+    QStack<int> activeIdStack;
     int currActiveWinId;
     QString currActiveWinTitle;
 
@@ -70,14 +75,9 @@ private:
     DBusDock *m_appInter;
     DBusWM  *m_wmInter;
     bool mouseClicked;
-protected:
-    void mouseReleaseEvent(QMouseEvent *event) override;
 
-    void mouseMoveEvent(QMouseEvent *event) override;
+    int m_currentIndex;
 
-    void mousePressEvent(QMouseEvent *event) override;
-
-private:
     QPropertyAnimation *m_buttonShowAnimation;
     QPropertyAnimation *m_buttonHideAnimation;
     QTimer *m_fixTimer;

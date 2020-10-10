@@ -54,15 +54,7 @@ const QString TrayPlugin::pluginName() const
 
 void TrayPlugin::init(PluginProxyInterface *proxyInter)
 {
-    // transfex config
-    QSettings settings("deepin", "dde-dock-shutdown");
-    if (QFile::exists(settings.fileName())) {
-        proxyInter->saveValue(this, "enable", settings.value("enable", true));
-
-        QFile::remove(settings.fileName());
-    }
-
-    m_proxyInter = proxyInter;
+    m_proxyInter = proxyInter;    
 
     if (pluginIsDisable()) {
         qDebug() << "hide tray from config disable!!";
@@ -98,7 +90,7 @@ void TrayPlugin::init(PluginProxyInterface *proxyInter)
 
     m_trayInter->Manage();
 
-    switchToMode(displayMode());
+    switchToMode();
 
     QTimer::singleShot(0, this, &TrayPlugin::loadIndicator);
     QTimer::singleShot(0, m_systemTraysController, &SystemTraysController::startLoader);
@@ -119,24 +111,6 @@ bool TrayPlugin::pluginIsDisable()
         return true;
 
     return !m_proxyInter->getValue(this, PLUGIN_ENABLED_KEY, true).toBool();
-}
-
-void TrayPlugin::displayModeChanged(const Dock::DisplayMode mode)
-{
-    if (pluginIsDisable()) {
-        return;
-    }
-
-    switchToMode(displayMode());
-}
-
-void TrayPlugin::positionChanged(const Dock::Position position)
-{
-    if (pluginIsDisable()) {
-        return;
-    }
-
-    m_fashionItem->setDockPosition(position);
 }
 
 QWidget *TrayPlugin::itemWidget(const QString &itemKey)
@@ -169,21 +143,19 @@ int TrayPlugin::itemSortKey(const QString &itemKey)
         return m_systemTraysController->systemTrayItemSortKey(itemKey);
     }
 
-    const int defaultSort = displayMode() == Dock::DisplayMode::Fashion ? 0 : 0;
-
     AbstractTrayWidget *const trayWidget = m_trayMap.value(itemKey, nullptr);
     if (trayWidget == nullptr) {
-        return defaultSort;
+        return 0;
     }
 
-    const QString key = QString("pos_%1_%2").arg(trayWidget->itemKeyForConfig()).arg(Dock::Efficient);
+    const QString key = QString("pos_%1").arg(trayWidget->itemKeyForConfig());
 
-    return m_proxyInter->getValue(this, key, defaultSort).toInt();
+    return m_proxyInter->getValue(this, key, 0).toInt();
 }
 
 void TrayPlugin::setSortKey(const QString &itemKey, const int order)
 {
-    if (displayMode() == Dock::DisplayMode::Fashion && !traysSortedInFashionMode()) {
+    if (!traysSortedInFashionMode()) {
         m_proxyInter->saveValue(this, FASHION_MODE_TRAYS_SORTED, true);
     }
 
@@ -197,7 +169,7 @@ void TrayPlugin::setSortKey(const QString &itemKey, const int order)
         return;
     }
 
-    const QString key = QString("pos_%1_%2").arg(trayWidget->itemKeyForConfig()).arg(Dock::Efficient);
+    const QString key = QString("pos_%1").arg(trayWidget->itemKeyForConfig());
     m_proxyInter->saveValue(this, key, order);
 }
 
@@ -224,16 +196,9 @@ void TrayPlugin::pluginSettingsChanged()
         return;
     }
 
-    if (displayMode() == Dock::DisplayMode::Fashion) {
-        m_fashionItem->onPluginSettingsChanged();
-        m_fashionItem->clearTrayWidgets();
-        m_fashionItem->setTrayWidgets(m_trayMap);
-    }
-}
-
-Dock::Position TrayPlugin::dockPosition() const
-{
-    return position();
+    m_fashionItem->onPluginSettingsChanged();
+    m_fashionItem->clearTrayWidgets();
+    m_fashionItem->setTrayWidgets(m_trayMap);
 }
 
 bool TrayPlugin::traysSortedInFashionMode()
@@ -274,20 +239,7 @@ bool TrayPlugin::isSystemTrayItem(const QString &itemKey)
 
 QString TrayPlugin::itemKeyOfTrayWidget(AbstractTrayWidget *trayWidget)
 {
-    QString itemKey;
-
-    if (displayMode() == Dock::DisplayMode::Fashion) {
-        itemKey = FASHION_MODE_ITEM_KEY;
-    } else {
-        itemKey = m_trayMap.key(trayWidget);
-    }
-
-    return itemKey;
-}
-
-Dock::DisplayMode TrayPlugin::displayMode()
-{
-    return Dock::DisplayMode::Fashion;
+    return FASHION_MODE_ITEM_KEY;
 }
 
 void TrayPlugin::initXEmbed()
@@ -316,15 +268,22 @@ void TrayPlugin::sniItemsChanged()
     for (auto item : itemServicePaths) {
         sinTrayKeyList << SNITrayWidget::toSNIKey(item);
     }
-    for (auto itemKey : m_trayMap.keys()) {
+    qDebug()<<"Remove snitraylist begin";
+    const QList<QString> trayMapList = m_trayMap.keys();
+    for (auto itemKey : trayMapList) {
         if (!sinTrayKeyList.contains(itemKey) && SNITrayWidget::isSNIKey(itemKey)) {
             trayRemoved(itemKey);
         }
     }
+
     const QList<QString> &passiveSNIKeyList = m_passiveSNITrayMap.keys();
     for (auto itemKey : passiveSNIKeyList) {
         if (!sinTrayKeyList.contains(itemKey) && SNITrayWidget::isSNIKey(itemKey)) {
-            m_passiveSNITrayMap.take(itemKey)->deleteLater();
+            SNITrayWidget *sniWidget = m_passiveSNITrayMap.take(itemKey);
+            if(sniWidget)
+            {
+                sniWidget->deleteLater();
+            }
         }
     }
 
@@ -364,13 +323,8 @@ void TrayPlugin::addTrayWidget(const QString &itemKey, AbstractTrayWidget *trayW
     }
 
     m_trayMap.insert(itemKey, trayWidget);
-
-    if (displayMode() == Dock::Efficient) {
-        m_proxyInter->itemAdded(this, itemKey);
-    } else {
-        m_proxyInter->itemAdded(this, FASHION_MODE_ITEM_KEY);
-        m_fashionItem->trayWidgetAdded(itemKey, trayWidget);
-    }
+    m_proxyInter->itemAdded(this, FASHION_MODE_ITEM_KEY);
+    m_fashionItem->trayWidgetAdded(itemKey, trayWidget);
 
     connect(trayWidget, &AbstractTrayWidget::requestWindowAutoHide, this, &TrayPlugin::onRequestWindowAutoHide, Qt::UniqueConnection);
     connect(trayWidget, &AbstractTrayWidget::requestRefershWindowVisible, this, &TrayPlugin::onRequestRefershWindowVisible, Qt::UniqueConnection);
@@ -398,11 +352,6 @@ void TrayPlugin::trayXEmbedAdded(const QString &itemKey, quint32 winId)
 void TrayPlugin::traySNIAdded(const QString &itemKey, const QString &sniServicePath)
 {
     if (m_trayMap.contains(itemKey) || !SNITrayWidget::isSNIKey(itemKey) || m_passiveSNITrayMap.contains(itemKey)) {
-        return;
-    }
-
-    QGSettings settings("com.deepin.dde.dock.module.systemtray");
-    if (settings.keys().contains("enable") && !settings.get("enable").toBool()) {
         return;
     }
 
@@ -472,11 +421,7 @@ void TrayPlugin::trayRemoved(const QString &itemKey, const bool deleteObject)
 
     AbstractTrayWidget *widget = m_trayMap.take(itemKey);
 
-    if (displayMode() == Dock::Efficient) {
-        m_proxyInter->itemRemoved(this, itemKey);
-    } else {
-        m_fashionItem->trayWidgetRemoved(widget);
-    }
+    m_fashionItem->trayWidgetRemoved(widget);
 
     // only delete tray object when it is a tray of applications
     // set the parent of the tray object to avoid be deconstructed by parent(DockItem/PluginsItem/TrayPluginsItem)
@@ -497,27 +442,19 @@ void TrayPlugin::xembedItemChanged(quint32 winId)
     m_trayMap.value(itemKey)->updateIcon();
 }
 
-void TrayPlugin::switchToMode(const Dock::DisplayMode mode)
+void TrayPlugin::switchToMode()
 {
     if (!m_proxyInter)
         return;
 
-    if (mode == Dock::Fashion) {
-        for (auto itemKey : m_trayMap.keys()) {
-            m_proxyInter->itemRemoved(this, itemKey);
-        }
-        if (m_trayMap.isEmpty()) {
-            m_proxyInter->itemRemoved(this, FASHION_MODE_ITEM_KEY);
-        } else {
-            m_fashionItem->setTrayWidgets(m_trayMap);
-            m_proxyInter->itemAdded(this, FASHION_MODE_ITEM_KEY);
-        }
-    } else {
-        m_fashionItem->clearTrayWidgets();
+    for (auto itemKey : m_trayMap.keys()) {
+        m_proxyInter->itemRemoved(this, itemKey);
+    }
+    if (m_trayMap.isEmpty()) {
         m_proxyInter->itemRemoved(this, FASHION_MODE_ITEM_KEY);
-        for (auto itemKey : m_trayMap.keys()) {
-            m_proxyInter->itemAdded(this, itemKey);
-        }
+    } else {
+        m_fashionItem->setTrayWidgets(m_trayMap);
+        m_proxyInter->itemAdded(this, FASHION_MODE_ITEM_KEY);
     }
 }
 

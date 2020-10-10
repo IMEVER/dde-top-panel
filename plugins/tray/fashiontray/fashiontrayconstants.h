@@ -4,10 +4,7 @@
 namespace Dock {
 
 #define SpliterSize 2
-#define TraySpace 10
-#define TrayWidgetWidthMin 24
-#define TrayWidgetHeightMin 24
-
+#define TraySpace 5
 
 #define HoldKeyPrefix "holded_"
 

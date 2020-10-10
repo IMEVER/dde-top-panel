@@ -552,6 +552,36 @@ DatetimeWidget::DatetimeWidget(QWidget *parent)
     setMinimumSize(PLUGIN_BACKGROUND_MIN_SIZE, PLUGIN_BACKGROUND_MIN_SIZE);
 }
 
+void DatetimeWidget::setShowDate(const bool value)
+{
+    if (m_showDate == value) {
+        return;
+    }
+
+    m_showDate = value;
+    update();
+
+    adjustSize();
+    if (isVisible()) {
+        emit requestUpdateGeometry();
+    }
+}
+
+void DatetimeWidget::setShowLunar(const bool value)
+{
+    if (m_showLunar == value) {
+        return;
+    }
+
+    m_showLunar = value;
+    update();
+
+    adjustSize();
+    if (isVisible()) {
+        emit requestUpdateGeometry();
+    }
+}
+
 void DatetimeWidget::set24HourFormat(const bool value)
 {
     if (m_24HourFormat == value) {
@@ -567,15 +597,10 @@ void DatetimeWidget::set24HourFormat(const bool value)
     }
 }
 
-QSize DatetimeWidget::curTimeSize() const
+QSize DatetimeWidget::sizeHint() const
 {
     QFontMetrics fm(TIME_FONT);
     return QSize(fm.boundingRect(currentChinaTime()).size().width() - 120, height());
-}
-
-QSize DatetimeWidget::sizeHint() const
-{
-    return curTimeSize();
 }
 
 void DatetimeWidget::paintEvent(QPaintEvent *e)
@@ -593,11 +618,23 @@ void DatetimeWidget::paintEvent(QPaintEvent *e)
 
 QString DatetimeWidget::currentChinaTime() const
 {
+    QStringList date;
     const QDateTime current = QDateTime::currentDateTime();
-    Lunar lunar;    
-    QString format = m_24HourFormat ? "yyyy/MM/dd  hh:mm %1年  %2时" : "yyyy/MM/dd hh:mm AP %1年  %2时";
+    Lunar lunar;
 
-    return current.toString(format).arg(lunar.toGanZhiBySolarYear(current.date().year())).arg(lunar.toDizhiHour(current.time().hour()));
+    if (m_showDate)
+    {
+        date.append(current.toString("yyyy/MM/dd"));
+    }
+    
+    date.append(current.toString(m_24HourFormat ? "hh:mm" : "hh:mm AP"));
+
+    if (m_showLunar)
+    {
+        date.append(QString("%1年  %2时").arg(lunar.toGanZhiBySolarYear(current.date().year())).arg(lunar.toDizhiHour(current.time().hour())));
+    }
+    
+    return date.join(" ");
 }
 
 QStringList DatetimeWidget::dateString()

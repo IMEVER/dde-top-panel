@@ -35,7 +35,6 @@ DockItem::DockItem(QWidget *parent)
     : QWidget(parent)
     , m_hover(false)
     , m_popupShown(false)
-    , m_tapAndHold(false)
     , m_draging(false)
     , m_hoverEffect(new HoverHighlightEffect(this))
     , m_popupTipsDelayTimer(new QTimer(this))
@@ -65,8 +64,6 @@ DockItem::DockItem(QWidget *parent)
     connect(m_popupAdjustDelayTimer, &QTimer::timeout, this, &DockItem::updatePopupPosition, Qt::QueuedConnection);
     connect(&m_contextMenu, &QMenu::triggered, this, &DockItem::menuActionClicked);
 
-    grabGesture(Qt::TapAndHoldGesture);
-
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
 
@@ -88,21 +85,6 @@ DockItem::~DockItem()
         popupWindowAccept();
 }
 
-void DockItem::gestureEvent(QGestureEvent *event)
-{
-    if (!event)
-        return;
-
-    QGesture *gesture = event->gesture(Qt::TapAndHoldGesture);
-
-    if (!gesture)
-        return;
-
-    qDebug() << "got TapAndHoldGesture";
-
-    m_tapAndHold = true;
-}
-
 bool DockItem::event(QEvent *event)
 {
     if (m_popupShown) {
@@ -114,9 +96,6 @@ bool DockItem::event(QEvent *event)
         default:;
         }
     }
-
-    if (event->type() == QEvent::Gesture)
-        gestureEvent(static_cast<QGestureEvent *>(event));
 
     return QWidget::event(event);
 }
@@ -133,11 +112,6 @@ void DockItem::updatePopupPosition()
 
     const QPoint p = popupMarkPoint();
     PopupWindow->show(p, PopupWindow->model());
-}
-
-void DockItem::paintEvent(QPaintEvent *e)
-{
-    QWidget::paintEvent(e);
 }
 
 void DockItem::mousePressEvent(QMouseEvent *e)
@@ -191,10 +165,13 @@ const QRect DockItem::perfectIconRect() const
     const QRect itemRect = rect();
     QRect iconRect;
 
-    if (itemType() == Plugins) {
+    if (itemType() == Plugins || itemType() == FixedPlugin)
+    {
         iconRect.setWidth(itemRect.width());
         iconRect.setHeight(itemRect.height());
-    } else {
+    } 
+    else 
+    {
         const int iconSize = std::min(itemRect.width(), itemRect.height()) * 0.8;
         iconRect.setWidth(iconSize);
         iconRect.setHeight(iconSize);
@@ -331,18 +308,6 @@ const QString DockItem::contextMenu() const
 QWidget *DockItem::popupTips()
 {
     return nullptr;
-}
-
-/*!
- * \brief DockItem::checkAndResetTapHoldGestureState checks if a QTapAndHoldGesture
- * happens during the mouse press and release event pair.
- * \return true if yes, otherwise false.
- */
-bool DockItem::checkAndResetTapHoldGestureState()
-{
-    bool ret = m_tapAndHold;
-    m_tapAndHold = false;
-    return ret;
 }
 
 const QPoint DockItem::popupMarkPoint()

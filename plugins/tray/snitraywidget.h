@@ -28,13 +28,11 @@
 #include "../../widgets/tipswidget.h"
 
 #include <org_kde_statusnotifieritem.h>
-
-
+#include <dbusmenu-qt5/dbusmenuimporter.h>
 #include <QMenu>
 #include <QDBusObjectPath>
 DWIDGET_USE_NAMESPACE
 DGUI_USE_NAMESPACE
-class DBusMenuImporter;
 
 //using namespace com::deepin::dde;
 using namespace org::kde;
@@ -71,8 +69,6 @@ public:
     void showPopupWindow(QWidget * const content, const bool model = false);
     const QPoint popupMarkPoint() const;
 
-    static void setDockPostion(const Dock::Position pos) { DockPosition = pos; }
-
 Q_SIGNALS:
     void statusChanged(SNITrayWidget::ItemStatus status);
 
@@ -83,6 +79,7 @@ private Q_SLOTS:
     void refreshOverlayIcon();
     void refreshAttentionIcon();
     void showContextMenu(int x, int y);
+    
     // SNI property change slot
     void onSNIAttentionIconNameChanged(const QString & value);
     void onSNIAttentionIconPixmapChanged(DBusImageList  value);
@@ -110,8 +107,7 @@ private:
     StatusNotifierItem *m_sniInter;
 
     DBusMenuImporter *m_dbusMenuImporter;
-
-    QMenu *m_menu;
+    // QMenu *m_menu;
     QTimer *m_updateIconTimer;
     QTimer *m_updateOverlayIconTimer;
     QTimer *m_updateAttentionIconTimer;
@@ -137,7 +133,6 @@ private:
     DBusImageList m_sniOverlayIconPixmap;
     QString m_sniStatus;
     QTimer *m_popupTipsDelayTimer;
-    static Dock::Position DockPosition;
     static QPointer<DockPopupWindow> PopupWindow;
     TipsWidget *m_tipsLabel;
     bool m_popupShown;
