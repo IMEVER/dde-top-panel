@@ -42,7 +42,7 @@ PluginsItem::PluginsItem(PluginsItemInterface *const pluginInter, const QString 
     , m_itemKey(itemKey)
     , m_dragging(false)
 {
-    qDebug() << "load plugins item: " << pluginInter->pluginName() << itemKey << m_centralWidget << pluginInter->type() << itemType();
+    qDebug() << "load plugins item: " << pluginInter->pluginName() << itemKey << pluginInter->type() << itemType();
 
     m_centralWidget->setParent(this);
     m_centralWidget->setVisible(true);
@@ -55,7 +55,6 @@ PluginsItem::PluginsItem(PluginsItemInterface *const pluginInter, const QString 
     hLayout->setMargin(0);
 
     setLayout(hLayout);
-    setAccessibleName(pluginInter->pluginName() + "-" + m_itemKey);
     setAttribute(Qt::WA_TranslucentBackground);
 }
 

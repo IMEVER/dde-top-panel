@@ -4,6 +4,8 @@ set(VERSION 4.0)
 
 project(dde-top-panel)
 
+# set (CMAKE_PREFIX_PATH "/usr/include/x86_64-linux-gnu/qt5/QtWidgets")
+
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)

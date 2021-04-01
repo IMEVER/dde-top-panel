@@ -33,6 +33,8 @@ public:
     void adjustPanelSize();
     void applyCustomSettings(const CustomSettings& customSettings);
     void showOverFullscreen();
+    void toggleStartMenu();
+    void toggleMenu();
 
 signals:
     void panelGeometryChanged();

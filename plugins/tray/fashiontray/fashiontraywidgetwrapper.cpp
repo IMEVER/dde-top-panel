@@ -117,7 +117,7 @@ void FashionTrayWidgetWrapper::paintEvent(QPaintEvent *event)
         }
 
         DStyleHelper dstyle(style());
-        const int radius = dstyle.pixelMetric(DStyle::PM_FrameRadius);
+        const int radius = 2; //dstyle.pixelMetric(DStyle::PM_FrameRadius);
 
         QPainterPath path;
 
@@ -195,8 +195,8 @@ void FashionTrayWidgetWrapper::leaveEvent(QEvent *event)
 
 void FashionTrayWidgetWrapper::resizeEvent(QResizeEvent *event)
 {
-    setMaximumWidth(height());
-    setMaximumHeight(QWIDGETSIZE_MAX);
+    // setMaximumWidth(height());
+    // setMaximumHeight(QWIDGETSIZE_MAX);
     QWidget::resizeEvent(event);
 }
 

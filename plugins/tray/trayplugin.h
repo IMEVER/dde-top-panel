@@ -96,7 +96,6 @@ private:
     QMap<QString, SNITrayWidget *> m_passiveSNITrayMap;
     QMap<QString, IndicatorTray*> m_indicatorMap;
 
-    TipsWidget *m_tipsLabel;
     bool m_pluginLoaded;
 };
 

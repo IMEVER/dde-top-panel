@@ -20,14 +20,12 @@ TopPanelSettings::TopPanelSettings(DockItemManager *itemManager, QScreen *screen
     m_primaryRawRect.setWidth(m_primaryRawRect.width() * screen->devicePixelRatio());
 
     m_hideSubMenu = new QMenu(&m_settingsMenu);
-    m_hideSubMenu->setAccessibleName("pluginsmenu");
-    QAction *hideSubMenuAct = new QAction(tr("Plugins"), this);
+    QAction *hideSubMenuAct = new QAction("插件", this);
     hideSubMenuAct->setMenu(m_hideSubMenu);
 
     m_settingsMenu.addAction(hideSubMenuAct);
-    m_settingsMenu.setTitle("Settings Menu");
 
-    QAction *settingAction = new QAction(tr("Settings"), this);
+    QAction *settingAction = new QAction("设置", this);
     m_settingsMenu.addAction(settingAction);
 
     connect(&m_settingsMenu, &QMenu::triggered, this, &TopPanelSettings::menuActionClicked);

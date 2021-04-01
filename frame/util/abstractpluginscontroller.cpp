@@ -42,7 +42,9 @@ AbstractPluginsController::AbstractPluginsController(QObject *parent)
 {
     qApp->installEventFilter(this);
 
-    refreshPluginSettings();
+    m_pluginSettingsObject = QJsonDocument::fromJson(m_gsettings->get("plugin-settings").toString().toUtf8()).object();
+
+    // refreshPluginSettings();
 }
 
 void AbstractPluginsController::saveValue(PluginsItemInterface *const itemInter, const QString &key, const QVariant &value)
@@ -239,6 +241,8 @@ void AbstractPluginsController::refreshPluginSettings()
     for (PluginsItemInterface *pluginInter : m_pluginsMap.keys()) {
         pluginInter->pluginSettingsChanged();
     }
+    
+    qDebug()<<"settings: "<<m_pluginSettingsObject<<endl;
 
     // reload all plugin items for sort order or container
     QMap<PluginsItemInterface *, QMap<QString, QObject *>> pluginsMapTemp = m_pluginsMap;

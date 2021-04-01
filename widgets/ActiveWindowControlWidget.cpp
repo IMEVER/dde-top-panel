@@ -10,9 +10,9 @@
 #include <NETWM>
 #include <QtX11Extras/QX11Info>
 #include <QProcess>
+#include "QClickableLabel.h"
 
 #include "../frame/item/components/hoverhighlighteffect.h"
-#include "QClickableLabel.h"
 #include <QApplication>
 #include <QScreen>
 #include <QEvent>
@@ -22,7 +22,6 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     : QWidget(parent)
     , m_appInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
     , mouseClicked(false)
-    , m_currentIndex(-1)
 {
     QPalette palette1 = this->palette();
     palette1.setColor(QPalette::Background, Qt::transparent);
@@ -30,21 +29,70 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
 
     this->m_layout = new QHBoxLayout(this);
     this->m_layout->setSpacing(10);
-    this->m_layout->setContentsMargins(2, 0, 0, 0);
+    this->m_layout->setContentsMargins(5, 0, 0, 0);
     this->setLayout(this->m_layout);
-
-    QClickableLabel *launchLabel = new QClickableLabel(this);
     
+    QClickableLabel *launchLabel = new QClickableLabel(this);
     launchLabel->setToolTip("启动器");
     launchLabel->setToolTipDuration(5000);
     launchLabel->setStyleSheet("QLabel{background-color: rgba(0,0,0,0);}");
     launchLabel->setPixmap(QPixmap(":/icons/launcher.svg"));
     launchLabel->setFixedSize(18, 18);
     launchLabel->setScaledContents(true);
-    // launchLabel->setGraphicsEffect(new HoverHighlightEffect(this));
-    connect(launchLabel, &QClickableLabel::clicked, this, [=](){
-        QProcess::startDetached("dde-launcher -t");
-    });
+ 
+    this->menu = new QMenu;
+        this->menu->addAction("关于", [ = ](){
+            // QProcess::startDetached("dde-file-manager -p computer:///");
+            QProcess::startDetached("/usr/bin/dbus-send --session --print-reply --dest=com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand string:\"/usr/bin/dde-file-manager\" array:string:\"-p\",\"computer:///\"");
+            // QProcess::startDetached("/usr/bin/qdbus --literal com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand 'dde-file-manager' '(' '-p' 'computer:///' ')'");
+        });
+        this->menu->addAction("启动器", this, [ = ](){
+            QProcess::startDetached("/usr/bin/qdbus com.deepin.dde.Launcher /com/deepin/dde/Launcher com.deepin.dde.Launcher.Toggle");
+        });
+
+        this->menu->addAction("应用商店", [ = ](){
+            // QProcess::startDetached("deepin-app-store");
+            QProcess::startDetached("/usr/bin/qdbus --literal com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.LaunchApp /usr/share/applications/deepin-app-store.desktop 0 []");
+        });
+
+        this->menu->addAction("设  置", [ = ](){
+            QProcess::startDetached("/usr/bin/qdbus --literal com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.LaunchApp /usr/share/applications/dde-control-center.desktop 0 []");
+        });
+
+        this->menu->addAction("资源管理器", [ = ](){
+            QProcess::startDetached("/usr/bin/qdbus com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.LaunchApp /usr/share/applications/deepin-system-monitor.desktop 0 []");
+        });
+
+        this->menu->addAction("强制关闭窗口", [ = ](){
+            // QProcess::startDetached("xkill");
+            QProcess::startDetached("/usr/bin/dbus-send --session --print-reply --dest=com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand string:\"/usr/bin/xkill\" array:string:\"\"");
+        });
+
+        QMenu *shutdownMenu = new QMenu;
+        shutdownMenu->addAction("注销", [](){
+            QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.Logout");
+        });
+        shutdownMenu->addAction("锁定", [](){
+            QProcess::startDetached("qdbus com.deepin.dde.lockFront /com/deepin/dde/lockFront com.deepin.dde.lockFront.Show");
+        });
+        shutdownMenu->addAction("切换用户", [](){
+            QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.SwitchUser");
+        });        
+        shutdownMenu->addAction("待机", [](){
+            QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.Suspend");
+        });
+        shutdownMenu->addAction("重启", [](){
+            QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.Restart");
+        });
+        shutdownMenu->addAction("关机", [](){
+            QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.Shutdown");
+        });
+
+        QAction *shutdownAction = new QAction("关机");
+        shutdownAction->setMenu(shutdownMenu);
+        this->menu->addAction(shutdownAction);   // launchLabel->setGraphicsEffect(new HoverHighlightEffect(this));
+    
+    connect(launchLabel, &QClickableLabel::clicked, this, &ActiveWindowControlWidget::toggleStartMenu);
     this->m_layout->addWidget(launchLabel);
 
     this->m_iconLabel = new QLabel(this);
@@ -94,6 +142,12 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
 
     this->m_appMenuModel = new AppMenuModel(this);
     connect(this->m_appMenuModel, &AppMenuModel::modelNeedsUpdate, this, &ActiveWindowControlWidget::updateMenu);
+    connect(this->m_appMenuModel, &AppMenuModel::requestActivateIndex, this, [ this ](int index){
+        if(this->menuBar->actions().size() > index && index >= 0){
+            QThread::msleep(150);
+            this->menuBar->setActiveAction(this->menuBar->actions()[index]);
+        }
+    });
 
     this->m_winTitleLabel = new QLabel(this);
     this->m_winTitleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
@@ -143,7 +197,9 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
 void ActiveWindowControlWidget::activeWindowInfoChanged() {
     int activeWinId = XUtils::getFocusWindowId();
     if (activeWinId < 0) {
-        qDebug() << "Failed to get active window id !";
+        this->currActiveWinId = -1;
+        this->m_winTitleLabel->setText(tr("桌面"));
+        this->m_iconLabel->setPixmap(QPixmap(CustomSettings::instance()->getActiveDefaultAppIconPath()));
         return;
     }
 
@@ -314,14 +370,14 @@ void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorTyp
             this->closeButton->setIcon(QIcon(":/icons/close.svg"));
             this->maxButton->setIcon(QIcon(":/icons/maximum.svg"));
             this->minButton->setIcon(QIcon(":/icons/minimum.svg"));
-            this->menuBar->setStyleSheet("QMenuBar {font-size: 14px; color: black; background-color: rgba(0,0,0,0); margin: 0 0 0 0;} ");
+            this->menuBar->setStyleSheet("QMenuBar {font-size: 13px; color: black; background-color: rgba(0,0,0,0); margin: 0 0 0 0;} ");
             this->m_winTitleLabel->setStyleSheet("QLabel { color: black; }");
             break;
         case DGuiApplicationHelper::DarkType:
             this->closeButton->setIcon(QIcon(":/icons/close-white.svg"));
             this->maxButton->setIcon(QIcon(":/icons/maximum-white.svg"));
             this->minButton->setIcon(QIcon(":/icons/minimum-white.svg"));
-            this->menuBar->setStyleSheet("QMenuBar {font-size: 14px; color: white; background-color: rgba(0,0,0,0); margin: 0 0 0 0;} ");
+            this->menuBar->setStyleSheet("QMenuBar {font-size: 13px; color: white; background-color: rgba(0,0,0,0); margin: 0 0 0 0;} ");
             this->m_winTitleLabel->setStyleSheet("QLabel { color: white; }");
         default:
             break;
@@ -374,4 +430,21 @@ void ActiveWindowControlWidget::applyCustomSettings(const CustomSettings& settin
 
 int ActiveWindowControlWidget::currScreenNum() {
     return QApplication::desktop()->screenNumber(this);
+}
+
+void ActiveWindowControlWidget::toggleStartMenu() {
+    QThread::msleep(150);
+    if (this->menu->isHidden()) {
+        this->menu->popup(this->pos() + QPoint(0, height()));
+    } else {
+        this->menu->hide();
+    }
+}
+
+void ActiveWindowControlWidget::toggleMenu() {
+    if (this->menuBar->actions().size() > 0)
+    {
+        QThread::msleep(150);
+        this->menuBar->setActiveAction(this->menuBar->actions()[0]);
+    }
 }

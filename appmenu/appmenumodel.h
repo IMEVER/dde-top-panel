@@ -29,6 +29,7 @@
 #include <QRect>
 #include <QWidget>
 #include <QVariant>
+// #include <QModelIndex>
 
 class QMenu;
 class QAction;
@@ -125,8 +126,6 @@ private:
     QString m_menuObjectPath;
 
     QPointer<KDBusMenuImporter> m_importer;
-
-    QWidget invisibleWidget;
 };
 
 #endif

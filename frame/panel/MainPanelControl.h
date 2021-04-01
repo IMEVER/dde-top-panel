@@ -30,6 +30,8 @@ public:
     void addPluginAreaItem(int index, QWidget *wdg);
     void addFixedPluginAreaItem(int index, QWidget *wdg);
     void removeFixedPluginAreaItem(QWidget *wdg);
+    void toggleStartMenu();
+    void toggleMenu();
 
     void applyCustomSettings(const CustomSettings& customSettings);
 

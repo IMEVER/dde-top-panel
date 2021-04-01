@@ -88,7 +88,7 @@ int XUtils::getFocusWindowIdByX() {
 
     Window w;
     int revert_to;
-    XGetInputFocus(m_display, &w, &revert_to);
+    return XGetInputFocus(m_display, &w, &revert_to);
 }
 
 bool XUtils::checkIfWinMaximum(int winId) {

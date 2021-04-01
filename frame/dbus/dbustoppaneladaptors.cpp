@@ -48,3 +48,13 @@ bool DBusTopPanelAdaptors::Activate()
     qDebug()<<"Activate";
     return true;
 }
+
+void DBusTopPanelAdaptors::ToggleStartMenu()
+{
+    parent()->toggleStartMenu();
+}
+
+void DBusTopPanelAdaptors::ToggleMenu()
+{
+    parent()->toggleMenu();
+}

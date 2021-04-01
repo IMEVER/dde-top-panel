@@ -39,6 +39,8 @@ class DBusTopPanelAdaptors: public QDBusAbstractAdaptor
                                        "  <method name=\"Activate\">\n"
                                        "  <arg type=\"b\" direction=\"out\"></arg>\n"
                                        "  </method>\n"
+                                       "  <method name=\"ToggleStartMenu\"></method>\n"
+                                       "  <method name=\"ToggleMenu\"></method>\n"
                                        "  </interface>\n"
                                        "")
 
@@ -51,6 +53,8 @@ public:
 public Q_SLOTS: // PROPERTIES
     void ActivateWindow();
     bool Activate();
+    void ToggleStartMenu();
+    void ToggleMenu();
 };
 
 #endif //DBUSTopPanelADAPTORS

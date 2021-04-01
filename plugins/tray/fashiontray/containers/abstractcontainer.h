@@ -71,7 +71,7 @@ private:
     bool m_expand;
 
     QSize m_wrapperSize;
-    int m_itemSize = 40;
+    int m_itemSize = PLUGIN_BACKGROUND_MAX_SIZE;
 };
 
 #endif // ABSTRACTCONTAINER_H

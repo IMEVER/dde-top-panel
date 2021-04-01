@@ -24,9 +24,7 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     , m_sniWatcher(new StatusNotifierWatcher(SNI_WATCHER_SERVICE, SNI_WATCHER_PATH, QDBusConnection::sessionBus(), this))
 {
 //    setWindowFlag(Qt::WindowDoesNotAcceptFocus);
-    setWindowFlags(Qt::WindowStaysOnTopHint);
-    setAccessibleName("dock-top-panel-mainwindow");
-    m_mainPanel->setAccessibleName("dock-top-panel-mainpanel");
+    setWindowFlags(Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_AlwaysShowToolTips);
     
@@ -233,6 +231,16 @@ void MainWindow::showOverFullscreen()
     }
 }
 
+void MainWindow::toggleStartMenu()
+{
+    this->m_mainPanel->toggleStartMenu();
+}
+
+void MainWindow::toggleMenu()
+{
+    this->m_mainPanel->toggleMenu();
+}
+
 bool MainWindow::event(QEvent *event)
 {
     if (event->type() == QEvent::WindowDeactivate)
@@ -267,6 +275,7 @@ void TopPanelLauncher::rearrange() {
             mwMap[p_screen]->hide();
             mwMap[p_screen]->moveToScreen(p_screen);
             mwMap[p_screen]->show();
+            mwMap[p_screen]->setRadius(0);
             continue;
         }
 
@@ -335,6 +344,7 @@ void TopPanelLauncher::primaryChanged() {
             mwMap.insert(currPrimaryScreen, pMw);
         }
         pMw->show();
+        pMw->setRadius(0);
 
         if (ifRawPrimaryExists) {
             mwMap[primaryScreen]->show();

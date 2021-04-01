@@ -158,8 +158,9 @@ void DockItemManager::pluginItemInserted(PluginsItem *item)
     DockItem::ItemType pluginType = item->itemType();
 
     // find first plugins item position
-    int firstPluginPosition = -1;
-    for (int i(0); i != m_itemList.size(); ++i) {
+    int firstPluginPosition = m_itemList.size();
+    for (int i(0); i != m_itemList.size(); ++i) 
+    {
         DockItem::ItemType type = m_itemList[i]->itemType();
         if (type != pluginType)
             continue;
@@ -168,42 +169,38 @@ void DockItemManager::pluginItemInserted(PluginsItem *item)
         break;
     }
 
-    if (firstPluginPosition == -1)
-        firstPluginPosition = m_itemList.size();
-
     // find insert position
     int insertIndex = 0;
     const int itemSortKey = item->itemSortKey();
-    if (itemSortKey == -1 || firstPluginPosition == -1) {
+    if (firstPluginPosition == m_itemList.size()) {
         insertIndex = m_itemList.size();
     } else if (itemSortKey == 0) {
         insertIndex = firstPluginPosition;
     } else {
         insertIndex = m_itemList.size();
-        for (int i(firstPluginPosition + 1); i != m_itemList.size() + 1; ++i) {
-            PluginsItem *pItem = static_cast<PluginsItem *>(m_itemList[i - 1].data());
+        for (int i(firstPluginPosition); i < m_itemList.size(); ++i) {
+            PluginsItem *pItem = static_cast<PluginsItem *>(m_itemList[i].data());
             Q_ASSERT(pItem);
 
             const int sortKey = pItem->itemSortKey();
-            if (pluginType == DockItem::FixedPlugin) {
-                if (sortKey != -1 && itemSortKey > sortKey)
+            if (pluginType == pItem->itemType())
+            {
+                if (itemSortKey >= sortKey)
                     continue;
-                insertIndex = i - 1;
+                insertIndex = i;
                 break;
             }
-            if (sortKey != -1 && itemSortKey > sortKey && pItem->itemType() != DockItem::FixedPlugin)
-                continue;
-            insertIndex = i - 1;
-            break;
+            else
+            {
+                insertIndex = i;
+                break;
+            }
         }
     }
 
     m_itemList.insert(insertIndex, item);
-    if(pluginType == DockItem::FixedPlugin)
-    {
-        insertIndex ++;
-        item->setAccessibleName("plugins");
-    }
+
+    // qDebug()<<item->pluginName()<<":\t"<<insertIndex<<", "<<firstPluginPosition<<endl;
 
     emit itemInserted(insertIndex - firstPluginPosition, item);
 }
@@ -224,40 +221,4 @@ void DockItemManager::reloadAppItems()
     // append new item
     for (auto path : m_appInter->entries())
         appItemAdded(path, -1);
-}
-
-// 不同的模式下，插件顺序不一样
-void DockItemManager::sortPluginItems()
-{
-    int firstPluginIndex = -1;
-    for (int i(0); i != m_itemList.size(); ++i) {
-        if (m_itemList[i]->itemType() == DockItem::Plugins) {
-            firstPluginIndex = i;
-            break;
-        }
-    }
-
-    if (firstPluginIndex == -1)
-        return;
-
-    std::sort(m_itemList.begin() + firstPluginIndex, m_itemList.end(), [](DockItem * a, DockItem * b) -> bool {
-        PluginsItem *pa = static_cast<PluginsItem *>(a);
-        PluginsItem *pb = static_cast<PluginsItem *>(b);
-
-        const int aKey = pa->itemSortKey();
-        const int bKey = pb->itemSortKey();
-
-        if (bKey == -1)
-            return true;
-        if (aKey == -1)
-            return false;
-
-        return aKey < bKey;
-    });
-
-    // reset order
-    for (int i(firstPluginIndex); i != m_itemList.size(); ++i) {
-        emit itemRemoved(m_itemList[i]);
-        emit itemInserted(-1, m_itemList[i]);
-    }
 }

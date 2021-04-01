@@ -34,6 +34,7 @@ public:
     bool is24HourFormat() const { return m_24HourFormat; }
     bool isShowDate() const { return m_showDate; }
     bool isShowLunar() const { return m_showLunar; }
+    bool isShowWeek() const { return m_showWeek; }
     QSize sizeHint() const;
     QStringList dateString();
 
@@ -44,6 +45,7 @@ public slots:
     void set24HourFormat(const bool value);
     void setShowDate(const bool value);
     void setShowLunar(const bool value);
+    void setShowWeek(const bool value);
 
 private:
     void paintEvent(QPaintEvent *e);
@@ -53,6 +55,7 @@ private:
     bool m_24HourFormat;
     bool m_showDate;
     bool m_showLunar;
+    bool m_showWeek;
     mutable QFont m_timeFont;
     mutable QFont m_dateFont;
     mutable int m_timeOffset;

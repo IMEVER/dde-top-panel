@@ -34,6 +34,8 @@ public slots:
     void activeWindowInfoChanged();
     void maximizeWindow();
     void applyCustomSettings(const CustomSettings& settings);
+    void toggleStartMenu();
+    void toggleMenu();
 
 protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
@@ -55,6 +57,7 @@ private slots:
     void themeTypeChanged(DGuiApplicationHelper::ColorType themeType);
 
 private:
+    QMenu *menu;
     QHBoxLayout *m_layout;
     QLabel *m_winTitleLabel;
 
@@ -75,8 +78,6 @@ private:
     DBusDock *m_appInter;
     DBusWM  *m_wmInter;
     bool mouseClicked;
-
-    int m_currentIndex;
 
     QPropertyAnimation *m_buttonShowAnimation;
     QPropertyAnimation *m_buttonHideAnimation;

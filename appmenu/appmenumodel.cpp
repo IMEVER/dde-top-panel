@@ -44,8 +44,9 @@
 #include "../frame/util/XUtils.h"
 
 #include "dbusmenuimporter.h"
-
 // #include <dbusmenu-qt5/dbusmenuimporter.h>
+
+#include "menuimporter.h"
 
 static const QByteArray s_x11AppMenuServiceNamePropertyName = QByteArrayLiteral("_KDE_NET_WM_APPMENU_SERVICE_NAME");
 static const QByteArray s_x11AppMenuObjectPathPropertyName = QByteArrayLiteral("_KDE_NET_WM_APPMENU_OBJECT_PATH");
@@ -63,6 +64,10 @@ public:
 
     }
 
+    ~KDBusMenuImporter(){
+
+    }
+
 protected:
     QIcon iconForName(const QString &name) override {
         return QIcon::fromTheme(name);
@@ -75,8 +80,6 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
     if (!KWindowSystem::isPlatformX11()) {
         return;
     }
-
-    invisibleWidget.hide();
 
     connect(this, &AppMenuModel::winIdChanged, this, [this] {
         onActiveWindowChanged(m_winId.toUInt());
@@ -142,6 +145,9 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
             }
         }
     });
+
+    auto *menuImporter = new MenuImporter(this);
+    menuImporter->connectToBus();
 }
 
 AppMenuModel::~AppMenuModel() = default;
@@ -287,7 +293,7 @@ void AppMenuModel::onActiveWindowChanged(WId id)
     if (KWindowSystem::isPlatformX11()) {
         auto *c = QX11Info::connection();
 
-        auto getWindowPropertyString = [c, this](WId id, const QByteArray & name) -> QByteArray {
+        auto getWindowPropertyString = [c](WId id, const QByteArray & name) -> QByteArray {
             QByteArray value;
 
             if (!s_atoms.contains(name))
@@ -463,34 +469,37 @@ void AppMenuModel::updateApplicationMenu(const QString &serviceName, const QStri
     QMetaObject::invokeMethod(m_importer, "updateMenu", Qt::QueuedConnection);
 
     connect(m_importer.data(), &DBusMenuImporter::menuUpdated, this, [ = ](QMenu * menu) {
+    // connect(m_importer.data(), &DBusMenuImporter::menuUpdated, this, [ = ]() {
         m_menu = m_importer->menu();
 
         if (m_menu.isNull() || menu != m_menu) {
+        // if (m_menu.isNull()) {
             return;
         }
 
         //cache first layer of sub menus, which we'll be popping up
-        // for (QAction *a : m_menu->actions()) {
+        for (QAction *a : m_menu->actions()) {
 
-        //     // signal dataChanged when the action changes
-        //     connect(a, &QAction::changed, this, [this, a] {
-        //         if (m_menuAvailable && m_menu)
-        //         {
-        //             const int actionIdx = m_menu->actions().indexOf(a);
+            // signal dataChanged when the action changes
+            // connect(a, &QAction::changed, this, [this, a] {
+            //     if (m_menuAvailable && m_menu)
+            //     {
+            //         const int actionIdx = m_menu->actions().indexOf(a);
 
-        //             if (actionIdx > -1) {
-        //                 const QModelIndex modelIdx = index(actionIdx, 0);
-        //                 emit dataChanged(modelIdx, modelIdx);
-        //             }
-        //         }
-        //     });
+            //         if (actionIdx > -1) {
+            //              const QModelIndex modelIdx = index(actionIdx, 0);
+            //             emit dataChanged(modelIdx, modelIdx);
+            //         }
+            //     }
+            // });
 
-        //     // connect(a, &QAction::destroyed, this, &AppMenuModel::modelNeedsUpdate);
+            // connect(a, &QAction::destroyed, this, &AppMenuModel::modelNeedsUpdate);
 
-        //     if (a->menu()) {
-        //         m_importer->updateMenu(a->menu());
-        //     }
-        // }
+            if (a->menu()) {
+                m_importer->updateMenu(a->menu());
+                // m_importer->updateMenu();
+            }
+        }
 
         setMenuAvailable(true);
         emit modelNeedsUpdate();

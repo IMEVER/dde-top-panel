@@ -42,7 +42,7 @@ void MainPanelControl::init() {
 
     m_mainPanelLayout->setMargin(0);
     m_mainPanelLayout->setContentsMargins(0, 0, 0, 0);
-    m_mainPanelLayout->setSpacing(0);
+    m_mainPanelLayout->setSpacing(5);
 
     // 托盘
     m_trayAreaWidget->setLayout(m_trayAreaLayout);
@@ -146,6 +146,14 @@ void MainPanelControl::addFixedPluginAreaItem(int index, QWidget *wdg)
 void MainPanelControl::removeFixedPluginAreaItem(QWidget *wdg)
 {
     m_fixedPluginLayout->removeWidget(wdg);
+}
+
+void MainPanelControl::toggleStartMenu() {
+    this->activeWindowControlWidget->toggleStartMenu();
+}
+
+void MainPanelControl::toggleMenu() {
+    this->activeWindowControlWidget->toggleMenu();
 }
 
 void MainPanelControl::mouseDoubleClickEvent(QMouseEvent *event) {

@@ -113,7 +113,7 @@ void NormalContainer::refreshVisible()
 void NormalContainer::adjustMaxSize(const QSize size)
 {
     this->setMaximumWidth(size.width());
-    this->setMaximumHeight(DOCK_MAX_SIZE);
+    this->setMaximumHeight(PLUGIN_BACKGROUND_MAX_SIZE);
 }
 
 int NormalContainer::itemCount()

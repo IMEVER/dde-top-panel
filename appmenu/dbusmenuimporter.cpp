@@ -446,7 +446,7 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
                 d->m_actionForId.remove(id);
             });
 
-            connect(action, &QAction::triggered, this, [action, id, this]() {
+            connect(action, &QAction::triggered, this, [id, this]() {
                 sendClickedEvent(id);
             });
 

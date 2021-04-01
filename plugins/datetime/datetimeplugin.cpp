@@ -31,6 +31,7 @@
 #define PLUGIN_STATE_KEY "enable"
 #define TIME_FORMAT_KEY "Use24HourFormat"
 #define DATE_SHOW_KEY "showDate"
+#define WEEK_SHOW_KEY "showWeek"
 #define LUNAR_SHOW_KEY "showLunar"
 
 DatetimePlugin::DatetimePlugin(QObject *parent)
@@ -155,6 +156,12 @@ const QString DatetimePlugin::itemContextMenu(const QString &itemKey)
     showDate["isActive"] = true;
     items.push_back(showDate);
 
+    QMap<QString, QVariant> showWeek;
+    showWeek["itemId"] = "showWeek";
+    showWeek["itemText"] = m_centralWidget->isShowWeek() ? "隐藏星期" : "显示星期";
+    showWeek["isActive"] = true;
+    items.push_back(showWeek);
+
     QMap<QString, QVariant> showLunar;
     showLunar["itemId"] = "showLunar";
     showLunar["itemText"] = m_centralWidget->isShowLunar() ? "隐藏六十甲子" : "显示六十甲子";
@@ -163,7 +170,7 @@ const QString DatetimePlugin::itemContextMenu(const QString &itemKey)
 
     QMap<QString, QVariant> open;
     open["itemId"] = "open";
-    open["itemText"] = tr("Time settings");
+    open["itemText"] = "时间设置";
     open["isActive"] = true;
     items.push_back(open);
 
@@ -195,6 +202,11 @@ void DatetimePlugin::invokedMenuItem(const QString &itemKey, const QString &menu
         m_centralWidget->setShowDate(!m_centralWidget->isShowDate());
         m_proxyInter->saveValue(this, DATE_SHOW_KEY, m_centralWidget->isShowDate());
     }
+    else if (menuId == "showWeek")
+    {	
+	m_centralWidget->setShowWeek(!m_centralWidget->isShowWeek());
+	m_proxyInter->saveValue(this, WEEK_SHOW_KEY, m_centralWidget->isShowWeek());
+    }
     else if (menuId == "showLunar")
     {
         m_centralWidget->setShowLunar(!m_centralWidget->isShowLunar());
@@ -225,28 +237,30 @@ void DatetimePlugin::updateCurrentTimeString()
 {
     const QDateTime currentDateTime = QDateTime::currentDateTime();
 
-    int h = currentDateTime.time().hour();
-
-    if (tips.count() == 0 || h != hour)
+    if(tips.count() == 0 || m_dateTipsLabel->isVisible())
     {
-        hour = h;
-        tips = m_centralWidget->dateString();
-    }
+	    int h = currentDateTime.time().hour();
 
-    QStringList t;
-    foreach(QString s, tips)
-        t.append(s);
-    
-    if (m_centralWidget->is24HourFormat())
-    {
-        t.append("阳历：" + currentDateTime.date().toString(Qt::SystemLocaleLongDate) + currentDateTime.toString(" HH:mm:ss"));
-    }
-    else
-    {
-        t.append("阳历：" + currentDateTime.date().toString(Qt::SystemLocaleLongDate) + currentDateTime.toString(" hh:mm:ss A"));
-    }
-    m_dateTipsLabel->setTextList(t);
+	    if (tips.count() == 0 || h != hour)
+	    {
+		hour = h;
+		tips = m_centralWidget->dateString();
+	    }
 
+	    QStringList t;
+	    foreach(QString s, tips)
+		t.append(s);
+	    
+	    if (m_centralWidget->is24HourFormat())
+	    {
+		t.append("时间：" + currentDateTime.toString(" HH:mm:ss"));
+	    }
+	    else
+	    {
+		t.append("时间：" + currentDateTime.toString(" hh:mm:ss A"));
+	    }
+	    m_dateTipsLabel->setTextList(t);
+    }
     const int min = currentDateTime.time().minute();
 
     if (min == minute)

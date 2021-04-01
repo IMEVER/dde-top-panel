@@ -31,19 +31,19 @@
 #include <DGuiApplicationHelper>
 
 #define PLUGIN_STATE_KEY    "enable"
-#define TIME_FONT DFontSizeManager::instance()->t3()
+#define TIME_FONT DFontSizeManager::instance()->t6()
 
 
 class Lunar
 {
 public:
     const  QStringList 天干 = {"甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"};
-    const  QStringList 地支 = {"子", ",丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"};
+    const  QStringList 地支 = {"子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"};
     const  QStringList 生肖 = {"鼠","牛","虎","兔","龙","蛇","马","羊","猴","鸡","狗","猪"};
     const  QStringList 节气 = {"小寒","大寒","立春","雨水","惊蛰","春分","清明","谷雨","立夏","小满","芒种","夏至","小暑","大暑","立秋","处暑","白露","秋分","寒露","霜降","立冬","小雪","大雪","冬至"};
     const  QStringList 日 = {"日","一","二","三","四","五","六","七","八","九","十"};
     const  QStringList 十 = {"初","十","廿","卅"};
-    const  QStringList 月 = {"正","一","二","三","四","五","六","七","八","九","十","冬","腊"};
+    const  QStringList 月 = {"正","二","三","四","五","六","七","八","九","十","冬","腊"};
     /**
       * 公历每个月份的天数普通表
       * @Array Of Property
@@ -550,6 +550,7 @@ DatetimeWidget::DatetimeWidget(QWidget *parent)
     : QWidget(parent)
 {
     setMinimumSize(PLUGIN_BACKGROUND_MIN_SIZE, PLUGIN_BACKGROUND_MIN_SIZE);
+    m_timeFont = TIME_FONT;
 }
 
 void DatetimeWidget::setShowDate(const bool value)
@@ -559,12 +560,8 @@ void DatetimeWidget::setShowDate(const bool value)
     }
 
     m_showDate = value;
+    updateGeometry();
     update();
-
-    adjustSize();
-    if (isVisible()) {
-        emit requestUpdateGeometry();
-    }
 }
 
 void DatetimeWidget::setShowLunar(const bool value)
@@ -574,12 +571,8 @@ void DatetimeWidget::setShowLunar(const bool value)
     }
 
     m_showLunar = value;
+    updateGeometry();
     update();
-
-    adjustSize();
-    if (isVisible()) {
-        emit requestUpdateGeometry();
-    }
 }
 
 void DatetimeWidget::set24HourFormat(const bool value)
@@ -589,18 +582,24 @@ void DatetimeWidget::set24HourFormat(const bool value)
     }
 
     m_24HourFormat = value;
+    updateGeometry();
     update();
+}
 
-    adjustSize();
-    if (isVisible()) {
-        emit requestUpdateGeometry();
-    }
+void DatetimeWidget::setShowWeek(const bool value)
+{
+	if(m_showWeek != value)
+	{
+		m_showWeek = value;
+		updateGeometry();
+		update();
+	}
 }
 
 QSize DatetimeWidget::sizeHint() const
 {
     QFontMetrics fm(TIME_FONT);
-    return QSize(fm.boundingRect(currentChinaTime()).size().width() - 120, height());
+    return QSize(fm.boundingRect(QRect(0,0,0,0), Qt::AlignLeft, currentChinaTime()).size().width(), height());
 }
 
 void DatetimeWidget::paintEvent(QPaintEvent *e)
@@ -626,6 +625,11 @@ QString DatetimeWidget::currentChinaTime() const
     {
         date.append(current.toString("yyyy/MM/dd"));
     }
+
+    if(m_showWeek)
+    {
+    	date.append(current.toString("ddd"));
+    }
     
     date.append(current.toString(m_24HourFormat ? "hh:mm" : "hh:mm AP"));
 
@@ -646,6 +650,8 @@ QStringList DatetimeWidget::dateString()
     QStringList tips;
     tips.append(QString("天地：%1年 %2月 %3日 %4时").arg(dd.value("gzYear").toString(), dd.value("gzMonth").toString(), dd.value("gzDay").toString(), dd.value("gzHour").toString()));
     tips.append(QString("农历：%1年%2%3 %4 %5").arg(dd.value("lYear").toString(), dd.value("ImonthCn").toString(), dd.value("IdayCn").toString(), dd.value("animal").toString(), dd.value("Term").toString()));
+
+    tips.append("阳历：" + current.date().toString(Qt::SystemLocaleLongDate));
 
     return tips;
 }
