@@ -207,7 +207,6 @@ void DockItem::showContextMenu()
     }
 
     hidePopup();
-    emit requestWindowAutoHide(false);
 
     m_contextMenu.popup(QCursor::pos());
 
@@ -221,8 +220,6 @@ void DockItem::menuActionClicked(QAction *action)
 
 void DockItem::onContextMenuAccepted()
 {
-    emit requestRefreshWindowVisible();
-    emit requestWindowAutoHide(true);
 }
 
 void DockItem::showHoverTips()
@@ -253,9 +250,6 @@ void DockItem::showPopupWindow(QWidget *const content, const bool model)
 
     m_popupShown = true;
     m_lastPopupWidget = content;
-
-    if (model)
-        emit requestWindowAutoHide(false);
 
     DockPopupWindow *popup = PopupWindow.data();
     QWidget *lastContent = popup->getContent();
@@ -352,7 +346,6 @@ void DockItem::hidePopup()
     PopupWindow->hide();
 
     emit PopupWindow->accept();
-    emit requestWindowAutoHide(true);
 }
 
 void DockItem::setDraging(bool bDrag)

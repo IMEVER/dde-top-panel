@@ -1,6 +1,6 @@
 #include "mainsettingwidget.h"
 #include "ui_mainsettingwidget.h"
-#include "../frame/util/CustomSettings.h"
+#include "../util/CustomSettings.h"
 #include <QIcon>
 #include <QColorDialog>
 #include <QFileDialog>

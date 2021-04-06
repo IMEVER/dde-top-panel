@@ -46,6 +46,7 @@ file(GLOB INTERFACES "interfaces/*.h")
 add_subdirectory("frame")
 add_subdirectory("plugins")
 add_subdirectory("appmenu")
+add_subdirectory("globalmenu")
 
 if (CMAKE_BUILD_TYPE STREQUAL "RELEASE")
     add_definitions(-DQT_NO_DEBUG_OUTPUT)

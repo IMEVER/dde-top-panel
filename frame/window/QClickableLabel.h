@@ -7,8 +7,8 @@
 
 
 #include <QLabel>
-#include "../frame/util/CustomSettings.h"
-#include "../frame/item/components/hoverhighlighteffect.h"
+#include "../util/CustomSettings.h"
+#include "../item/components/hoverhighlighteffect.h"
 
 class QClickableLabel : public QLabel {
     Q_OBJECT

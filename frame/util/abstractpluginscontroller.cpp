@@ -242,7 +242,7 @@ void AbstractPluginsController::refreshPluginSettings()
         pluginInter->pluginSettingsChanged();
     }
     
-    qDebug()<<"settings: "<<m_pluginSettingsObject<<endl;
+    qDebug()<<"settings: "<<m_pluginSettingsObject<<Qt::endl;
 
     // reload all plugin items for sort order or container
     QMap<PluginsItemInterface *, QMap<QString, QObject *>> pluginsMapTemp = m_pluginsMap;

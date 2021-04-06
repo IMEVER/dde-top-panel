@@ -37,7 +37,6 @@ public:
     FashionTrayWidgetWrapper *takeDraggingWrapper();
 
 Q_SIGNALS:
-    void attentionChanged(FashionTrayWidgetWrapper *wrapper, const bool attention);
     void requestDraggingWrapper();
     void draggingStateChanged(FashionTrayWidgetWrapper *wrapper, const bool dragging);
 
@@ -47,7 +46,6 @@ protected:
     TrayPlugin *trayPlugin() const;
     QList<QPointer<FashionTrayWidgetWrapper>> wrapperList() const;
     QBoxLayout *wrapperLayout() const;
-    void setWrapperLayout(QBoxLayout *layout);
     bool expand() const;
     QSize wrapperSize() const;
 
@@ -56,7 +54,6 @@ protected:
     void paintEvent(QPaintEvent *event) override;
 
 private Q_SLOTS:
-    void onWrapperAttentionhChanged(const bool attention);
     void onWrapperDragStart();
     void onWrapperDragStop();
     void onWrapperRequestSwapWithDragging();

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-set(PROJECT dde-appmenu)
+set(PROJECT appmenu)
 
 project(${PROJECT})
 
@@ -35,8 +35,14 @@ set(SRCS
         utils_p.h utils.cpp
         )
 
-# qt5_add_dbus_adaptor(SRCS com.canonical.AppMenu.Registrar.xml
-#     menuimporter.h MenuImporter menuimporteradaptor MenuImporterAdaptor)
+qt5_add_dbus_adaptor(SRCS com.canonical.AppMenu.Registrar.xml
+    menuimporter.h MenuImporter menuimporteradaptor MenuImporterAdaptor)
+
+
+# add_library(globalmenu STATIC IMPORTED)
+# set_target_properties(globalmenu  
+#   PROPERTIES IMPORTED_LOCATION
+#   ${CMAKE_CURRENT_SOURCE_DIR}/libglobalmenu.a)
 
 add_library(${PROJECT} ${SRCS})
 
@@ -53,5 +59,6 @@ target_link_libraries(${PROJECT}
         Qt5::X11Extras
         KF5::WindowSystem
         xcb
+        # globalmenu
         # dbusmenu-qt5
         )

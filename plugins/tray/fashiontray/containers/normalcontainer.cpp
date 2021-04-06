@@ -138,16 +138,8 @@ void NormalContainer::setExpand(const bool expand)
 
 int NormalContainer::whereToInsert(FashionTrayWidgetWrapper *wrapper)
 {
-    // 如果已经对图标进行过排序则完全按照从配置文件中获取的顺序来插入图标(即父类的实现)
-    if (trayPlugin()->traysSortedInFashionMode()) {
-        return AbstractContainer::whereToInsert(wrapper);
-    }
-
-    // 如果没有对图标进行过排序则使用下面的默认排序算法:
-    // 所有应用图标在系统图标的左侧
-    // 新的应用图标在最左侧的应用图标处插入
-    // 新的系统图标在最左侧的系统图标处插入
-    return whereToInsertByDefault(wrapper);
+    return AbstractContainer::whereToInsert(wrapper);
+    // return whereToInsertByDefault(wrapper);
 }
 
 int NormalContainer::whereToInsertByDefault(FashionTrayWidgetWrapper *wrapper) const

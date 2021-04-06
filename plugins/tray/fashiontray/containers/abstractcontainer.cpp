@@ -14,7 +14,6 @@ AbstractContainer::AbstractContainer(TrayPlugin *trayPlugin, QWidget *parent)
     m_wrapperLayout->setMargin(0);
     m_wrapperLayout->setContentsMargins(0, 0, 0, 0);
     m_wrapperLayout->setSpacing(TraySpace);
-    m_wrapperLayout->setDirection(QBoxLayout::Direction::LeftToRight);
 
     setLayout(m_wrapperLayout);
 
@@ -45,7 +44,6 @@ void AbstractContainer::addWrapper(FashionTrayWidgetWrapper *wrapper)
 
     wrapper->setAttention(false);
 
-    connect(wrapper, &FashionTrayWidgetWrapper::attentionChanged, this, &AbstractContainer::onWrapperAttentionhChanged, static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection));
     connect(wrapper, &FashionTrayWidgetWrapper::dragStart, this, &AbstractContainer::onWrapperDragStart, Qt::UniqueConnection);
     connect(wrapper, &FashionTrayWidgetWrapper::dragStop, this, &AbstractContainer::onWrapperDragStop, Qt::UniqueConnection);
     connect(wrapper, &FashionTrayWidgetWrapper::requestSwapWithDragging, this, &AbstractContainer::onWrapperRequestSwapWithDragging, Qt::UniqueConnection);
@@ -267,14 +265,6 @@ QBoxLayout *AbstractContainer::wrapperLayout() const
     return m_wrapperLayout;
 }
 
-// replace current WrapperLayout by "layout"
-// but will not setLayout here, so the caller should handle the new WrapperLayout
-void AbstractContainer::setWrapperLayout(QBoxLayout *layout)
-{
-    delete m_wrapperLayout;
-    m_wrapperLayout = layout;
-}
-
 bool AbstractContainer::expand() const
 {
     return m_expand;
@@ -301,16 +291,6 @@ void AbstractContainer::paintEvent(QPaintEvent *event)
     QWidget::paintEvent(event);
 
     QPainter p(this);
-}
-
-void AbstractContainer::onWrapperAttentionhChanged(const bool attention)
-{
-    FashionTrayWidgetWrapper *wrapper = dynamic_cast<FashionTrayWidgetWrapper *>(sender());
-    if (!wrapper) {
-        return;
-    }
-
-    Q_EMIT attentionChanged(wrapper, attention);
 }
 
 void AbstractContainer::onWrapperDragStart()

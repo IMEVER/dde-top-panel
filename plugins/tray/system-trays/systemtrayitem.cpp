@@ -190,10 +190,6 @@ bool SystemTrayItem::event(QEvent *event)
 
 void SystemTrayItem::enterEvent(QEvent *event)
 {
-    if (checkGSettingsControl()) {
-        return;
-    }
-
     m_popupTipsDelayTimer->start();
     update();
 
@@ -215,10 +211,6 @@ void SystemTrayItem::leaveEvent(QEvent *event)
 
 void SystemTrayItem::mousePressEvent(QMouseEvent *event)
 {
-    if (checkGSettingsControl()) {
-        return;
-    }
-
     m_popupTipsDelayTimer->stop();
     hideNonModel();
 
@@ -233,10 +225,6 @@ void SystemTrayItem::mousePressEvent(QMouseEvent *event)
 
 void SystemTrayItem::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (checkGSettingsControl()) {
-        return;
-    }
-
     if (event->button() != Qt::LeftButton) {
         return;
     }
@@ -299,7 +287,6 @@ void SystemTrayItem::hidePopup()
     PopupWindow->hide();
 
     emit PopupWindow->accept();
-    emit requestWindowAutoHide(true);
 }
 
 void SystemTrayItem::hideNonModel()
@@ -336,9 +323,6 @@ void SystemTrayItem::showPopupWindow(QWidget *const content, const bool model)
 {
     m_popupShown = true;
     m_lastPopupWidget = content;
-
-    if (model)
-        emit requestWindowAutoHide(false);
 
     DockPopupWindow *popup = PopupWindow.data();
     QWidget *lastContent = popup->getContent();
@@ -429,11 +413,8 @@ void SystemTrayItem::showContextMenu()
     }
 
     hidePopup();
-    emit requestWindowAutoHide(false);
 
     m_contextMenu.exec(QCursor::pos());
-
-    onContextMenuAccepted();
 }
 
 void SystemTrayItem::menuActionClicked(QAction *action)

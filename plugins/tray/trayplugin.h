@@ -59,7 +59,6 @@ public:
     void refreshIcon(const QString &itemKey) Q_DECL_OVERRIDE;
     void pluginSettingsChanged() override;
 
-    bool traysSortedInFashionMode();
     void saveValue(const QString &itemKey, const QString &key, const QVariant &value);
     const QVariant getValue(const QString &itemKey, const QString &key, const QVariant& fallback = QVariant());
 
@@ -79,9 +78,8 @@ private slots:
     void trayIndicatorAdded(const QString &itemKey, const QString &indicatorName);
     void trayRemoved(const QString &itemKey, const bool deleteObject = true);
     void xembedItemChanged(quint32 winId);
-    void switchToMode();
-    void onRequestWindowAutoHide(const bool autoHide);
-    void onRequestRefershWindowVisible();
+    void onRequestWindowAutoHide(const bool autoHide){};
+    void onRequestRefershWindowVisible(){};
     void onSNIItemStatusChanged(SNITrayWidget::ItemStatus status);
 
 private:

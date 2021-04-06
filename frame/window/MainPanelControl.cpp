@@ -6,7 +6,7 @@
 #include <QApplication>
 #include <QDrag>
 
-#include "../widgets/ShowDesktopWidget.h"
+#include "ShowDesktopWidget.h"
 
 #define PLUGIN_MAX_SIZE  40
 
@@ -42,7 +42,7 @@ void MainPanelControl::init() {
 
     m_mainPanelLayout->setMargin(0);
     m_mainPanelLayout->setContentsMargins(0, 0, 0, 0);
-    m_mainPanelLayout->setSpacing(5);
+    m_mainPanelLayout->setSpacing(10);
 
     // 托盘
     m_trayAreaWidget->setLayout(m_trayAreaLayout);
@@ -56,7 +56,7 @@ void MainPanelControl::init() {
     m_pluginAreaWidget->setAcceptDrops(true);
     m_pluginAreaWidget->setAccessibleName("pluginarea");
     m_pluginLayout->setMargin(0);
-    m_pluginLayout->setSpacing(5);
+    m_pluginLayout->setSpacing(10);
     // m_pluginLayout->setContentsMargins(5, 0, 5, 0);
 
     m_pluginAreaWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
@@ -64,7 +64,7 @@ void MainPanelControl::init() {
 
     m_fixedPluginWidget->setLayout(m_fixedPluginLayout);
     m_fixedPluginLayout->setMargin(0);
-    m_fixedPluginLayout->setSpacing(5);
+    m_fixedPluginLayout->setSpacing(10);
     // m_fixedPluginLayout->setContentsMargins(5, 0, 5, 0);
     // m_fixedPluginWidget->setFixedWidth(100);
     m_fixedPluginWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);

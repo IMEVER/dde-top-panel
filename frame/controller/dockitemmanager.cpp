@@ -152,9 +152,6 @@ void DockItemManager::appItemRemoved(AppItem *appItem)
 }
 void DockItemManager::pluginItemInserted(PluginsItem *item)
 {
-    connect(item, &DockItem::requestRefreshWindowVisible, this, &DockItemManager::requestRefershWindowVisible, Qt::UniqueConnection);
-    connect(item, &DockItem::requestWindowAutoHide, this, &DockItemManager::requestWindowAutoHide, Qt::UniqueConnection);
-
     DockItem::ItemType pluginType = item->itemType();
 
     // find first plugins item position

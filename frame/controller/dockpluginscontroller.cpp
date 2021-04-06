@@ -95,24 +95,6 @@ void DockPluginsController::itemRemoved(PluginsItemInterface *const itemInter, c
     item->deleteLater();
 }
 
-void DockPluginsController::requestWindowAutoHide(PluginsItemInterface *const itemInter, const QString &itemKey, const bool autoHide)
-{
-    PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey));
-    if (!item)
-        return;
-
-    Q_EMIT item->requestWindowAutoHide(autoHide);
-}
-
-void DockPluginsController::requestRefreshWindowVisible(PluginsItemInterface *const itemInter, const QString &itemKey)
-{
-    PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey));
-    if (!item)
-        return;
-
-    Q_EMIT item->requestRefreshWindowVisible();
-}
-
 void DockPluginsController::requestSetAppletVisible(PluginsItemInterface *const itemInter, const QString &itemKey, const bool visible)
 {
     PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey));

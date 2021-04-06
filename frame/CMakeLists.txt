@@ -6,7 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Sources files
 file(GLOB_RECURSE SRCS "*.h" "*.cpp" "../widgets/*.h" "../widgets/*.cpp" "util/XUtils.h"
-        "util/XUtils.cpp" "../appmenu/*.h" "../appmenu/*.cpp" "../widgets/*.ui")
+        "util/XUtils.cpp" "../widgets/*.ui" )
 
 # Find the library
 find_package(PkgConfig REQUIRED)
@@ -24,6 +24,12 @@ pkg_check_modules(XCB_EWMH REQUIRED xcb-ewmh x11)
 pkg_check_modules(DFrameworkDBus REQUIRED dframeworkdbus)
 pkg_check_modules(QGSettings REQUIRED gsettings-qt)
 pkg_check_modules(DtkGUI REQUIRED dtkgui)
+
+link_directories(../appmenu)
+link_libraries(appmenu)
+
+link_directories(../globalmenu)
+link_libraries(globalmenu)
 
 # driver-manager
 add_executable(${BIN_NAME} ${SRCS} ${INTERFACES} item/item.qrc frame.qrc)

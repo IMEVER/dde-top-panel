@@ -7,12 +7,12 @@
 
 #include <DBlurEffectWidget>
 #include <DPlatformWindowHandle>
-#include "../panel/MainPanelControl.h"
+#include "MainPanelControl.h"
 #include "dbus/sni/statusnotifierwatcher_interface.h"
 #include "util/TopPanelSettings.h"
 #include "xcb/xcb_misc.h"
 #include "util/CustomSettings.h"
-#include "../widgets/mainsettingwidget.h"
+#include "mainsettingwidget.h"
 #include "../dbus/dbusdisplay.h"
 
 DWIDGET_USE_NAMESPACE

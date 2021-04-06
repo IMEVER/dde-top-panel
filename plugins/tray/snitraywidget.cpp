@@ -628,7 +628,6 @@ void SNITrayWidget::hidePopup()
     PopupWindow->hide();
 
     emit PopupWindow->accept();
-    emit requestWindowAutoHide(true);
 }
 // 获取在最外层的窗口(MainWindow)中的位置
 const QPoint SNITrayWidget::topleftPoint() const
@@ -658,9 +657,6 @@ const QPoint SNITrayWidget::popupMarkPoint() const
 void SNITrayWidget::showPopupWindow(QWidget *const content, const bool model)
 {
     m_popupShown = true;
-
-    if (model)
-        emit requestWindowAutoHide(false);
 
     DockPopupWindow *popup = PopupWindow.data();
     QWidget *lastContent = popup->getContent();

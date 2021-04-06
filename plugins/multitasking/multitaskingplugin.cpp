@@ -32,6 +32,7 @@ MultitaskingPlugin::MultitaskingPlugin(QObject *parent)
 {
     m_tipsLabel->setVisible(false);
     m_tipsLabel->setObjectName("multitasking");
+    m_tipsLabel->setText(pluginDisplayName());
 }
 
 const QString MultitaskingPlugin::pluginName() const
@@ -41,7 +42,7 @@ const QString MultitaskingPlugin::pluginName() const
 
 const QString MultitaskingPlugin::pluginDisplayName() const
 {
-    return tr("Multitasking View");
+    return "多任务";
 }
 
 QWidget *MultitaskingPlugin::itemWidget(const QString &itemKey)
@@ -53,10 +54,6 @@ QWidget *MultitaskingPlugin::itemWidget(const QString &itemKey)
 
 QWidget *MultitaskingPlugin::itemTipsWidget(const QString &itemKey)
 {
-    m_tipsLabel->setObjectName(itemKey);
-
-    m_tipsLabel->setText(pluginDisplayName());
-
     return m_tipsLabel;
 }
 
@@ -100,13 +97,13 @@ const QString MultitaskingPlugin::itemContextMenu(const QString &itemKey)
 
     QMap<QString, QVariant> desktop;
     desktop["itemId"] = "multitasking";
-    desktop["itemText"] = tr("Multitasking View");
+    desktop["itemText"] = "多任务视图";
     desktop["isActive"] = true;
     items.push_back(desktop);
 
     QMap<QString, QVariant> power;
     power["itemId"] = "remove";
-    power["itemText"] = tr("Undock");
+    power["itemText"] = "Undock";
     power["isActive"] = true;
     items.push_back(power);
 

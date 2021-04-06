@@ -283,6 +283,7 @@ void TopPanelLauncher::rearrange() {
         MainWindow *mw = new MainWindow(p_screen, p_screen != qApp->primaryScreen());
         connect(mw, &MainWindow::settingActionClicked, this, [this]() {
             int screenNum = QApplication::desktop()->screenNumber(dynamic_cast<MainWindow*>(sender()));
+            
             this->m_settingWidget->move(QApplication::desktop()->screen(screenNum)->rect().center() - this->m_settingWidget->rect().center());
             this->m_settingWidget->show();
         });
@@ -294,7 +295,6 @@ void TopPanelLauncher::rearrange() {
         new DBusTopPanelAdaptors (mw);
         QDBusConnection::sessionBus().registerService("com.deepin.dde.TopPanel");
         QDBusConnection::sessionBus().registerObject("/com/deepin/dde/TopPanel", "com.deepin.dde.TopPanel", mw);
-        // QDBusConnection::sessionBus().registerObject("/com/deepin/dde/TopPanel", mw);
     }
 
     for (auto screen : mwMap.keys()) {

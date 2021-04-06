@@ -26,6 +26,7 @@
 #include <QMouseEvent>
 #include <QApplication>
 #include <QIcon>
+#include <QPainterPath>
 
 #include <DStyle>
 #include <DGuiApplicationHelper>

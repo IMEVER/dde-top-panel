@@ -23,8 +23,8 @@
 #define SYSTEMTRAYSCONTROLLER_H
 
 #include "systemtrayitem.h"
-#include "pluginproxyinterface.h"
-#include "util/abstractpluginscontroller.h"
+#include "../../../interfaces/pluginsiteminterface.h"
+#include "../../../frame/util/abstractpluginscontroller.h"
 
 #include <com_deepin_dde_daemon_dock.h>
 
@@ -45,8 +45,8 @@ public:
     void itemAdded(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
     void itemUpdate(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
     void itemRemoved(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
-    void requestWindowAutoHide(PluginsItemInterface * const itemInter, const QString &itemKey, const bool autoHide) Q_DECL_OVERRIDE;
-    void requestRefreshWindowVisible(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
+    void requestWindowAutoHide(PluginsItemInterface * const itemInter, const QString &itemKey, const bool autoHide);
+    void requestRefreshWindowVisible(PluginsItemInterface * const itemInter, const QString &itemKey);    
     void requestSetAppletVisible(PluginsItemInterface * const itemInter, const QString &itemKey, const bool visible) Q_DECL_OVERRIDE;
 
     int systemTrayItemSortKey(const QString &itemKey);

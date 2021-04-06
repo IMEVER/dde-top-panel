@@ -39,7 +39,7 @@ void MultitaskingWidget::refreshIcon()
 
 QSize MultitaskingWidget::sizeHint() const
 {
-    return QSize(32, 32);
+    return QSize(20, 20);
 }
 
 void MultitaskingWidget::paintEvent(QPaintEvent *e)

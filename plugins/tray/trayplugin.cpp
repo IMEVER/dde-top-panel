@@ -33,9 +33,6 @@
 #include "../widgets/tipswidget.h"
 #include "xcb/xcb_icccm.h"
 
-#define PLUGIN_ENABLED_KEY "enable"
-#define FASHION_MODE_TRAYS_SORTED   "fashion-mode-trays-sorted"
-
 #define SNI_WATCHER_SERVICE "org.kde.StatusNotifierWatcher"
 #define SNI_WATCHER_PATH "/StatusNotifierWatcher"
 
@@ -55,11 +52,6 @@ const QString TrayPlugin::pluginName() const
 void TrayPlugin::init(PluginProxyInterface *proxyInter)
 {
     m_proxyInter = proxyInter;    
-
-    if (pluginIsDisable()) {
-        qDebug() << "hide tray from config disable!!";
-        return;
-    }
 
     if (m_pluginLoaded) {
         return;
@@ -85,8 +77,6 @@ void TrayPlugin::init(PluginProxyInterface *proxyInter)
 
     m_trayInter->Manage();
 
-    switchToMode();
-
     QTimer::singleShot(0, this, &TrayPlugin::loadIndicator);
     QTimer::singleShot(0, m_systemTraysController, &SystemTraysController::startLoader);
     QTimer::singleShot(0, this, &TrayPlugin::initSNI);
@@ -95,17 +85,7 @@ void TrayPlugin::init(PluginProxyInterface *proxyInter)
 
 bool TrayPlugin::pluginIsDisable()
 {
-    // NOTE(justforlxz): local config
-    QSettings enableSetting("deepin", "dde-dock");
-    enableSetting.beginGroup("tray");
-    if (!enableSetting.value("enable", true).toBool()) {
-        return true;
-    }
-
-    if (!m_proxyInter)
-        return true;
-
-    return !m_proxyInter->getValue(this, PLUGIN_ENABLED_KEY, true).toBool();
+    return false;
 }
 
 QWidget *TrayPlugin::itemWidget(const QString &itemKey)
@@ -150,10 +130,6 @@ int TrayPlugin::itemSortKey(const QString &itemKey)
 
 void TrayPlugin::setSortKey(const QString &itemKey, const int order)
 {
-    if (!traysSortedInFashionMode()) {
-        m_proxyInter->saveValue(this, FASHION_MODE_TRAYS_SORTED, true);
-    }
-
     // 如果是系统托盘图标则调用内部插件的相应接口
     if (isSystemTrayItem(itemKey)) {
         return m_systemTraysController->setSystemTrayItemSortKey(itemKey, order);
@@ -194,11 +170,6 @@ void TrayPlugin::pluginSettingsChanged()
     m_fashionItem->onPluginSettingsChanged();
     m_fashionItem->clearTrayWidgets();
     m_fashionItem->setTrayWidgets(m_trayMap);
-}
-
-bool TrayPlugin::traysSortedInFashionMode()
-{
-    return m_proxyInter->getValue(this, FASHION_MODE_TRAYS_SORTED, false).toBool();
 }
 
 void TrayPlugin::saveValue(const QString &itemKey, const QString &key, const QVariant &value)
@@ -320,19 +291,11 @@ void TrayPlugin::addTrayWidget(const QString &itemKey, AbstractTrayWidget *trayW
     m_trayMap.insert(itemKey, trayWidget);
     m_proxyInter->itemAdded(this, FASHION_MODE_ITEM_KEY);
     m_fashionItem->trayWidgetAdded(itemKey, trayWidget);
-
-    connect(trayWidget, &AbstractTrayWidget::requestWindowAutoHide, this, &TrayPlugin::onRequestWindowAutoHide, Qt::UniqueConnection);
-    connect(trayWidget, &AbstractTrayWidget::requestRefershWindowVisible, this, &TrayPlugin::onRequestRefershWindowVisible, Qt::UniqueConnection);
 }
 
 void TrayPlugin::trayXEmbedAdded(const QString &itemKey, quint32 winId)
 {
     if (m_trayMap.contains(itemKey) || !XEmbedTrayWidget::isXEmbedKey(itemKey)) {
-        return;
-    }
-
-    QGSettings settings("com.deepin.dde.dock.module.systemtray");
-    if (settings.keys().contains("enable") && !settings.get("enable").toBool()) {
         return;
     }
 
@@ -435,44 +398,6 @@ void TrayPlugin::xembedItemChanged(quint32 winId)
     }
 
     m_trayMap.value(itemKey)->updateIcon();
-}
-
-void TrayPlugin::switchToMode()
-{
-    if (!m_proxyInter)
-        return;
-
-    for (auto itemKey : m_trayMap.keys()) {
-        m_proxyInter->itemRemoved(this, itemKey);
-    }
-    if (m_trayMap.isEmpty()) {
-        m_proxyInter->itemRemoved(this, FASHION_MODE_ITEM_KEY);
-    } else {
-        m_fashionItem->setTrayWidgets(m_trayMap);
-        m_proxyInter->itemAdded(this, FASHION_MODE_ITEM_KEY);
-    }
-}
-
-void TrayPlugin::onRequestWindowAutoHide(const bool autoHide)
-{
-    const QString &itemKey = itemKeyOfTrayWidget(static_cast<AbstractTrayWidget *>(sender()));
-
-    if (itemKey.isEmpty()) {
-        return;
-    }
-
-    m_proxyInter->requestWindowAutoHide(this, itemKey, autoHide);
-}
-
-void TrayPlugin::onRequestRefershWindowVisible()
-{
-    const QString &itemKey = itemKeyOfTrayWidget(static_cast<AbstractTrayWidget *>(sender()));
-
-    if (itemKey.isEmpty()) {
-        return;
-    }
-
-    m_proxyInter->requestRefreshWindowVisible(this, itemKey);
 }
 
 void TrayPlugin::onSNIItemStatusChanged(SNITrayWidget::ItemStatus status)

@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include "window/MainWindow.h"
 
+#include "../globalmenu/menuproxy.h"
+
 DWIDGET_USE_NAMESPACE
 #ifdef DCORE_NAMESPACE
 DCORE_USE_NAMESPACE
@@ -17,18 +19,28 @@ DUTIL_USE_NAMESPACE
 int main(int argc, char *argv[]) {
 
     DGuiApplicationHelper::setUseInactiveColorGroup(false);
-    DApplication::loadDXcbPlugin();
+    // DApplication::loadDXcbPlugin();
     DApplication app(argc, argv);
 
-    app.setOrganizationName("IMEVER");
-    app.setApplicationName("dde-top-panel");
-    app.setApplicationDisplayName("DDE Top Panel");
-    app.setApplicationVersion("1.0.0");
-    app.loadTranslator();
-    app.setAttribute(Qt::AA_EnableHighDpiScaling, true);
-    app.setAttribute(Qt::AA_UseHighDpiPixmaps, false);
+    if (app.setSingleInstance("imever"))
+    {
+        app.setOrganizationName("IMEVER");
+        app.setApplicationName("dde-top-panel");
+        app.setApplicationDisplayName("DDE Top Panel");
+        app.setApplicationVersion("1.0.0");
+        app.loadTranslator();
+        app.setAttribute(Qt::AA_EnableHighDpiScaling, true);
+        app.setAttribute(Qt::AA_UseHighDpiPixmaps, false);
 
-    TopPanelLauncher launcher;
+        TopPanelLauncher launcher;
 
-    return app.exec();
+        MenuProxy proxy;
+
+        return app.exec();
+    }
+    else
+    {
+        app.exit();
+        return 0;
+    }    
 }

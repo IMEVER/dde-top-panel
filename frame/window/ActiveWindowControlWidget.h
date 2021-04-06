@@ -13,10 +13,10 @@
 #include <com_deepin_dde_daemon_dock.h>
 #include <com_deepin_wm.h>
 #include <QMenuBar>
-#include "../appmenu/appmenumodel.h"
+#include "../../appmenu/appmenumodel.h"
 #include "QClickableLabel.h"
 #include <com_deepin_wm.h>
-#include "../frame/util/CustomSettings.h"
+#include "../util/CustomSettings.h"
 
 using DBusDock = com::deepin::dde::daemon::Dock;
 using DBusWM = com::deepin::wm;

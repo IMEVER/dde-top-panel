@@ -12,11 +12,12 @@
 #include <QProcess>
 #include "QClickableLabel.h"
 
-#include "../frame/item/components/hoverhighlighteffect.h"
+#include "../item/components/hoverhighlighteffect.h"
 #include <QApplication>
 #include <QScreen>
 #include <QEvent>
 #include <QDesktopWidget>
+#include <DDBusSender>
 
 ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     : QWidget(parent)
@@ -47,7 +48,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
             // QProcess::startDetached("/usr/bin/qdbus --literal com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand 'dde-file-manager' '(' '-p' 'computer:///' ')'");
         });
         this->menu->addAction("启动器", this, [ = ](){
-            QProcess::startDetached("/usr/bin/qdbus com.deepin.dde.Launcher /com/deepin/dde/Launcher com.deepin.dde.Launcher.Toggle");
+            QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.Launcher", "/com/deepin/dde/Launcher", "com.deepin.dde.Launcher.Toggle"});
         });
 
         this->menu->addAction("应用商店", [ = ](){
@@ -73,7 +74,8 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
             QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.Logout");
         });
         shutdownMenu->addAction("锁定", [](){
-            QProcess::startDetached("qdbus com.deepin.dde.lockFront /com/deepin/dde/lockFront com.deepin.dde.lockFront.Show");
+            // QProcess::startDetached("qdbus com.deepin.dde.lockFront /com/deepin/dde/lockFront com.deepin.dde.lockFront.Show");
+            DDBusSender().service("com.deepin.dde.lockFront").path("/com/deepin/dde/lockFront").interface("com.deepin.dde.lockFront").method("Show").call();
         });
         shutdownMenu->addAction("切换用户", [](){
             QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.SwitchUser");
@@ -393,7 +395,7 @@ void ActiveWindowControlWidget::mousePressEvent(QMouseEvent *event) {
         } else if (qobject_cast<QLabel*>(pressedWidget) == this->m_iconLabel) {
 
         }
-        KWindowSystem::activateWindow(this->currActiveWinId);
+        // KWindowSystem::activateWindow(this->currActiveWinId);
     }
     QWidget::mousePressEvent(event);
 }

@@ -20,7 +20,6 @@
  */
 
 #include "systemtrayscontroller.h"
-#include "pluginsiteminterface.h"
 
 #include <QDebug>
 #include <QDir>

@@ -27,8 +27,6 @@
 #include "fashiontraywidgetwrapper.h"
 #include "fashiontraycontrolwidget.h"
 #include "containers/normalcontainer.h"
-#include "containers/attentioncontainer.h"
-#include "containers/holdcontainer.h"
 
 #include <QWidget>
 #include <QPointer>
@@ -71,24 +69,17 @@ private:
     void resizeTray();
 
 private Q_SLOTS:
-    void onWrapperAttentionChanged(FashionTrayWidgetWrapper *wrapper, const bool attention);
-    void attentionWrapperToNormalWrapper();
-    void normalWrapperToAttentionWrapper(FashionTrayWidgetWrapper *wrapper);
     void requestResize();
-    void refreshHoldContainerPosition();
     void onRequireDraggingWrapper();
 
 private:
     QBoxLayout *m_mainBoxLayout;
-    QTimer *m_attentionDelayTimer;
 
     TrayPlugin *m_trayPlugin;
     FashionTrayControlWidget *m_controlWidget;
     FashionTrayWidgetWrapper *m_currentDraggingTray;
 
     NormalContainer *m_normalContainer;
-    AttentionContainer *m_attentionContainer;
-    HoldContainer *m_holdContainer;
 
     static int TrayWidgetWidth;
     static int TrayWidgetHeight;
