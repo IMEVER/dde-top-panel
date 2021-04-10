@@ -4,11 +4,8 @@
 
 #include "TopPanelSettings.h"
 #include "utils.h"
-#include <QApplication>
 #include <QScreen>
 #include <QAction>
-
-extern const QPoint rawXPosition(const QPoint &scaledPos);
 
 TopPanelSettings::TopPanelSettings(DockItemManager *itemManager, QScreen *screen, QWidget *parent)
         : QObject(parent)

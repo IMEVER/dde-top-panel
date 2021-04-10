@@ -32,6 +32,7 @@
 #include <QPointer>
 #include <QBoxLayout>
 #include <QLabel>
+#include <QGSettings>
 
 #include "../abstracttraywidget.h"
 
@@ -85,6 +86,7 @@ private:
     static int TrayWidgetHeight;
     QWidget *m_leftSpace;
     int m_iconSize  = 40;
+    QGSettings *m_gsettings;
 };
 
 #endif // FASHIONTRAYITEM_H

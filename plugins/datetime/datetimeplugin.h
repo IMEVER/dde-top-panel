@@ -30,7 +30,6 @@
 #include <QLabel>
 #include <QSettings>
 
-class QDBusInterface;
 class DatetimePlugin : public QObject, PluginsItemInterface
 {
     Q_OBJECT
@@ -69,7 +68,8 @@ private slots:
 
 private:
     void loadPlugin();
-    QDBusInterface *timedateInterface();
+    bool is24HourFormat();
+    void save24HourFormat(bool format);
 
 private:
     QPointer<DatetimeWidget> m_centralWidget;
@@ -79,7 +79,6 @@ private:
     int hour;
     int minute;
     
-    QDBusInterface *m_interface;
     bool m_pluginLoaded;
 };
 

@@ -22,17 +22,13 @@
 #include "datetimewidget.h"
 #include "constants.h"
 
-#include <QApplication>
 #include <QPainter>
 #include <QDebug>
 #include <QSvgRenderer>
-#include <QMouseEvent>
 #include <DFontSizeManager>
-#include <DGuiApplicationHelper>
 
 #define PLUGIN_STATE_KEY    "enable"
 #define TIME_FONT DFontSizeManager::instance()->t6()
-
 
 class Lunar
 {
@@ -625,13 +621,13 @@ QString DatetimeWidget::currentChinaTime() const
     {
         date.append(current.toString("yyyy/MM/dd"));
     }
+    
+    date.append(current.toString(m_24HourFormat ? "hh:mm" : "hh:mm AP"));
 
     if(m_showWeek)
     {
     	date.append(current.toString("ddd"));
     }
-    
-    date.append(current.toString(m_24HourFormat ? "hh:mm" : "hh:mm AP"));
 
     if (m_showLunar)
     {

@@ -8,14 +8,12 @@
 #include "util/utils.h"
 #include "../dbus/dbustoppaneladaptors.h"
 
-// #include <QDBusConnection>
-
 #define SNI_WATCHER_SERVICE "org.kde.StatusNotifierWatcher"
 #define SNI_WATCHER_PATH "/StatusNotifierWatcher"
 
 MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     : DBlurEffectWidget(parent)
-    , m_itemManager(new DockItemManager(this))
+    , m_itemManager(DockItemManager::instance(this))
     , m_mainPanel(new MainPanelControl(this))
     , m_xcbMisc(XcbMisc::instance())
     , m_platformWindowHandle(this, this)
@@ -70,6 +68,7 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
 
 MainWindow::~MainWindow() {
     delete m_xcbMisc;
+    QDBusConnection::sessionBus().unregisterService(m_sniHostService);
 }
 
 const QPoint rawXPosition(const QPoint &scaledPos)
@@ -134,7 +133,7 @@ void MainWindow::initSNIHost()
 {
     // registor dock as SNI Host on dbus
     QDBusConnection dbusConn = QDBusConnection::sessionBus();
-    m_sniHostService = QString("org.kde.StatusNotifierHost-") + QString::number(qApp->applicationPid());
+    m_sniHostService = QString("me.imever.dde.TopPanel");
     dbusConn.registerService(m_sniHostService);
     dbusConn.registerObject("/StatusNotifierHost", this);
 
@@ -160,7 +159,7 @@ void MainWindow::initConnections() {
     connect(m_itemManager, &DockItemManager::itemUpdated, m_mainPanel, &MainPanelControl::itemUpdated, Qt::DirectConnection);
     connect(m_itemManager, &DockItemManager::itemRemoved, m_mainPanel, &MainPanelControl::removeItem, Qt::DirectConnection);
 
-    connect(m_mainPanel, &MainPanelControl::itemMoved, DockItemManager::instance(), &DockItemManager::itemMoved, Qt::DirectConnection);
+    connect(m_mainPanel, &MainPanelControl::itemMoved, m_itemManager, &DockItemManager::itemMoved, Qt::DirectConnection);
 
     connect(DWindowManagerHelper::instance(), &DWindowManagerHelper::hasCompositeChanged, this, [this](){
         // const bool enabled = DWindowManagerHelper::instance()->hasComposite();
@@ -293,8 +292,7 @@ void TopPanelLauncher::rearrange() {
         mwMap.insert(p_screen, mw);
 
         new DBusTopPanelAdaptors (mw);
-        QDBusConnection::sessionBus().registerService("com.deepin.dde.TopPanel");
-        QDBusConnection::sessionBus().registerObject("/com/deepin/dde/TopPanel", "com.deepin.dde.TopPanel", mw);
+        QDBusConnection::sessionBus().registerObject("/me/imever/dde/TopPanel", "me.imever.dde.TopPanel", mw);
     }
 
     for (auto screen : mwMap.keys()) {

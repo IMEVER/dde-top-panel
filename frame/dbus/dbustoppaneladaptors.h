@@ -26,15 +26,15 @@
 #include "window/MainWindow.h"
 class MainWindow;
 /*
- * Adaptor class for interface com.deepin.dde.Dock
+ * Adaptor class for interface me.imever.dde.Dock
  */
 
 class DBusTopPanelAdaptors: public QDBusAbstractAdaptor
 {
     Q_OBJECT
-    Q_CLASSINFO("D-Bus Interface", "com.deepin.dde.TopPanel")
+    Q_CLASSINFO("D-Bus Interface", "me.imever.dde.TopPanel")
     Q_CLASSINFO("D-Bus Introspection", ""
-                                       "  <interface name=\"com.deepin.dde.TopPanel\">\n"
+                                       "  <interface name=\"me.imever.dde.TopPanel\">\n"
                                        "  <method name=\"ActivateWindow\"></method>\n"
                                        "  <method name=\"Activate\">\n"
                                        "  <arg type=\"b\" direction=\"out\"></arg>\n"

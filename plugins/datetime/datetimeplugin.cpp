@@ -36,7 +36,6 @@
 
 DatetimePlugin::DatetimePlugin(QObject *parent)
     : QObject(parent)
-    , m_interface(nullptr)
     , m_pluginLoaded(false)
 {
     QDBusConnection sessionBus = QDBusConnection::sessionBus();
@@ -214,8 +213,8 @@ void DatetimePlugin::invokedMenuItem(const QString &itemKey, const QString &menu
     }    
     else
     {
-        const bool value = timedateInterface()->property(TIME_FORMAT_KEY).toBool();
-        timedateInterface()->setProperty(TIME_FORMAT_KEY, !value);
+        const bool value = is24HourFormat();
+        save24HourFormat(!value);
         m_centralWidget->set24HourFormat(!value);
     }
 }
@@ -225,7 +224,7 @@ void DatetimePlugin::pluginSettingsChanged()
     if (!m_pluginLoaded)
         return;
 
-    const bool value = timedateInterface()->property(TIME_FORMAT_KEY).toBool();
+    const bool value = is24HourFormat();
 
     m_proxyInter->saveValue(this, TIME_FORMAT_KEY, value);
     m_centralWidget->set24HourFormat(value);
@@ -243,21 +242,21 @@ void DatetimePlugin::updateCurrentTimeString()
 
 	    if (tips.count() == 0 || h != hour)
 	    {
-		hour = h;
-		tips = m_centralWidget->dateString();
+		    hour = h;
+		    tips = m_centralWidget->dateString();
 	    }
 
 	    QStringList t;
 	    foreach(QString s, tips)
-		t.append(s);
+		    t.append(s);
 	    
 	    if (m_centralWidget->is24HourFormat())
 	    {
-		t.append("时间：" + currentDateTime.toString(" HH:mm:ss"));
+		    t.append("时间：" + currentDateTime.toString(" HH:mm:ss"));
 	    }
 	    else
 	    {
-		t.append("时间：" + currentDateTime.toString(" hh:mm:ss A"));
+		    t.append("时间：" + currentDateTime.toString(" hh:mm:ss A"));
 	    }
 	    m_dateTipsLabel->setTextList(t);
     }
@@ -289,18 +288,28 @@ void DatetimePlugin::propertiesChanged()
     pluginSettingsChanged();
 }
 
-QDBusInterface* DatetimePlugin::timedateInterface()
+bool DatetimePlugin::is24HourFormat()
 {
-    if (!m_interface) {
+    QDBusInterface *m_interface;
         if (QDBusConnection::sessionBus().interface()->isServiceRegistered("com.deepin.daemon.Timedate")) {
             m_interface = new QDBusInterface("com.deepin.daemon.Timedate", "/com/deepin/daemon/Timedate", "com.deepin.daemon.Timedate");
         } else {
-            const QString path = QString("/com/deepin/daemon/Accounts/User%1").arg(QString::number(getuid()));
-            QDBusInterface * systemInterface = new QDBusInterface("com.deepin.daemon.Accounts", path, "com.deepin.daemon.Accounts.User",
+            QString path = QString("/com/deepin/daemon/Accounts/User%1").arg(QString::number(getuid()));
+            m_interface = new QDBusInterface("com.deepin.daemon.Accounts", path, "com.deepin.daemon.Accounts.User",
                                       QDBusConnection::systemBus(), this);
-            return systemInterface;
         }
-    }
 
-    return m_interface;
+    bool format = m_interface->property(TIME_FORMAT_KEY).toBool();
+
+    m_interface->deleteLater();
+    return format;
+}
+
+void DatetimePlugin::save24HourFormat(bool format)
+{
+    if (QDBusConnection::sessionBus().interface()->isServiceRegistered("com.deepin.daemon.Timedate")) {
+        QDBusInterface *m_interface = new QDBusInterface("com.deepin.daemon.Timedate", "/com/deepin/daemon/Timedate", "com.deepin.daemon.Timedate");
+        m_interface->setProperty(TIME_FORMAT_KEY, format);
+        m_interface->deleteLater();
+    } 
 }

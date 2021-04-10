@@ -84,9 +84,11 @@ void DockPluginsController::itemRemoved(PluginsItemInterface *const itemInter, c
     QMap<PluginsItemInterface *, QMap<QString, QObject *>> &mPluginsMap = pluginsMap();
     mPluginsMap[itemInter].remove(itemKey);
 
-    // do not delete the itemWidget object(specified in the plugin interface)
-    item->centralWidget()->setParent(nullptr);
-
+    if (mPluginsMap[itemInter].isEmpty())
+    {
+        mPluginsMap.remove(itemInter);
+    }
+    
     if (item->isDragging()) {
         QDrag::cancel();
     }

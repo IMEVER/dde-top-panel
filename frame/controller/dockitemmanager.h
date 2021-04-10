@@ -25,12 +25,8 @@
 #include "dockpluginscontroller.h"
 #include "pluginsiteminterface.h"
 #include "item/dockitem.h"
-#include "item/appitem.h"
 
-#include <com_deepin_dde_daemon_dock.h>
 #include <QObject>
-
-using DBusDock = com::deepin::dde::daemon::Dock;
 
 class DockItemManager : public QObject
 {
@@ -38,7 +34,6 @@ class DockItemManager : public QObject
 
 public:
     static DockItemManager *instance(QObject *parent = nullptr);
-    explicit DockItemManager(QObject *parent = nullptr, bool enableBlacklist = false);
 
     const QList<QPointer<DockItem> > itemList() const;
     const QList<PluginsItemInterface *> pluginList() const;
@@ -52,34 +47,21 @@ signals:
     void requestWindowAutoHide(const bool autoHide) const;
     void requestRefershWindowVisible() const;
 
-    // active window changed and title info changed information.
-    // Since deepin doesn't offer a proper API for it, I have to insert many points to archive this.
-    void windowInfoChanged() const;
-
 public slots:
     void refershItemsIcon();
     void updatePluginsItemOrderKey();
     void itemMoved(DockItem *const sourceItem, DockItem *const targetItem);
 
 private:
-    void appItemAdded(const QDBusObjectPath &path, const int index);
-    void appItemRemoved(const QString &appId);
-    void appItemRemoved(AppItem *appItem);
+    explicit DockItemManager(QObject *parent = nullptr, bool enableBlacklist = false);
     void pluginItemInserted(PluginsItem *item);
     void pluginItemRemoved(PluginsItem *item);
-    void reloadAppItems();
 
 private:
     QTimer *m_updatePluginsOrderTimer;
-    DBusDock *m_appInter;
-
     DockPluginsController *m_pluginsInter;
-
     static DockItemManager *INSTANCE;
-
     QList<QPointer<DockItem>> m_itemList;
-    QList<QPointer<AppItem>> m_appItemList;
-
     bool enableBlacklist;
 };
 

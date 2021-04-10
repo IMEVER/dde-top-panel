@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     {
         app.setOrganizationName("IMEVER");
         app.setApplicationName("dde-top-panel");
-        app.setApplicationDisplayName("DDE Top Panel");
+        app.setApplicationDisplayName("全局顶栏");
         app.setApplicationVersion("1.0.0");
         app.loadTranslator();
         app.setAttribute(Qt::AA_EnableHighDpiScaling, true);

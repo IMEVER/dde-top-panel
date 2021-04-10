@@ -8,8 +8,6 @@
 #include <QWidget>
 #include <QBoxLayout>
 #include "item/traypluginitem.h"
-#include <com_deepin_dde_daemon_dock_entry.h>
-#include "../controller/dockitemmanager.h"
 #include "ActiveWindowControlWidget.h"
 #include "util/CustomSettings.h"
 
@@ -71,7 +69,6 @@ private:
     QBoxLayout *m_pluginLayout;
     QWidget *m_fixedPluginWidget;
     QHBoxLayout *m_fixedPluginLayout;
-    DockItemManager *m_itemManager;
 
     TrayPluginItem *m_tray = nullptr;
     ActiveWindowControlWidget *activeWindowControlWidget;

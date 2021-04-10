@@ -19,7 +19,6 @@ MainPanelControl::MainPanelControl(QWidget *parent)
     , m_pluginLayout(new QHBoxLayout())
     , m_fixedPluginWidget(new QWidget(this))
     , m_fixedPluginLayout(new QHBoxLayout())
-    , m_itemManager(DockItemManager::instance(this))
     , activeWindowControlWidget(new ActiveWindowControlWidget(this))
 {
     this->init();
@@ -46,7 +45,6 @@ void MainPanelControl::init() {
 
     // 托盘
     m_trayAreaWidget->setLayout(m_trayAreaLayout);
-    m_trayAreaWidget->setAccessibleName("trayarea");
     m_trayAreaLayout->setMargin(0);
     m_trayAreaLayout->setSpacing(0);
     m_trayAreaLayout->setContentsMargins(0, 3, 0, 3);
@@ -54,7 +52,6 @@ void MainPanelControl::init() {
     // 插件
     m_pluginAreaWidget->setLayout(m_pluginLayout);
     m_pluginAreaWidget->setAcceptDrops(true);
-    m_pluginAreaWidget->setAccessibleName("pluginarea");
     m_pluginLayout->setMargin(0);
     m_pluginLayout->setSpacing(10);
     // m_pluginLayout->setContentsMargins(5, 0, 5, 0);
@@ -70,7 +67,6 @@ void MainPanelControl::init() {
     m_fixedPluginWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
 //    this->m_xdo = xdo_new(nullptr);
-    connect(m_itemManager, &DockItemManager::windowInfoChanged, this->activeWindowControlWidget, &ActiveWindowControlWidget::activeWindowInfoChanged);
     connect(this, &MainPanelControl::emptyAreaDoubleClicked, this->activeWindowControlWidget, &ActiveWindowControlWidget::maximizeWindow);
     this->activeWindowControlWidget->activeWindowInfoChanged();
 }

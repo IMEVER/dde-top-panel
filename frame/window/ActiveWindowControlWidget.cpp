@@ -71,23 +71,22 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
 
         QMenu *shutdownMenu = new QMenu;
         shutdownMenu->addAction("注销", [](){
-            QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.Logout");
+            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Logout").call();
         });
         shutdownMenu->addAction("锁定", [](){
-            // QProcess::startDetached("qdbus com.deepin.dde.lockFront /com/deepin/dde/lockFront com.deepin.dde.lockFront.Show");
             DDBusSender().service("com.deepin.dde.lockFront").path("/com/deepin/dde/lockFront").interface("com.deepin.dde.lockFront").method("Show").call();
         });
         shutdownMenu->addAction("切换用户", [](){
-            QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.SwitchUser");
+            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("SwitchUser").call();
         });        
         shutdownMenu->addAction("待机", [](){
-            QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.Suspend");
+            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Suspend").call();
         });
         shutdownMenu->addAction("重启", [](){
-            QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.Restart");
+            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Restart").call();
         });
         shutdownMenu->addAction("关机", [](){
-            QProcess::startDetached("qdbus com.deepin.dde.shutdownFront /com/deepin/dde/shutdownFront com.deepin.dde.shutdownFront.Shutdown");
+            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Shutdown").call();
         });
 
         QAction *shutdownAction = new QAction("关机");
@@ -187,13 +186,49 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     // some applications like Gtk based and electron based seems still holds the focus after clicking the close button for a little while
     // Thus, we need to check the active window when some windows are closed.
     // However, we will use the dock dbus signal instead of other X operations.
-    connect(this->m_appInter, &DBusDock::EntryRemoved, this->m_fixTimer, qOverload<>(&QTimer::start));
-    connect(this->m_appInter, &DBusDock::EntryAdded, this->m_fixTimer, qOverload<>(&QTimer::start));
+    connect(this->m_appInter, &DBusDock::EntryAdded, this, [ = ](const QDBusObjectPath &path, const int index){
+        AppItem *item = new AppItem(path);
+        connect(item, &AppItem::windowInfoChanged, this, &ActiveWindowControlWidget::activeWindowInfoChanged);
+        m_appItemMap.insert(item->appId(), item);
+        this->m_fixTimer->start();
+    });
+    connect(this->m_appInter, &DBusDock::EntryRemoved, this, [ = ](const QString &key){
+        if(AppItem *appItem = m_appItemMap.take(key)){
+            disconnect(appItem, &AppItem::windowInfoChanged, this, &ActiveWindowControlWidget::activeWindowInfoChanged);
+            appItem->deleteLater();
+            this->m_fixTimer->start();
+        }
+    });
+    connect(this->m_appInter, &DBusDock::ServiceRestarted, this, &ActiveWindowControlWidget::reloadAppItems);
 
     applyCustomSettings(*CustomSettings::instance());
 
     connect(DGuiApplicationHelper::instance(), &DGuiApplicationHelper::themeTypeChanged, this, &ActiveWindowControlWidget::themeTypeChanged);
     themeTypeChanged(DGuiApplicationHelper::instance()->themeType());
+
+    reloadAppItems();
+}
+
+void ActiveWindowControlWidget::reloadAppItems()
+{
+    QMap<QString, AppItem *>::iterator iterator = m_appItemMap.begin();
+    while (iterator != m_appItemMap.end())
+    {
+        QString key = iterator.key();
+        iterator++;
+        AppItem *appItem = m_appItemMap.take(key);
+
+        disconnect(appItem, &AppItem::windowInfoChanged, this, &ActiveWindowControlWidget::activeWindowInfoChanged);
+        appItem->deleteLater();
+    }
+    
+    for (auto path : m_appInter->entries())
+    {
+        AppItem *item = new AppItem(path);
+        connect(item, &AppItem::windowInfoChanged, this, &ActiveWindowControlWidget::activeWindowInfoChanged);
+        m_appItemMap.insert(item->appId(), item);
+    }
+    this->m_fixTimer->start();
 }
 
 void ActiveWindowControlWidget::activeWindowInfoChanged() {

@@ -301,6 +301,15 @@ DBusMenuImporter::~DBusMenuImporter()
     // leave enough time for the menu to finish what it was doing, for example
     // if it was being displayed.
     d->m_menu->deleteLater();
+    d->m_interface->deleteLater();
+    d->m_pendingLayoutUpdateTimer->deleteLater();
+
+    DBusMenuImporterPrivate::ActionForId::Iterator iterator = d->m_actionForId.begin();
+    for ( ; iterator != d->m_actionForId.end(); iterator++)
+    {
+        iterator.value()->deleteLater();
+    }
+
     delete d;
 }
 

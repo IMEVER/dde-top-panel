@@ -32,7 +32,7 @@
 #include <QDBusContext>
 #include <QDBusObjectPath>
 #include <QObject>
-#include <QWidget> // For WId
+#include <QWidget>
 
 class QDBusObjectPath;
 class QDBusServiceWatcher;

@@ -20,9 +20,7 @@
  */
 
 #include "dbustoppaneladaptors.h"
-#include <QScreen>
 #include <QDebug>
-#include <QApplication>
 
 DBusTopPanelAdaptors::DBusTopPanelAdaptors(MainWindow* parent): QDBusAbstractAdaptor(parent)
 {

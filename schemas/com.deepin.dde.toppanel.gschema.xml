@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-    <schema path="/com/deepin/dde/toppanel/" id="com.deepin.dde.toppanel">
+    <schema path="/me/imever/dde/toppanel/" id="me.imever.dde.toppanel">
         <key type="u" name="icon-size">
             <default>36</default>
             <summary></summary>
@@ -22,6 +22,12 @@
 
         <key type="s" name="plugin-settings">
             <default>'{}'</default>
+            <summary></summary>
+            <description></description>
+        </key>
+        
+        <key type="b" name="tray-support-fold">
+            <default>false</default>
             <summary></summary>
             <description></description>
         </key>

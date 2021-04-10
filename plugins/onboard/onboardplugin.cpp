@@ -30,7 +30,6 @@ OnboardPlugin::OnboardPlugin(QObject *parent)
       m_tipsLabel(new TipsWidget)
 {
     m_tipsLabel->setText("软键盘");
-    m_tipsLabel->setVisible(false);
 }
 
 const QString OnboardPlugin::pluginName() const

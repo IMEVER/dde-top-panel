@@ -28,7 +28,6 @@
 #include <QWindow>
 #include <QWidget>
 #include <QX11Info>
-#include <QGSettings>
 
 #include "../widgets/tipswidget.h"
 #include "xcb/xcb_icccm.h"
@@ -344,11 +343,6 @@ void TrayPlugin::traySNIAdded(const QString &itemKey, const QString &sniServiceP
 void TrayPlugin::trayIndicatorAdded(const QString &itemKey, const QString &indicatorName)
 {
     if (m_trayMap.contains(itemKey) || !IndicatorTrayWidget::isIndicatorKey(itemKey)) {
-        return;
-    }
-
-    QGSettings settings("com.deepin.dde.dock.module.systemtray");
-    if (settings.keys().contains("enable") && !settings.get("enable").toBool()) {
         return;
     }
 

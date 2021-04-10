@@ -39,7 +39,8 @@ FashionTrayItem::FashionTrayItem(TrayPlugin *trayPlugin, QWidget *parent)
       m_controlWidget(new FashionTrayControlWidget()),
       m_currentDraggingTray(nullptr),
       m_normalContainer(new NormalContainer(m_trayPlugin)),
-      m_leftSpace(new QWidget)
+      m_leftSpace(new QWidget),
+      m_gsettings(new QGSettings("me.imever.dde.toppanel"))
 {
     setAcceptDrops(true);
 
@@ -57,7 +58,36 @@ FashionTrayItem::FashionTrayItem(TrayPlugin *trayPlugin, QWidget *parent)
 
     setLayout(m_mainBoxLayout);
 
-    connect(m_controlWidget, &FashionTrayControlWidget::expandChanged, this, &FashionTrayItem::onExpandChanged);
+    if(m_gsettings->get("traySupportFold").toBool())
+    {
+        connect(m_controlWidget, &FashionTrayControlWidget::expandChanged, this, &FashionTrayItem::onExpandChanged);
+    } 
+    else
+    {
+        m_controlWidget->hide();
+    }    
+
+    connect(m_gsettings, &QGSettings::changed, this, [ = ](const QString &key){
+        if (key == "traySupportFold")
+        {
+                if(m_gsettings->get("traySupportFold").toBool())
+                {
+                    m_controlWidget->show();
+                    connect(m_controlWidget, &FashionTrayControlWidget::expandChanged, this, &FashionTrayItem::onExpandChanged);
+                }                
+                else
+                {
+                    m_controlWidget->hide();
+                     disconnect(m_controlWidget, &FashionTrayControlWidget::expandChanged, this, &FashionTrayItem::onExpandChanged);
+                     if (m_trayPlugin->getValue(FASHION_MODE_ITEM_KEY, ExpandedKey, true).toBool() == false)
+                     {
+                         m_controlWidget->setExpanded(true);
+                         this->onExpandChanged(true);
+                     }                     
+                }
+        }        
+    });
+
     connect(m_normalContainer, &NormalContainer::requestDraggingWrapper, this, &FashionTrayItem::onRequireDraggingWrapper);
 
     // do not call init immediately the TrayPlugin has not be constructed for now

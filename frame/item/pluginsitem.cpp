@@ -46,7 +46,6 @@ PluginsItem::PluginsItem(PluginsItemInterface *const pluginInter, const QString 
 
     m_centralWidget->setParent(this);
     m_centralWidget->setVisible(true);
-    m_centralWidget->setAccessibleName("centralwidget");
     m_centralWidget->installEventFilter(this);
 
     QBoxLayout *hLayout = new QHBoxLayout;
@@ -248,9 +247,9 @@ void PluginsItem::mouseClicked()
     if (!command.isEmpty()) {
         QProcess *proc = new QProcess(this);
 
-        connect(proc, static_cast<void (QProcess::*)(int)>(&QProcess::finished), proc, &QProcess::deleteLater);
+        connect(proc, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), proc, &QProcess::deleteLater);
 
-        proc->startDetached(command);
+        proc->startDetached(command, {});
         return;
     }
 

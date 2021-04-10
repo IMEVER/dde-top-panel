@@ -17,6 +17,7 @@
 #include "QClickableLabel.h"
 #include <com_deepin_wm.h>
 #include "../util/CustomSettings.h"
+#include "../item/appitem.h"
 
 using DBusDock = com::deepin::dde::daemon::Dock;
 using DBusWM = com::deepin::wm;
@@ -55,6 +56,7 @@ private slots:
     void updateMenu();
     void windowChanged(WId, NET::Properties, NET::Properties2);
     void themeTypeChanged(DGuiApplicationHelper::ColorType themeType);
+    void reloadAppItems();
 
 private:
     QMenu *menu;
@@ -82,7 +84,7 @@ private:
     QPropertyAnimation *m_buttonShowAnimation;
     QPropertyAnimation *m_buttonHideAnimation;
     QTimer *m_fixTimer;
+    QMap<QString, AppItem *> m_appItemMap;
 };
-
 
 #endif //DDE_TOP_PANEL_ACTIVEWINDOWCONTROLWIDGET_H

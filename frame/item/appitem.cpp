@@ -37,6 +37,10 @@ AppItem::AppItem(const QDBusObjectPath &entry, QWidget *parent)
 
 AppItem::~AppItem()
 {
+    disconnect(m_itemEntryInter, &DockEntryInter::IsActiveChanged, this, &AppItem::windowChanged);
+    disconnect(m_itemEntryInter, &DockEntryInter::WindowInfosChanged, this, &AppItem::updateWindowInfos);
+    disconnect(m_itemEntryInter, &DockEntryInter::CurrentWindowChanged, this, &AppItem::windowChanged);
+    delete m_itemEntryInter;
 }
 
 const QString AppItem::appId() const

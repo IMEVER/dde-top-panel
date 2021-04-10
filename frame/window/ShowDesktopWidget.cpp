@@ -32,7 +32,7 @@ void ShowDesktopWidget::leaveEvent(QEvent *event)
 
 void ShowDesktopWidget::mousePressEvent(QMouseEvent *event)
 {
-    QProcess::startDetached("/usr/lib/deepin-daemon/desktop-toggle");
+    QProcess::startDetached("/usr/lib/deepin-daemon/desktop-toggle", {});
 }
 
 void ShowDesktopWidget::paintEvent(QPaintEvent *e)

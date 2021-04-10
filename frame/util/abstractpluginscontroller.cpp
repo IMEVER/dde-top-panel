@@ -38,7 +38,7 @@ static const QStringList CompatiblePluginApiList {
 AbstractPluginsController::AbstractPluginsController(QObject *parent)
     : QObject(parent)
     , m_dbusDaemonInterface(QDBusConnection::sessionBus().interface())
-    , m_gsettings(new QGSettings("com.deepin.dde.toppanel"))
+    , m_gsettings(new QGSettings("me.imever.dde.toppanel"))
 {
     qApp->installEventFilter(this);
 
@@ -130,10 +130,7 @@ void AbstractPluginsController::startLoader(PluginLoader *loader)
     connect(loader, &PluginLoader::finished, loader, &PluginLoader::deleteLater, Qt::QueuedConnection);
     connect(loader, &PluginLoader::pluginFounded, this, &AbstractPluginsController::loadPlugin, Qt::QueuedConnection);
 
-    QGSettings gsetting("com.deepin.dde.dock", "/com/deepin/dde/dock/");
-
-    QTimer::singleShot(gsetting.get("delay-plugins-time").toUInt(),
-                       loader, [ = ] { loader->start(QThread::LowestPriority); });
+    QTimer::singleShot(m_gsettings->get("delay-plugins-time").toUInt(), loader, [ = ] { loader->start(QThread::LowestPriority); });
 }
 
 void AbstractPluginsController::loadPlugin(const QString &pluginFile)

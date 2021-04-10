@@ -30,7 +30,6 @@
 
 #include <QDBusConnection>
 #include <QDBusMessage>
-#include <QDBusObjectPath>
 #include <QDBusServiceWatcher>
 #include <QX11Info>
 
@@ -55,6 +54,7 @@ MenuImporter::MenuImporter(QObject* parent)
 MenuImporter::~MenuImporter()
 {
     QDBusConnection::sessionBus().unregisterService(DBUS_SERVICE);
+    delete m_serviceWatcher;
 }
 
 bool MenuImporter::connectToBus()
@@ -144,9 +144,8 @@ QString MenuImporter::GetMenuForWindow(WId id, QDBusObjectPath& path)
 void MenuImporter::slotServiceUnregistered(const QString& service)
 {
     WId id = m_menuServices.key(service);
-    m_menuServices.remove(id);
-    m_menuPaths.remove(id);
-    m_windowClasses.remove(id);
-    emit WindowUnregistered(id);
+    
+    UnregisterWindow(id);
+
     m_serviceWatcher->removeWatchedService(service);
 }
