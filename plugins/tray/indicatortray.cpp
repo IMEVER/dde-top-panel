@@ -110,7 +110,7 @@ public:
 
 void IndicatorTrayPrivate::init()
 {
-    //Q_Q(IndicatorTray);
+    // Q_Q(IndicatorTray);
 
     indicatorTrayWidget = new IndicatorTrayWidget(indicatorName);
 
@@ -212,25 +212,19 @@ IndicatorTray::IndicatorTray(const QString &indicatorName, QObject *parent)
 
 IndicatorTray::~IndicatorTray()
 {
-
+    Q_D(IndicatorTray);
+    if (d->indicatorTrayWidget)
+    {
+        d->indicatorTrayWidget->deleteLater();
+    }
+    delete d;
 }
 
 IndicatorTrayWidget *IndicatorTray::widget()
 {
     Q_D(IndicatorTray);
 
-    if (!d->indicatorTrayWidget) {
-        d->init();
-    }
-
     return d->indicatorTrayWidget;
-}
-
-void IndicatorTray::removeWidget()
-{
-    Q_D(IndicatorTray);
-
-    d->indicatorTrayWidget = nullptr;
 }
 
 void IndicatorTray::textPropertyChanged(const QDBusMessage &message)
@@ -241,10 +235,6 @@ void IndicatorTray::textPropertyChanged(const QDBusMessage &message)
         if (value.toString().isEmpty()) {
             Q_EMIT removed();
             return;
-        }
-
-        if (!d->indicatorTrayWidget) {
-            d->init();
         }
 
         d->indicatorTrayWidget->setText(value.toByteArray());
@@ -259,10 +249,6 @@ void IndicatorTray::iconPropertyChanged(const QDBusMessage &message)
         if (value.toByteArray().isEmpty()) {
             Q_EMIT removed();
             return;
-        }
-
-        if (!d->indicatorTrayWidget) {
-            d->init();
         }
 
         d->indicatorTrayWidget->setPixmapData(value.toByteArray());

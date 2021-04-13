@@ -33,6 +33,15 @@ class QMenu;
 class DBusMenuImporterPrivate;
 
 /**
+ * Determine whether internal method calls should allow the Qt event loop
+ * to execute or not
+ */
+enum DBusMenuImporterType {
+    ASYNCHRONOUS,
+    SYNCHRONOUS
+};
+
+/**
  * A DBusMenuImporter instance can recreate a menu serialized over DBus by
  * DBusMenuExporter
  */
@@ -45,10 +54,14 @@ public:
      */
     DBusMenuImporter(const QString &service, const QString &path, QObject *parent = nullptr);
 
+    /**
+     * Creates a DBusMenuImporter listening over DBus on service, path, with either async
+     * or sync DBus calls
+     */
+    DBusMenuImporter(const QString &service, const QString &path, DBusMenuImporterType type, QObject *parent = 0);
+
     ~DBusMenuImporter() override;
 
-
-    QAction *actionForId(int id) const;
 
     /**
      * The menu created from listening to the DBusMenuExporter over DBus
@@ -71,7 +84,9 @@ Q_SIGNALS:
      * Emitted after a call to updateMenu().
      * @see updateMenu()
      */
-    void menuUpdated(QMenu *);
+    void menuUpdated();
+
+    void clearMenu();
 
     /**
      * Emitted when the exporter was asked to activate an action
@@ -97,7 +112,6 @@ private Q_SLOTS:
     void slotMenuAboutToHide();
     void slotAboutToShowDBusCallFinished(QDBusPendingCallWatcher *);
     void slotItemActivationRequested(int id, uint timestamp);
-    void processPendingLayoutUpdates();
     void slotLayoutUpdated(uint revision, int parentId);
     void slotGetLayoutFinished(QDBusPendingCallWatcher *);
 

@@ -15,8 +15,6 @@ public:
 
     IndicatorTrayWidget *widget();
 
-    void removeWidget();
-
 signals:
     void delayLoaded();
     void removed();

@@ -44,8 +44,8 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->menu = new QMenu;
         this->menu->addAction("关于", [ = ](){
             // QProcess::startDetached("dde-file-manager -p computer:///");
-            QProcess::startDetached("/usr/bin/dbus-send --session --print-reply --dest=com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand string:\"/usr/bin/dde-file-manager\" array:string:\"-p\",\"computer:///\"");
-            // QProcess::startDetached("/usr/bin/qdbus --literal com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand 'dde-file-manager' '(' '-p' 'computer:///' ')'");
+            // QProcess::startDetached("/usr/bin/dbus-send --session --print-reply --dest=com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand string:\"/usr/bin/dde-file-manager\" array:string:\"-p\",\"computer:///\"");
+            QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.RunCommand", "dde-file-manager", "(", "-p", "computer:///", ")"});
         });
         this->menu->addAction("启动器", this, [ = ](){
             QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.Launcher", "/com/deepin/dde/Launcher", "com.deepin.dde.Launcher.Toggle"});
@@ -61,7 +61,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
         });
 
         this->menu->addAction("资源管理器", [ = ](){
-            QProcess::startDetached("/usr/bin/qdbus com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.LaunchApp /usr/share/applications/deepin-system-monitor.desktop 0 []");
+            QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/deepin-system-monitor.desktop", "0", "[]"});
         });
 
         this->menu->addAction("强制关闭窗口", [ = ](){
@@ -133,15 +133,10 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     this->m_layout->addWidget(this->m_buttonWidget);
 
     this->menuBar = new QMenuBar(this);
-    // this->menuBar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-    // this->menuBar->setFixedHeight(20);
-    // QFont font = this->menuBar->font();font.setPointSize(10);this->menuBar->setFont(font);
-    // this->menuBar->setMaximumHeight(20);
-    // this->menuBar->setStyleSheet("QMenuBar {font-size: 12px;}");
-    // this->menuBar->setStyleSheet("QMenuBar::item { height: 18px; font-size: 12px; margin: 0px; padding: 0px}");    
     this->m_layout->addWidget(this->menuBar);
 
     this->m_appMenuModel = new AppMenuModel(this);
+    connect(this->m_appMenuModel, &AppMenuModel::clearMenu, this->menuBar, &QMenuBar::clear);
     connect(this->m_appMenuModel, &AppMenuModel::modelNeedsUpdate, this, &ActiveWindowControlWidget::updateMenu);
     connect(this->m_appMenuModel, &AppMenuModel::requestActivateIndex, this, [ this ](int index){
         if(this->menuBar->actions().size() > index && index >= 0){
@@ -181,7 +176,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
 
     this->m_fixTimer = new QTimer(this);
     this->m_fixTimer->setSingleShot(true);
-    this->m_fixTimer->setInterval(100);
+    this->m_fixTimer->setInterval(500);
     connect(this->m_fixTimer, &QTimer::timeout, this, &ActiveWindowControlWidget::activeWindowInfoChanged);
     // some applications like Gtk based and electron based seems still holds the focus after clicking the close button for a little while
     // Thus, we need to check the active window when some windows are closed.
@@ -273,7 +268,7 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
 
             if (newCurActiveWinId < 0) {
                 this->currActiveWinId = -1;
-                this->m_winTitleLabel->setText(tr("桌面"));
+                this->m_winTitleLabel->setText("桌面");
                 this->m_iconLabel->setPixmap(QPixmap(CustomSettings::instance()->getActiveDefaultAppIconPath()));
             } else {
                 activeWinId = newCurActiveWinId;
@@ -304,7 +299,7 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
     // KWindowSystem will not update menu for desktop when focusing on the desktop
     // It is not a good idea to do the filter here instead of the AppmenuModel.
     // However, it works, and works pretty well.
-    if (activeWinTitle == tr("桌面")) {
+    if (activeWinTitle == "桌面") {
         // hide buttons
         this->setButtonsVisible(false);
         this->m_appMenuModel->setMenuAvailable(false);
@@ -366,10 +361,7 @@ void ActiveWindowControlWidget::mouseDoubleClickEvent(QMouseEvent *event) {
 }
 
 void ActiveWindowControlWidget::updateMenu() {
-    foreach (QAction *action, this->menuBar->actions())
-    {
-        this->menuBar->removeAction(action);
-    }
+    this->menuBar->clear();
         
     if (m_appMenuModel->rowCount() == 0 || m_appMenuModel->visible() == false)
     {
@@ -481,7 +473,7 @@ void ActiveWindowControlWidget::toggleStartMenu() {
 void ActiveWindowControlWidget::toggleMenu() {
     if (this->menuBar->actions().size() > 0)
     {
-        QThread::msleep(150);
+        QThread::msleep(150);//this->menuBar->triggered(this->menuBar->actions().first());
         this->menuBar->setActiveAction(this->menuBar->actions()[0]);
     }
 }

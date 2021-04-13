@@ -140,6 +140,17 @@ SNITrayWidget::~SNITrayWidget()
         m_tipsLabel->deleteLater();
         m_tipsLabel = nullptr;
     }
+
+    if (m_dbusMenuImporter != nullptr)
+    {
+        m_dbusMenuImporter->deleteLater();
+    }    
+
+    m_updateAttentionIconTimer->deleteLater();
+    m_updateIconTimer->deleteLater();
+    m_updateOverlayIconTimer->deleteLater();
+    m_popupTipsDelayTimer->deleteLater();
+    
     
     qDebug()<<"delete in snitraywidget";
 }

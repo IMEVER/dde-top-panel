@@ -29,7 +29,6 @@
 #include <QRect>
 #include <QWidget>
 #include <QVariant>
-// #include <QModelIndex>
 
 class QMenu;
 class QAction;
@@ -42,14 +41,14 @@ class AppMenuModel : public QObject, public QAbstractNativeEventFilter
     Q_OBJECT
 
     Q_PROPERTY(bool menuAvailable READ menuAvailable WRITE setMenuAvailable NOTIFY menuAvailableChanged)
-    Q_PROPERTY(bool visible READ visible NOTIFY visibleChanged)
+    // Q_PROPERTY(bool visible READ visible NOTIFY visibleChanged)
 
     Q_PROPERTY(bool filterByActive READ filterByActive WRITE setFilterByActive NOTIFY filterByActiveChanged)
     Q_PROPERTY(bool filterChildren READ filterChildren WRITE setFilterChildren NOTIFY filterChildrenChanged)
 
     Q_PROPERTY(QRect screenGeometry READ screenGeometry WRITE setScreenGeometry NOTIFY screenGeometryChanged)
 
-    Q_PROPERTY(QVariant winId READ winId WRITE setWinId NOTIFY winIdChanged)
+    // Q_PROPERTY(QVariant winId READ winId WRITE setWinId NOTIFY winIdChanged)
 public:
     explicit AppMenuModel(QObject *parent = nullptr);
     ~AppMenuModel() override;
@@ -76,9 +75,6 @@ public:
     QVariant winId() const;
     void setWinId(const QVariant &id);
 
-signals:
-    void requestActivateIndex(int index);
-
 protected:
     bool nativeEventFilter(const QByteArray &eventType, void *message, long int *result) override;
 
@@ -92,29 +88,26 @@ private Q_SLOTS:
     void filterWindow(KWindowInfo &info);
 
     void setVisible(bool visible);
-    void update();
 
 signals:
+    void requestActivateIndex(int index);
     void menuAvailableChanged();
     void modelNeedsUpdate();
     void filterByActiveChanged();
     void filterChildrenChanged();
-    void visibleChanged();
     void screenGeometryChanged();
-    void winIdChanged();
+    void clearMenu();
 
 private:
     bool m_filterByActive = false;
     bool m_filterChildren = false;
     bool m_menuAvailable;
-    bool m_updatePending = false;
     bool m_visible = true;
 
     QRect m_screenGeometry;
 
     QVariant m_winId{-1};
 
-    //! current active window used
     WId m_currentWindowId = 0;
     //! window that its menu initialization may be delayed
     WId m_delayedMenuWindowId = 0;

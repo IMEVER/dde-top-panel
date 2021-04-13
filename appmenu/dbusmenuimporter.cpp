@@ -20,9 +20,6 @@
 */
 #include "dbusmenuimporter.h"
 
-//#include "debug.h"
-
-// Qt
 #include <QCoreApplication>
 #include <QDBusConnection>
 #include <QDBusInterface>
@@ -31,6 +28,7 @@
 #include <QFont>
 #include <QMenu>
 #include <QPointer>
+#include <QSignalMapper>
 #include <QTime>
 #include <QTimer>
 #include <QToolButton>
@@ -46,15 +44,13 @@
 // Generated
 #include "dbusmenu_interface.h"
 
-//#define BENCHMARK
-#ifdef BENCHMARK
-    static QTime sChrono;
-#endif
-
 #define DMRETURN_IF_FAIL(cond) if (!(cond)) { \
         qWarning() << "Condition failed: " #cond; \
         return; \
     }
+
+static const int ABOUT_TO_SHOW_TIMEOUT = 3000;
+static const int REFRESH_TIMEOUT = 4000;
 
 static const char *DBUSMENU_PROPERTY_ID = "_dbusmenu_id";
 static const char *DBUSMENU_PROPERTY_ICON_NAME = "_dbusmenu_icon_name";
@@ -85,23 +81,38 @@ public:
     QMenu *m_menu;
     using ActionForId = QMap<int, QAction * >;
     ActionForId m_actionForId;
-    QTimer *m_pendingLayoutUpdateTimer;
+    QSignalMapper m_mapper;
 
-    QSet<int> m_idsRefreshedByAboutToShow;
-    QSet<int> m_pendingLayoutUpdates;
+    bool m_mustEmitMenuUpdated;
+    qint64 m_lastUpdateTime = 0;
+
+    DBusMenuImporterType m_type;
 
     QDBusPendingCallWatcher *refresh(int id) {
-        auto call = m_interface->GetLayout(id, 1, QStringList());
+        if (id == 0)
+        {
+            qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
+            // qInfo()<<"current: "<<currentTime<<", last: "<<m_lastUpdateTime<<", diff: "<<currentTime-m_lastUpdateTime;
+            if (currentTime - m_lastUpdateTime < 1000)
+            {
+                return nullptr;
+            }
+            m_lastUpdateTime = currentTime;
+        }
+
+        // auto call = m_interface->GetLayout(id, 1, QStringList());
+        QDBusPendingCall call = m_interface->asyncCall("GetLayout", id, 1, QStringList());
         QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, q);
         watcher->setProperty(DBUSMENU_PROPERTY_ID, id);
-        QObject::connect(watcher, &QDBusPendingCallWatcher::finished,
-                         q, &DBusMenuImporter::slotGetLayoutFinished);
+        QObject::connect(watcher, &QDBusPendingCallWatcher::finished, q, &DBusMenuImporter::slotGetLayoutFinished);
 
         return watcher;
     }
 
     QMenu *createMenu(QWidget *parent) {
         QMenu *menu = q->createMenu(parent);
+        QObject::connect(menu, SIGNAL(aboutToShow()), q, SLOT(slotMenuAboutToShow()));
+        QObject::connect(menu, SIGNAL(aboutToHide()), q, SLOT(slotMenuAboutToHide()));
         return menu;
     }
 
@@ -146,6 +157,13 @@ public:
         if (isKdeTitle) {
             action = createKdeTitle(action, parent);
         }
+
+        // QObject::connect(action, SIGNAL(destroyed()), q, [this, id]() {
+        //     m_actionForId.remove(id);
+        // });
+
+        QObject::connect(action, SIGNAL(triggered()), &m_mapper, SLOT(map()));
+        m_mapper.setMapping(action, id);
 
         return action;
     }
@@ -268,11 +286,54 @@ public:
     void slotItemsPropertiesUpdated(const DBusMenuItemList &updatedList, const DBusMenuItemKeysList &removedList);
 
     void sendEvent(int id, const QString &eventId) {
-        m_interface->Event(id, eventId, QDBusVariant(QString()), 0u);
+        // m_interface->Event(id, eventId, QDBusVariant(QString()), 0u);
+        m_interface->asyncCall("Event", id, eventId, QVariant::fromValue(QDBusVariant(QString())), 0u);
+    }
+
+    bool waitForWatcher(QDBusPendingCallWatcher * _watcher, int maxWait)
+    {
+        QPointer<QDBusPendingCallWatcher> watcher(_watcher);
+
+        if(m_type == ASYNCHRONOUS) {
+            QTimer timer;
+            timer.setSingleShot(true);
+            QEventLoop loop;
+            loop.connect(&timer, SIGNAL(timeout()), SLOT(quit()));
+            loop.connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher *)), SLOT(quit()));
+            timer.start(maxWait);
+            loop.exec();
+            timer.stop();
+
+            if (!watcher) {
+                // Watcher died. This can happen if importer got deleted while we were
+                // waiting. See:
+                // https://bugs.kde.org/show_bug.cgi?id=237156
+                return false;
+            }
+
+            if(!watcher->isFinished()) {
+                // Timed out
+                return false;
+            }
+        } else {
+            watcher->waitForFinished();
+        }
+
+        if (watcher->isError()) {
+            qDebug() << watcher->error().message();
+            return false;
+        }
+
+        return true;
     }
 };
 
 DBusMenuImporter::DBusMenuImporter(const QString &service, const QString &path, QObject *parent)
+: DBusMenuImporter(service, path, ASYNCHRONOUS, parent)
+{
+}
+
+DBusMenuImporter::DBusMenuImporter(const QString &service, const QString &path, DBusMenuImporterType type, QObject *parent)
     : QObject(parent)
     , d(new DBusMenuImporterPrivate)
 {
@@ -281,15 +342,16 @@ DBusMenuImporter::DBusMenuImporter(const QString &service, const QString &path, 
     d->q = this;
     d->m_interface = new ComCanonicalDbusmenuInterface(service, path, QDBusConnection::sessionBus(), this);
     d->m_menu = nullptr;
+    d->m_mustEmitMenuUpdated = true;
 
-    d->m_pendingLayoutUpdateTimer = new QTimer(this);
-    d->m_pendingLayoutUpdateTimer->setSingleShot(true);
-    connect(d->m_pendingLayoutUpdateTimer, &QTimer::timeout, this, &DBusMenuImporter::processPendingLayoutUpdates);
+    d->m_type = type;
+
+    connect(&d->m_mapper, SIGNAL(mapped(int)), SLOT(sendClickedEvent(int)));
 
     connect(d->m_interface, &ComCanonicalDbusmenuInterface::LayoutUpdated, this, &DBusMenuImporter::slotLayoutUpdated);
     connect(d->m_interface, &ComCanonicalDbusmenuInterface::ItemActivationRequested, this, &DBusMenuImporter::slotItemActivationRequested);
-    connect(d->m_interface, &ComCanonicalDbusmenuInterface::ItemsPropertiesUpdated, this, [this](const DBusMenuItemList & updatedList, const DBusMenuItemKeysList & removedList) {
-        d->slotItemsPropertiesUpdated(updatedList, removedList);
+    connect(d->m_interface, &ComCanonicalDbusmenuInterface::ItemsPropertiesUpdated, this, [ = ](const DBusMenuItemList itemList, const DBusMenuItemKeysList keyList) {
+        d->slotItemsPropertiesUpdated(itemList, keyList);
     });
 
     d->refresh(0);
@@ -297,45 +359,24 @@ DBusMenuImporter::DBusMenuImporter(const QString &service, const QString &path, 
 
 DBusMenuImporter::~DBusMenuImporter()
 {
+    disconnect(d->m_interface, &ComCanonicalDbusmenuInterface::LayoutUpdated, this, &DBusMenuImporter::slotLayoutUpdated);
+    disconnect(d->m_interface, &ComCanonicalDbusmenuInterface::ItemActivationRequested, this, &DBusMenuImporter::slotItemActivationRequested);
+    disconnect(d->m_interface, &ComCanonicalDbusmenuInterface::ItemsPropertiesUpdated, this, 0);
+
     // Do not use "delete d->m_menu": even if we are being deleted we should
     // leave enough time for the menu to finish what it was doing, for example
     // if it was being displayed.
     d->m_menu->deleteLater();
     d->m_interface->deleteLater();
-    d->m_pendingLayoutUpdateTimer->deleteLater();
-
-    DBusMenuImporterPrivate::ActionForId::Iterator iterator = d->m_actionForId.begin();
-    for ( ; iterator != d->m_actionForId.end(); iterator++)
-    {
-        iterator.value()->deleteLater();
-    }
-
+    d->m_actionForId.clear();
     delete d;
 }
 
 void DBusMenuImporter::slotLayoutUpdated(uint revision, int parentId)
 {
     Q_UNUSED(revision)
-
-    if (d->m_idsRefreshedByAboutToShow.remove(parentId)) {
-        return;
-    }
-
-    d->m_pendingLayoutUpdates << parentId;
-
-    if (!d->m_pendingLayoutUpdateTimer->isActive()) {
-        d->m_pendingLayoutUpdateTimer->start();
-    }
-}
-
-void DBusMenuImporter::processPendingLayoutUpdates()
-{
-    QSet<int> ids = d->m_pendingLayoutUpdates;
-    d->m_pendingLayoutUpdates.clear();
-
-    Q_FOREACH (int id, ids) {
-        d->refresh(id);
-    }
+    // qInfo()<<"Vscode layoutUpdated signal parentId: "<<parentId;
+    d->refresh(parentId);
 }
 
 QMenu *DBusMenuImporter::menu() const
@@ -380,11 +421,6 @@ void DBusMenuImporterPrivate::slotItemsPropertiesUpdated(const DBusMenuItemList 
     }
 }
 
-QAction *DBusMenuImporter::actionForId(int id) const
-{
-    return d->m_actionForId.value(id);
-}
-
 void DBusMenuImporter::slotItemActivationRequested(int id, uint /*timestamp*/)
 {
     QAction *action = d->m_actionForId.value(id);
@@ -402,84 +438,48 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
     QDBusPendingReply<uint, DBusMenuLayoutItem> reply = *watcher;
 
     if (!reply.isValid()) {
-        qDebug() << reply.error().message();
-
-        if (menu) {
-            emit menuUpdated(menu);
-        }
-
         return;
     }
 
-#ifdef BENCHMARK
-    DMDEBUG << "- items received:" << sChrono.elapsed() << "ms";
-#endif
     DBusMenuLayoutItem rootItem = reply.argumentAt<1>();
 
     if (!menu) {
-//        qDebug() << "No menu for id" << parentId;
         return;
     }
 
-    //remove outdated actions
-    QSet<int> newDBusMenuItemIds;
-    newDBusMenuItemIds.reserve(rootItem.children.count());
+    if(menu == this->menu())
+        emit clearMenu();
 
-    for (const DBusMenuLayoutItem &item : rootItem.children) {
-        newDBusMenuItemIds << item.id;
+    for ( QAction *action : menu->actions() )
+    {
+        d->m_actionForId.remove(action->property(DBUSMENU_PROPERTY_ID).toInt());
     }
 
-    for (QAction *action : menu->actions()) {
-        int id = action->property(DBUSMENU_PROPERTY_ID).toInt();
-
-        if (! newDBusMenuItemIds.contains(id)) {
-            // Not calling removeAction() as QMenu will immediately close when it becomes empty,
-            // which can happen when an application completely reloads this menu.
-            // When the action is deleted deferred, it is removed from the menu.
-            action->deleteLater();
-            d->m_actionForId.remove(id);
-        }
-    }
+    menu->clear();
 
     //insert or update new actions into our menu
     for (const DBusMenuLayoutItem &dbusMenuItem : rootItem.children) {
-        DBusMenuImporterPrivate::ActionForId::Iterator it = d->m_actionForId.find(dbusMenuItem.id);
-        QAction *action = nullptr;
+        int id = dbusMenuItem.id;
+        if (d->m_actionForId.contains(id))
+        {
+            d->m_actionForId.remove(id);
+        }
 
-        if (it == d->m_actionForId.end()) {
-            int id = dbusMenuItem.id;
-            action = d->createAction(id, dbusMenuItem.properties, menu);
-            d->m_actionForId.insert(id, action);
+        QAction *action = d->createAction(id, dbusMenuItem.properties, menu);
+        d->m_actionForId.insert(id, action);
+        menu->addAction(action);
 
-            connect(action, &QObject::destroyed, this, [this, id]() {
-                d->m_actionForId.remove(id);
-            });
-
-            connect(action, &QAction::triggered, this, [id, this]() {
-                sendClickedEvent(id);
-            });
-
-            if (QMenu *menuAction = action->menu()) {
-                connect(menuAction, &QMenu::aboutToShow, this, &DBusMenuImporter::slotMenuAboutToShow, Qt::UniqueConnection);
-            }
-
-            connect(menu, &QMenu::aboutToHide, this, &DBusMenuImporter::slotMenuAboutToHide, Qt::UniqueConnection);
-
-            menu->addAction(action);
-        } else {
-            action = *it;
-            QStringList filteredKeys = dbusMenuItem.properties.keys();
-            filteredKeys.removeOne("type");
-            filteredKeys.removeOne("toggle-type");
-            filteredKeys.removeOne("children-display");
-            d->updateAction(*it, dbusMenuItem.properties, filteredKeys);
-            // Move the action to the tail so we can keep the order same as the dbus request.
-            menu->removeAction(action);
-            menu->addAction(action);
+        if (action->menu())
+        {
+            d->refresh(action->property(DBUSMENU_PROPERTY_ID).toInt());
         }
     }
+    // qInfo()<<"GetLayout finish with menu id: " << parentId;
 
-    emit menuUpdated(menu);
+    if (menu == DBusMenuImporter::menu())
+    {
+        emit menuUpdated();
+    }
 }
 
 void DBusMenuImporter::sendClickedEvent(int id)
@@ -489,6 +489,7 @@ void DBusMenuImporter::sendClickedEvent(int id)
 
 void DBusMenuImporter::updateMenu()
 {
+    d->m_mustEmitMenuUpdated = true;
     updateMenu(DBusMenuImporter::menu());
 }
 
@@ -501,11 +502,22 @@ void DBusMenuImporter::updateMenu(QMenu *menu)
 
     int id = action->property(DBUSMENU_PROPERTY_ID).toInt();
 
-    auto call = d->m_interface->AboutToShow(id);
+    // auto call = d->m_interface->AboutToShow(id);
+    auto call = d->m_interface->asyncCall("AboutToShow", id);
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, this);
     watcher->setProperty(DBUSMENU_PROPERTY_ID, id);
-    connect(watcher, &QDBusPendingCallWatcher::finished, this,
-            &DBusMenuImporter::slotAboutToShowDBusCallFinished);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, &DBusMenuImporter::slotAboutToShowDBusCallFinished);
+
+    QPointer<QObject> guard(this);
+
+    if (!d->waitForWatcher(watcher, ABOUT_TO_SHOW_TIMEOUT)) {
+        qDebug() << "Application did not answer to AboutToShow() before timeout";
+    }
+
+    // "this" got deleted during the call to waitForWatcher(), get out
+    if (!guard) {
+        return;
+    }
 
     // Firefox deliberately ignores "aboutToShow" whereas Qt ignores" opened", so we'll just send both all the time...
     d->sendEvent(id, QStringLiteral("opened"));
@@ -526,19 +538,31 @@ void DBusMenuImporter::slotAboutToShowDBusCallFinished(QDBusPendingCallWatcher *
 
     if (reply.isError()) {
         qDebug() << "Call to AboutToShow() failed:" << reply.error().message();
-        menuUpdated(menu);
         return;
     }
 
     //Note, this isn't used by Qt's QPT - but we get a LayoutChanged emitted before
     //this returns, which equates to the same thing
     bool needRefresh = reply.argumentAt<0>();
-
+    // qInfo()<<"AboutToShow finish with menu id: "<<id<<", need refresh: "<<needRefresh<<", child count: "<<menu->actions().count();
     if (needRefresh || menu->actions().isEmpty()) {
-        d->m_idsRefreshedByAboutToShow << id;
-        d->refresh(id);
-    } else if (menu) {
-        menuUpdated(menu);
+        QDBusPendingCallWatcher *watcher2 = d->refresh(id);
+        if (watcher2 && !d->waitForWatcher(watcher2, REFRESH_TIMEOUT))
+        {
+            qDebug() << "超时前程序没有刷新！";
+        }
+    }
+    else if (menu == d->m_menu)
+    {
+        emit menuUpdated();
+    }
+
+    for (QAction *action : menu->actions())
+    {
+        if (action->menu())
+        {
+            updateMenu(action->menu());
+        }
     }
 }
 
@@ -556,10 +580,12 @@ void DBusMenuImporter::slotMenuAboutToHide()
 
 void DBusMenuImporter::slotMenuAboutToShow()
 {
+
     QMenu *menu = qobject_cast<QMenu *>(sender());
     Q_ASSERT(menu);
 
     //! update colors to sub-menus based on the parent menu colors
+
     if (menu && menu->parent()) {
         QMenu *parent_menu = qobject_cast<QMenu *>(menu->parent()->parent());
         if (parent_menu) {

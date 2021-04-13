@@ -41,6 +41,7 @@
 #include <QScreen>
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QTimer>
 #include "../frame/util/XUtils.h"
 
 #include "dbusmenuimporter.h"
@@ -64,15 +65,10 @@ public:
 
     }
 
-    ~KDBusMenuImporter(){
-
-    }
-
 protected:
     QIcon iconForName(const QString &name) override {
         return QIcon::fromTheme(name);
     }
-
 };
 
 AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(new QDBusServiceWatcher(this))
@@ -81,11 +77,7 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
         return;
     }
 
-    connect(this, &AppMenuModel::winIdChanged, this, [this] {
-        onActiveWindowChanged(m_winId.toUInt());
-    });
-
-    connect(KWindowSystem::self(), &KWindowSystem::activeWindowChanged, this, &AppMenuModel::onActiveWindowChanged);
+    // connect(KWindowSystem::self(), &KWindowSystem::activeWindowChanged, this, &AppMenuModel::onActiveWindowChanged);
     connect(KWindowSystem::self()
             , static_cast<void (KWindowSystem::*)(WId)>(&KWindowSystem::windowChanged)
             , this
@@ -95,19 +87,11 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
             , this
             , &AppMenuModel::onWindowRemoved);
 
-    connect(this, &AppMenuModel::modelNeedsUpdate, this, [this] {
-        if (!m_updatePending)
-        {
-            m_updatePending = true;
-            QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
-        }
-    });
-
     connect(this, &AppMenuModel::screenGeometryChanged, this, [this] {
         onWindowChanged(m_currentWindowId);
     });
 
-    onActiveWindowChanged(KWindowSystem::activeWindow());
+    // onActiveWindowChanged(KWindowSystem::activeWindow());
 
     m_serviceWatcher->setConnection(QDBusConnection::sessionBus());
     //if our current DBus connection gets lost, close the menu
@@ -219,10 +203,7 @@ bool AppMenuModel::visible() const
 
 void AppMenuModel::setVisible(bool visible)
 {
-    if (m_visible != visible) {
-        m_visible = visible;
-        emit visibleChanged();
-    }
+    m_visible = visible;
 }
 
 QVariant AppMenuModel::winId() const
@@ -237,7 +218,7 @@ void AppMenuModel::setWinId(const QVariant &id)
     }
 
     m_winId = id;
-    emit winIdChanged();
+    QTimer::singleShot(100, [ = ]() { onActiveWindowChanged(m_winId.toUInt()); });
 }
 
 int AppMenuModel::rowCount() const
@@ -248,12 +229,6 @@ int AppMenuModel::rowCount() const
 
     return m_menu->actions().count();
 }
-
-void AppMenuModel::update()
-{
-    m_updatePending = false;
-}
-
 
 void AppMenuModel::onActiveWindowChanged(WId id)
 {
@@ -279,12 +254,6 @@ void AppMenuModel::onActiveWindowChanged(WId id)
             setMenuAvailable(false);
             emit modelNeedsUpdate();
         }
-        return;
-    }
-
-    if (!id) {
-        setMenuAvailable(false);
-        emit modelNeedsUpdate();
         return;
     }
 
@@ -371,6 +340,7 @@ void AppMenuModel::onActiveWindowChanged(WId id)
         }
 
         m_currentWindowId = id;
+
 
         if (!filterChildren()) {
 
@@ -462,23 +432,24 @@ void AppMenuModel::updateApplicationMenu(const QString &serviceName, const QStri
     m_menuObjectPath = menuObjectPath;
 
     if (m_importer) {
+        emit clearMenu();
         m_importer->deleteLater();
     }
 
     m_importer = new KDBusMenuImporter(serviceName, menuObjectPath, this);
     QMetaObject::invokeMethod(m_importer, "updateMenu", Qt::QueuedConnection);
 
-    connect(m_importer.data(), &DBusMenuImporter::menuUpdated, this, [ = ](QMenu * menu) {
-    // connect(m_importer.data(), &DBusMenuImporter::menuUpdated, this, [ = ]() {
+    connect(m_importer.data(), &DBusMenuImporter::clearMenu, this, &AppMenuModel::clearMenu);
+
+    connect(m_importer.data(), &DBusMenuImporter::menuUpdated, this, [ = ]() {
         m_menu = m_importer->menu();
 
-        if (m_menu.isNull() || menu != m_menu) {
-        // if (m_menu.isNull()) {
+        if (m_menu.isNull()) {
             return;
         }
 
         //cache first layer of sub menus, which we'll be popping up
-        for (QAction *a : m_menu->actions()) {
+        // for (QAction *a : m_menu->actions()) {
 
             // signal dataChanged when the action changes
             // connect(a, &QAction::changed, this, [this, a] {
@@ -494,12 +465,7 @@ void AppMenuModel::updateApplicationMenu(const QString &serviceName, const QStri
             // });
 
             // connect(a, &QAction::destroyed, this, &AppMenuModel::modelNeedsUpdate);
-
-            if (a->menu()) {
-                m_importer->updateMenu(a->menu());
-                // m_importer->updateMenu();
-            }
-        }
+        // }
 
         setMenuAvailable(true);
         emit modelNeedsUpdate();

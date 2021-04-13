@@ -47,7 +47,7 @@ void KeyboardPlugin::init(PluginProxyInterface *proxyInter)
         QDBusConnectionInterface *ifc = QDBusConnection::sessionBus().interface();
 
         if (!ifc->isServiceRegistered(serverName)) {
-            connect(QDBusConnection::sessionBus().interface(), &QDBusConnectionInterface::serviceOwnerChanged, this,
+            connect(ifc, &QDBusConnectionInterface::serviceOwnerChanged, this,
             [ = ](const QString & name, const QString & oldOwner, const QString & newOwner) {
                 Q_UNUSED(oldOwner);
                 if (name == serverName && !newOwner.isEmpty()) {

@@ -23,8 +23,6 @@ find_package(Qt5X11Extras REQUIRED)
 # find_package(dbusmenu-qt5 REQUIRED)
 find_package(KF5WindowSystem REQUIRED)
 
-# pkg_check_modules(XCB_LIBS REQUIRED dbusmenu-qt5)
-
 set(SRCS
         dbusmenutypes_p.h dbusmenutypes_p.cpp
         dbusmenushortcut_p.h dbusmenushortcut_p.cpp

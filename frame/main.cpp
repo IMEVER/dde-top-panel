@@ -17,23 +17,22 @@ DUTIL_USE_NAMESPACE
 #endif
 
 int main(int argc, char *argv[]) {
-
+    qputenv("QT_LOGGING_TO_CONSOLE", QByteArray("0"));
     DGuiApplicationHelper::setUseInactiveColorGroup(false);
-    // DApplication::loadDXcbPlugin();
     DApplication app(argc, argv);
 
     if (app.setSingleInstance("imever"))
     {
         app.setOrganizationName("IMEVER");
+        app.setOrganizationDomain("imever.me");
         app.setApplicationName("dde-top-panel");
         app.setApplicationDisplayName("全局顶栏");
         app.setApplicationVersion("1.0.0");
-        app.loadTranslator();
+        // app.loadTranslator();
         app.setAttribute(Qt::AA_EnableHighDpiScaling, true);
         app.setAttribute(Qt::AA_UseHighDpiPixmaps, false);
 
         TopPanelLauncher launcher;
-
         MenuProxy proxy;
 
         return app.exec();
@@ -42,5 +41,5 @@ int main(int argc, char *argv[]) {
     {
         app.exit();
         return 0;
-    }    
+    }
 }

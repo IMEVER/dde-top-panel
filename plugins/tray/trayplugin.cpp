@@ -50,7 +50,7 @@ const QString TrayPlugin::pluginName() const
 
 void TrayPlugin::init(PluginProxyInterface *proxyInter)
 {
-    m_proxyInter = proxyInter;    
+    m_proxyInter = proxyInter;
 
     if (m_pluginLoaded) {
         return;
@@ -361,7 +361,6 @@ void TrayPlugin::trayIndicatorAdded(const QString &itemKey, const QString &indic
 
     connect(indicatorTray, &IndicatorTray::removed, this, [ = ] {
         trayRemoved(itemKey);
-        indicatorTray->removeWidget();
     }, Qt::UniqueConnection);
 }
 

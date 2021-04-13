@@ -43,6 +43,7 @@ DBusAdaptors::DBusAdaptors(QObject *parent)
 
 DBusAdaptors::~DBusAdaptors()
 {
+    m_menu->deleteLater();
 }
 
 QString DBusAdaptors::layout() const
@@ -161,6 +162,7 @@ void DBusAdaptors::handleActionTriggered(QAction *action)
                 .arg(QString("keyboard"))
                 .arg(QString("Keyboard Layout/Add Keyboard Layout"))
                 .call();
+        return;
     }
 
     const QString layout = action->objectName();
