@@ -32,9 +32,6 @@ public:
     void moveToScreen(QScreen *screen);
     void adjustPanelSize();
     void applyCustomSettings(const CustomSettings& customSettings);
-    void showOverFullscreen();
-    void toggleStartMenu();
-    void toggleMenu();
 
 signals:
     void panelGeometryChanged();
@@ -45,6 +42,8 @@ private slots:
 
 public Q_SLOTS:
     void setRadius(int radius) {};
+    void ToggleMenu(int id);
+    void ActivateWindow();
 
 protected:
     bool event(QEvent *event) override;
@@ -67,7 +66,7 @@ private:
 
     QDBusConnectionInterface *m_dbusDaemonInterface;
     org::kde::StatusNotifierWatcher *m_sniWatcher;
-    QString m_sniHostService;    
+    QString m_sniHostService;
 };
 
 class TopPanelLauncher : public QObject {
@@ -85,7 +84,7 @@ private:
 
     QScreen *primaryScreen;
     DBusDisplay *m_display;
-    QMap<QScreen *, MainWindow *> mwMap;    
+    QMap<QScreen *, MainWindow *> mwMap;
     void rearrange();
 };
 

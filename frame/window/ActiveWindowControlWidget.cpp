@@ -3,7 +3,6 @@
 //
 
 #include <QDebug>
-#include <QWindow>
 #include "ActiveWindowControlWidget.h"
 #include "util/XUtils.h"
 #include <QMouseEvent>
@@ -11,12 +10,15 @@
 #include <QtX11Extras/QX11Info>
 #include <QProcess>
 #include "QClickableLabel.h"
+#include "../util/desktop_entry_stat.h"
+#include "AboutWindow.h"
 
-#include "../item/components/hoverhighlighteffect.h"
 #include <QApplication>
+// #include <QQmlContext>
+// #include <QQuickWindow>
+#include <QGuiApplication>
 #include <QScreen>
 #include <QEvent>
-#include <QDesktopWidget>
 #include <DDBusSender>
 
 ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
@@ -24,159 +26,92 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     , m_appInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
     , mouseClicked(false)
 {
-    QPalette palette1 = this->palette();
-    palette1.setColor(QPalette::Background, Qt::transparent);
-    this->setPalette(palette1);
+    QPalette palette = this->palette();
+    palette.setColor(QPalette::Background, Qt::transparent);
+    this->setPalette(palette);
 
-    this->m_layout = new QHBoxLayout(this);
-    this->m_layout->setSpacing(10);
-    this->m_layout->setContentsMargins(5, 0, 0, 0);
-    this->setLayout(this->m_layout);
-    
-    QClickableLabel *launchLabel = new QClickableLabel(this);
-    launchLabel->setToolTip("启动器");
-    launchLabel->setToolTipDuration(5000);
-    launchLabel->setStyleSheet("QLabel{background-color: rgba(0,0,0,0);}");
-    launchLabel->setPixmap(QPixmap(":/icons/launcher.svg"));
-    launchLabel->setFixedSize(18, 18);
-    launchLabel->setScaledContents(true);
- 
-    this->menu = new QMenu;
-        this->menu->addAction("关于", [ = ](){
-            // QProcess::startDetached("dde-file-manager -p computer:///");
-            // QProcess::startDetached("/usr/bin/dbus-send --session --print-reply --dest=com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand string:\"/usr/bin/dde-file-manager\" array:string:\"-p\",\"computer:///\"");
-            QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.RunCommand", "dde-file-manager", "(", "-p", "computer:///", ")"});
-        });
-        this->menu->addAction("启动器", this, [ = ](){
-            QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.Launcher", "/com/deepin/dde/Launcher", "com.deepin.dde.Launcher.Toggle"});
-        });
-
-        this->menu->addAction("应用商店", [ = ](){
-            // QProcess::startDetached("deepin-app-store");
-            QProcess::startDetached("/usr/bin/qdbus --literal com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.LaunchApp /usr/share/applications/deepin-app-store.desktop 0 []");
-        });
-
-        this->menu->addAction("设  置", [ = ](){
-            QProcess::startDetached("/usr/bin/qdbus --literal com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.LaunchApp /usr/share/applications/dde-control-center.desktop 0 []");
-        });
-
-        this->menu->addAction("资源管理器", [ = ](){
-            QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/deepin-system-monitor.desktop", "0", "[]"});
-        });
-
-        this->menu->addAction("强制关闭窗口", [ = ](){
-            // QProcess::startDetached("xkill");
-            QProcess::startDetached("/usr/bin/dbus-send --session --print-reply --dest=com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand string:\"/usr/bin/xkill\" array:string:\"\"");
-        });
-
-        QMenu *shutdownMenu = new QMenu;
-        shutdownMenu->addAction("注销", [](){
-            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Logout").call();
-        });
-        shutdownMenu->addAction("锁定", [](){
-            DDBusSender().service("com.deepin.dde.lockFront").path("/com/deepin/dde/lockFront").interface("com.deepin.dde.lockFront").method("Show").call();
-        });
-        shutdownMenu->addAction("切换用户", [](){
-            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("SwitchUser").call();
-        });        
-        shutdownMenu->addAction("待机", [](){
-            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Suspend").call();
-        });
-        shutdownMenu->addAction("重启", [](){
-            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Restart").call();
-        });
-        shutdownMenu->addAction("关机", [](){
-            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Shutdown").call();
-        });
-
-        QAction *shutdownAction = new QAction("关机");
-        shutdownAction->setMenu(shutdownMenu);
-        this->menu->addAction(shutdownAction);   // launchLabel->setGraphicsEffect(new HoverHighlightEffect(this));
-    
-    connect(launchLabel, &QClickableLabel::clicked, this, &ActiveWindowControlWidget::toggleStartMenu);
-    this->m_layout->addWidget(launchLabel);
-
-    this->m_iconLabel = new QLabel(this);
-    this->m_iconLabel->setFixedSize(18, 18);
-    this->m_iconLabel->setScaledContents(true);
-    this->m_iconLabel->setGraphicsEffect(new HoverHighlightEffect(this));
-    
-    this->m_layout->addWidget(this->m_iconLabel);
+    QHBoxLayout *m_layout = new QHBoxLayout(this);
+    m_layout->setAlignment(Qt::AlignLeft);
+    m_layout->setSpacing(10);
+    m_layout->setContentsMargins(0, 0, 0, 0);
 
     int buttonSize = 18;
     this->m_buttonWidget = new QWidget(this);
-    this->m_buttonLayout = new QHBoxLayout(this->m_buttonWidget);
-    this->m_buttonLayout->setContentsMargins(0, 0, 0, 0);
-    this->m_buttonLayout->setSpacing(12);
-    this->m_buttonLayout->setMargin(0);
+    this->m_buttonWidget->hide();
+    this->m_buttonWidget->setLayout(new QHBoxLayout());
+    this->m_buttonWidget->layout()->setSpacing(12);
+    this->m_buttonWidget->layout()->setContentsMargins(0, 0, 0, 0);
 
     this->closeButton = new QToolButton(this->m_buttonWidget);
     this->closeButton->setToolTip("关闭");
     this->closeButton->setFixedSize(buttonSize, buttonSize);
     this->closeButton->setIcon(QIcon(":/icons/close.svg"));
     this->closeButton->setIconSize(QSize(buttonSize - 8, buttonSize - 8));
-    this->m_buttonLayout->addWidget(this->closeButton);
+    this->m_buttonWidget->layout()->addWidget(this->closeButton);
 
     this->maxButton = new QToolButton(this->m_buttonWidget);
     this->maxButton->setToolTip("还原");
     this->maxButton->setFixedSize(buttonSize, buttonSize);
     this->maxButton->setIcon(QIcon(":/icons/maximum.svg"));
     this->maxButton->setIconSize(QSize(buttonSize - 8, buttonSize - 8));
-    this->m_buttonLayout->addWidget(this->maxButton);
+    this->m_buttonWidget->layout()->addWidget(this->maxButton);
 
     this->minButton = new QToolButton(this->m_buttonWidget);
     this->minButton->setToolTip("最小化");
     this->minButton->setFixedSize(buttonSize, buttonSize);
     this->minButton->setIcon(QIcon(":/icons/minimum.svg"));
     this->minButton->setIconSize(QSize(buttonSize - 8, buttonSize - 8));
-    this->m_buttonLayout->addWidget(this->minButton);
-    this->m_layout->addWidget(this->m_buttonWidget);
+    this->m_buttonWidget->layout()->addWidget(this->minButton);
+    m_layout->addWidget(this->m_buttonWidget);
 
-    this->menuBar = new QMenuBar(this);
-    this->m_layout->addWidget(this->menuBar);
+    this->initMenuBar(m_layout);
 
     this->m_appMenuModel = new AppMenuModel(this);
-    connect(this->m_appMenuModel, &AppMenuModel::clearMenu, this->menuBar, &QMenuBar::clear);
+    connect(this->m_appMenuModel, &AppMenuModel::clearMenu, this, [ = ](){
+        while (this->menuBar->actions().size() > 2)
+        {
+            this->menuBar->removeAction(this->menuBar->actions()[2]);
+        }
+    });
     connect(this->m_appMenuModel, &AppMenuModel::modelNeedsUpdate, this, &ActiveWindowControlWidget::updateMenu);
     connect(this->m_appMenuModel, &AppMenuModel::requestActivateIndex, this, [ this ](int index){
-        if(this->menuBar->actions().size() > index && index >= 0){
+        if(this->menuBar->actions().size() -2 > index && index >= 0){
             QThread::msleep(150);
-            this->menuBar->setActiveAction(this->menuBar->actions()[index]);
+            this->menuBar->setActiveAction(this->menuBar->actions()[index + 2]);
         }
     });
 
-    this->m_winTitleLabel = new QLabel(this);
-    this->m_winTitleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    this->m_layout->addWidget(this->m_winTitleLabel);
-
-    this->m_layout->addStretch();
+    m_layout->addStretch();
 
     this->m_buttonShowAnimation = new QPropertyAnimation(this->m_buttonWidget, "maximumWidth");
+    this->m_buttonShowAnimation->setStartValue(0);
     this->m_buttonShowAnimation->setEndValue(this->m_buttonWidget->width());
     this->m_buttonShowAnimation->setDuration(150);
     this->m_buttonShowAnimation->setEasingCurve(QEasingCurve::Linear);
 
     this->m_buttonHideAnimation = new QPropertyAnimation(this->m_buttonWidget, "maximumWidth");
+    this->m_buttonHideAnimation->setStartValue(this->m_buttonWidget->width());
     this->m_buttonHideAnimation->setEndValue(0);
     this->m_buttonHideAnimation->setDuration(150);
     this->m_buttonHideAnimation->setEasingCurve(QEasingCurve::Linear);
-    connect(this->m_buttonHideAnimation, &QPropertyAnimation::finished, this, [this](){
-        this->m_buttonWidget->hide();
+    connect(this->m_buttonHideAnimation, &QPropertyAnimation::finished, this->m_buttonWidget, &QWidget::hide);
+
+    // this->setMouseTracking(true);
+
+    connect(this->maxButton, &QToolButton::clicked, this, &ActiveWindowControlWidget::maximizeWindow);
+    connect(this->minButton, &QToolButton::clicked, this, [ = ]{
+        this->m_appInter->MinimizeWindow(this->currActiveWinId);
     });
-
-    this->setButtonsVisible(false);
-    this->setMouseTracking(true);
-
-    connect(this->maxButton, &QToolButton::clicked, this, &ActiveWindowControlWidget::maxButtonClicked);
-    connect(this->minButton, &QToolButton::clicked, this, &ActiveWindowControlWidget::minButtonClicked);
-    connect(this->closeButton, &QToolButton::clicked, this, &ActiveWindowControlWidget::closeButtonClicked);
+    connect(this->closeButton, &QToolButton::clicked, this, [ = ]{
+        this->m_appInter->CloseWindow(this->currActiveWinId);
+    });
 
     // detect whether active window maximized signal
     connect(KWindowSystem::self(), qOverload<WId, NET::Properties, NET::Properties2>(&KWindowSystem::windowChanged), this, &ActiveWindowControlWidget::windowChanged);
 
     this->m_fixTimer = new QTimer(this);
     this->m_fixTimer->setSingleShot(true);
-    this->m_fixTimer->setInterval(500);
+    this->m_fixTimer->setInterval(100);
     connect(this->m_fixTimer, &QTimer::timeout, this, &ActiveWindowControlWidget::activeWindowInfoChanged);
     // some applications like Gtk based and electron based seems still holds the focus after clicking the close button for a little while
     // Thus, we need to check the active window when some windows are closed.
@@ -196,13 +131,116 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     });
     connect(this->m_appInter, &DBusDock::ServiceRestarted, this, &ActiveWindowControlWidget::reloadAppItems);
 
-    applyCustomSettings(*CustomSettings::instance());
-
     connect(DGuiApplicationHelper::instance(), &DGuiApplicationHelper::themeTypeChanged, this, &ActiveWindowControlWidget::themeTypeChanged);
     themeTypeChanged(DGuiApplicationHelper::instance()->themeType());
 
     reloadAppItems();
 }
+
+void ActiveWindowControlWidget::initMenuBar(QLayout *layout)
+{
+    QMenu *menu = new QMenu;
+        menu->addAction("关于", [ = ](){
+            // QProcess::startDetached("dde-file-manager -p computer:///");
+            // QProcess::startDetached("/usr/bin/dbus-send --session --print-reply --dest=com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand string:\"/usr/bin/dde-file-manager\" array:string:\"-p\",\"computer:///\"");
+            QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.RunCommand", "dde-file-manager", "(", "-p", "computer:///", ")"});
+        });
+        menu->addAction("启动器", this, [ = ](){
+            QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.Launcher", "/com/deepin/dde/Launcher", "com.deepin.dde.Launcher.Toggle"});
+        });
+
+        menu->addAction("应用商店", [ = ](){
+            QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/deepin-app-store.desktop", "0", "[]"});
+        });
+
+        menu->addAction("设  置", [ = ](){
+            QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/dde-control-center.desktop", "0", "[]"});
+        });
+
+        menu->addAction("资源管理器", [ = ](){
+            QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/deepin-system-monitor.desktop", "0", "[]"});
+        });
+
+        menu->addAction("强制关闭窗口", [ = ](){
+            QProcess::startDetached("/usr/bin/dbus-send", {"--dest=com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.RunCommand", "string:\"/usr/bin/xkill\"", "array:string:\"\""});
+        });
+
+        QMenu *shutdownMenu = new QMenu;
+        shutdownMenu->addAction("注销", [](){
+            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Logout").call();
+        });
+        shutdownMenu->addAction("锁定", [](){
+            DDBusSender().service("com.deepin.dde.lockFront").path("/com/deepin/dde/lockFront").interface("com.deepin.dde.lockFront").method("Show").call();
+        });
+        shutdownMenu->addAction("切换用户", [](){
+            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("SwitchUser").call();
+        });
+        shutdownMenu->addAction("待机", [](){
+            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Suspend").call();
+        });
+        shutdownMenu->addAction("重启", [](){
+            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Restart").call();
+        });
+        shutdownMenu->addAction("关机", [](){
+            DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Shutdown").call();
+        });
+
+        QAction *shutdownAction = new QAction("关机");
+        shutdownAction->setMenu(shutdownMenu);
+        menu->addAction(shutdownAction);
+
+    startAction = new QAction(this);
+    startAction->setIcon(QIcon(":/icons/launcher.svg"));
+    startAction->setMenu(menu);
+
+    this->appTitleAction = new QAction(this);
+    this->appTitleAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_P));
+    QMenu *titleMenu = new QMenu();
+
+    titleMenu->addAction("关于(&A)", [ = ]{
+        KWindowInfo kwin(this->currActiveWinId, NET::WMName|NET::WMDesktop|NET::WMPid, NET::WM2DesktopFileName|NET::WM2ClientMachine|NET::WM2WindowClass);
+        if(kwin.valid())
+        {
+            // engine = new QQmlApplicationEngine;
+
+            // engine->rootContext()->setContextProperty("appInfo", appInfo);
+            // engine->load(QUrl(QStringLiteral("qrc:/qml/about.qml")));
+            AboutWindow *about = new AboutWindow(kwin);
+            about->show();
+            connect(about, &AboutWindow::finished, about, &AboutWindow::deleteLater);
+        }
+    });
+
+    titleMenu->addAction("关闭(&C)", [ = ]{
+        if(this->currActiveWinId > 0)
+            this->m_appInter->CloseWindow(this->currActiveWinId);
+    });
+    titleMenu->addAction("退出(&Q)", [ = ]{
+        if (this->currActiveWinId > 0)
+        {
+            KWindowInfo info(this->currActiveWinId, NET::WMPid);
+            int pid = info.pid();
+            if(pid > 0)
+                QProcess::startDetached("/usr/bin/kill", {"-9", QString::number(pid)});
+        }
+    });
+    this->appTitleAction->setMenu(titleMenu);
+
+    this->menuBar = new QMenuBar(this);
+    this->menuBar->addAction(startAction);
+    this->menuBar->addAction(this->appTitleAction);
+
+    layout->addWidget(this->menuBar);
+}
+
+// void ActiveWindowControlWidget::clearAboutWindow()
+// {
+//     QObject *about = qobject_cast<QObject *>(engine->rootObjects().at(0));
+//     about->deleteLater();
+//     engine->deleteLater();
+//     engine = nullptr;
+//     qInfo()<<"Clear about complete!!!!!!!";
+// }
 
 void ActiveWindowControlWidget::reloadAppItems()
 {
@@ -216,7 +254,7 @@ void ActiveWindowControlWidget::reloadAppItems()
         disconnect(appItem, &AppItem::windowInfoChanged, this, &ActiveWindowControlWidget::activeWindowInfoChanged);
         appItem->deleteLater();
     }
-    
+
     for (auto path : m_appInter->entries())
     {
         AppItem *item = new AppItem(path);
@@ -228,21 +266,40 @@ void ActiveWindowControlWidget::reloadAppItems()
 
 void ActiveWindowControlWidget::activeWindowInfoChanged() {
     int activeWinId = XUtils::getFocusWindowId();
-    if (activeWinId < 0) {
-        this->currActiveWinId = -1;
-        this->m_winTitleLabel->setText(tr("桌面"));
-        this->m_iconLabel->setPixmap(QPixmap(CustomSettings::instance()->getActiveDefaultAppIconPath()));
-        return;
-    }
-
     // fix strange focus losing when pressing alt in some applications like chrome
-    if (activeWinId == 0) {
+    if (activeWinId == 0 || activeWinId == this->winId() || activeWinId == this->currActiveWinId) {
         return;
     }
+    QString activeWinTitle = "未知";
+    KWindowInfo kwin(activeWinId, NET::WMName|NET::WMPid, NET::WM2WindowClass);
+    if (kwin.valid())
+    {
+        if(kwin.pid() == QCoreApplication::applicationPid())
+            return;
 
-    // fix focus moving to top panel bug with aurorae
-    if (activeWinId == this->winId()) {
-        return;
+        if (kwin.windowClassName() == "dde-desktop")
+        {
+            activeWinTitle = "桌面";
+        }
+        else
+        {
+            DesktopEntry entry = DesktopEntryStat::instance()->getDesktopEntryByName(kwin.windowClassName());
+            if (!entry)
+            {
+                entry = DesktopEntryStat::instance()->getDesktopEntryByPid(kwin.pid());
+            }
+            if (entry)
+            {
+                activeWinTitle = entry->displayName;
+            }
+            if (activeWinTitle.isEmpty())
+            {
+                activeWinTitle = kwin.name();
+                if (activeWinTitle.contains(QRegExp("[–—-]"))) {
+                    activeWinTitle = activeWinTitle.split(QRegExp("[–—-]")).last().trimmed();
+                }
+            }
+        }
     }
 
     int currScreenNum = this->currScreenNum();
@@ -267,9 +324,8 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
             }
 
             if (newCurActiveWinId < 0) {
-                this->currActiveWinId = -1;
-                this->m_winTitleLabel->setText("桌面");
-                this->m_iconLabel->setPixmap(QPixmap(CustomSettings::instance()->getActiveDefaultAppIconPath()));
+                this->currActiveWinId = 0;
+                this->appTitleAction->setText("桌面");
             } else {
                 activeWinId = newCurActiveWinId;
                 ifFoundPrevActiveWinId = true;
@@ -280,51 +336,41 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
         }
     }
 
-    if (activeWinId != this->currActiveWinId) {
-        this->currActiveWinId = activeWinId;
-        this->activeIdStack.push(this->currActiveWinId);
-    }
-
-    this->setButtonsVisible(XUtils::checkIfWinMaximum(this->currActiveWinId));
-
-    QString activeWinTitle = XUtils::getWindowName(this->currActiveWinId);
-    this->currActiveWinTitle = activeWinTitle;
-    this->m_winTitleLabel->setText(this->currActiveWinTitle);
 
     if (!activeWinTitle.isEmpty()) {
-        this->m_iconLabel->setPixmap(XUtils::getWindowIconNameX11(this->currActiveWinId));
-        this->m_iconLabel->setToolTip(XUtils::getWindowAppName(this->currActiveWinId));
+        this->appTitleAction->setText(activeWinTitle.append("(&P)"));
     }
 
-    // KWindowSystem will not update menu for desktop when focusing on the desktop
-    // It is not a good idea to do the filter here instead of the AppmenuModel.
-    // However, it works, and works pretty well.
-    if (activeWinTitle == "桌面") {
-        // hide buttons
-        this->setButtonsVisible(false);
-        this->m_appMenuModel->setMenuAvailable(false);
-        this->updateMenu();
+    if ((kwin.valid() && QString(kwin.windowClassName()) == "dde-desktop") || activeWinTitle == "桌面")
+    {
+        this->appTitleAction->menu()->actions().at(1)->setDisabled(true);
+        this->appTitleAction->menu()->actions().at(2)->setDisabled(true);
+    } else {
+        this->activeIdStack.push(activeWinId);
+        this->appTitleAction->menu()->actions().at(1)->setEnabled(true);
+        this->appTitleAction->menu()->actions().at(2)->setEnabled(true);
     }
 
-    // some applications like KWrite will expose its global menu with an invalid dbus path
-    //   thus we need to recheck it again :(
+    this->currActiveWinId = activeWinId;
+    this->setButtonsVisible(activeWinTitle != "桌面" && XUtils::checkIfWinMaximum(this->currActiveWinId));
+
     this->m_appMenuModel->setWinId(this->currActiveWinId);
 }
 
 void ActiveWindowControlWidget::setButtonsVisible(bool visible) {
-    if (CustomSettings::instance()->isShowControlButtons()) {
+    if (visible != this->m_buttonWidget->isVisible()) {
         if (visible) {
+            this->m_buttonHideAnimation->stop();
             this->m_buttonWidget->show();
-            this->m_buttonShowAnimation->setStartValue(this->m_buttonWidget->width());
             this->m_buttonShowAnimation->start();
         } else {
-            this->m_buttonHideAnimation->setStartValue(this->m_buttonWidget->width());
+            this->m_buttonShowAnimation->stop();
             this->m_buttonHideAnimation->start();
         }
     }
 }
 
-void ActiveWindowControlWidget::maxButtonClicked() {
+void ActiveWindowControlWidget::maximizeWindow() {
     if (XUtils::checkIfWinMaximum(this->currActiveWinId)) {
         XUtils::unmaximizeWindow(this->currActiveWinId);
 
@@ -333,24 +379,12 @@ void ActiveWindowControlWidget::maxButtonClicked() {
         //   my test shows unmaximizeWindow by XSendEvent will work when others try to fetch its properties.
         //   i.e., checkIfWinMaximum
         XUtils::checkIfWinMaximum(this->currActiveWinId);
+
+        // this->m_appInter->MinimizeWindow(this->currActiveWinId);
     } else {
         // sadly the dbus maximizeWindow cannot unmaximize window :(
         this->m_appInter->MaximizeWindow(this->currActiveWinId);
     }
-
-//    this->activeWindowInfoChanged();
-}
-
-void ActiveWindowControlWidget::minButtonClicked() {
-    this->m_appInter->MinimizeWindow(this->currActiveWinId);
-}
-
-void ActiveWindowControlWidget::closeButtonClicked() {
-    this->m_appInter->CloseWindow(this->currActiveWinId);
-}
-
-void ActiveWindowControlWidget::maximizeWindow() {
-    this->maxButtonClicked();
 }
 
 void ActiveWindowControlWidget::mouseDoubleClickEvent(QMouseEvent *event) {
@@ -361,27 +395,22 @@ void ActiveWindowControlWidget::mouseDoubleClickEvent(QMouseEvent *event) {
 }
 
 void ActiveWindowControlWidget::updateMenu() {
-    this->menuBar->clear();
-        
-    if (m_appMenuModel->rowCount() == 0 || m_appMenuModel->visible() == false)
+    while (this->menuBar->actions().size() > 2)
     {
-        this->m_winTitleLabel->show();
-        this->menuBar->hide();
-    } 
-    else 
+        this->menuBar->removeAction(this->menuBar->actions()[2]);
+    }
+
+    if (m_appMenuModel->menuAvailable())
     {
         QMenu *menu = m_appMenuModel->menu();
-        this->m_winTitleLabel->hide();
         this->menuBar->addActions(menu->actions());
-        this->menuBar->show();
         this->menuBar->adjustSize();
-        // qDebug()<<"menuBar is hidden: " << this->menuBar->isHidden() <<", action count: "<<menu->actions().count();
     }
 }
 
 void ActiveWindowControlWidget::windowChanged(WId id, NET::Properties properties, NET::Properties2 properties2) {
     if (properties.testFlag(NET::WMGeometry)) {
-        this->activeWindowInfoChanged();
+        this->m_fixTimer->start();
     }
 
     // we still don't know why active window is 0 when pressing alt in some applications like chrome.
@@ -400,14 +429,12 @@ void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorTyp
             this->maxButton->setIcon(QIcon(":/icons/maximum.svg"));
             this->minButton->setIcon(QIcon(":/icons/minimum.svg"));
             this->menuBar->setStyleSheet("QMenuBar {font-size: 13px; color: black; background-color: rgba(0,0,0,0); margin: 0 0 0 0;} ");
-            this->m_winTitleLabel->setStyleSheet("QLabel { color: black; }");
             break;
         case DGuiApplicationHelper::DarkType:
             this->closeButton->setIcon(QIcon(":/icons/close-white.svg"));
             this->maxButton->setIcon(QIcon(":/icons/maximum-white.svg"));
             this->minButton->setIcon(QIcon(":/icons/minimum-white.svg"));
             this->menuBar->setStyleSheet("QMenuBar {font-size: 13px; color: white; background-color: rgba(0,0,0,0); margin: 0 0 0 0;} ");
-            this->m_winTitleLabel->setStyleSheet("QLabel { color: white; }");
         default:
             break;
     }
@@ -417,12 +444,9 @@ void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorTyp
 void ActiveWindowControlWidget::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         QWidget *pressedWidget = childAt(event->pos());
-        if (pressedWidget == nullptr || pressedWidget == m_winTitleLabel) {
+        if (pressedWidget == nullptr) {
             this->mouseClicked = !this->mouseClicked;
-        } else if (qobject_cast<QLabel*>(pressedWidget) == this->m_iconLabel) {
-
         }
-        // KWindowSystem::activateWindow(this->currActiveWinId);
     }
     QWidget::mousePressEvent(event);
 }
@@ -448,32 +472,14 @@ void ActiveWindowControlWidget::mouseMoveEvent(QMouseEvent *event) {
     QWidget::mouseMoveEvent(event);
 }
 
-void ActiveWindowControlWidget::applyCustomSettings(const CustomSettings& settings) {
-    // buttons
-    this->m_buttonWidget->setVisible(settings.isShowControlButtons());
-    this->closeButton->setIcon(QIcon(settings.getActiveCloseIconPath()));
-    this->maxButton->setIcon(QIcon(settings.getActiveUnmaximizedIconPath()));
-    this->minButton->setIcon(QIcon(settings.getActiveMinimizedIconPath()));
-    // todo: default app icon
-}
-
 int ActiveWindowControlWidget::currScreenNum() {
     return QApplication::desktop()->screenNumber(this);
 }
 
-void ActiveWindowControlWidget::toggleStartMenu() {
+void ActiveWindowControlWidget::toggleMenu(int id) {
+    if(id < 0 || id >= this->menuBar->actions().count()){
+        id = 0;
+    }
     QThread::msleep(150);
-    if (this->menu->isHidden()) {
-        this->menu->popup(this->pos() + QPoint(0, height()));
-    } else {
-        this->menu->hide();
-    }
-}
-
-void ActiveWindowControlWidget::toggleMenu() {
-    if (this->menuBar->actions().size() > 0)
-    {
-        QThread::msleep(150);//this->menuBar->triggered(this->menuBar->actions().first());
-        this->menuBar->setActiveAction(this->menuBar->actions()[0]);
-    }
+    this->menuBar->setActiveAction(this->menuBar->actions()[id]);
 }

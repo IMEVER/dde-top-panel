@@ -37,10 +37,6 @@ int XUtils::getFocusWindowId() {
     } else {
         return KWindowSystem::activeWindow();
     }
-//    context_t context;
-//    context.xdo = m_xdo;
-//
-//    return cmd_getActiveWindow(&context);
 }
 
 QString XUtils::getWindowNameX11(int winId) {
@@ -305,13 +301,3 @@ QString XUtils::getWindowAppName(int winId) {
     }
     return "";
 }
-
-//int XUtils::cmd_getActiveWindow(context_t *context) {
-//    Window window = 0;
-//
-//    xdo_get_active_window(context->xdo, &window);
-//    printf("%ld\n", window);
-//    return window;
-//}
-//
-//

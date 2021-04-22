@@ -11,13 +11,6 @@ extern "C" {
     #include <xdo.h>
 }
 
-// something strange happens...
-
-//struct context_t {
-//    xdo_t *xdo;
-//};
-
-
 /**
  * This class is implemented before I realized that deepin depends on kwin now.
  *   So they can be replaced by the KWindowSystem::XXX

@@ -10,9 +10,11 @@
 #include <QHBoxLayout>
 #include <QToolButton>
 #include <DGuiApplicationHelper>
+// #include <QQmlApplicationEngine>
 #include <com_deepin_dde_daemon_dock.h>
 #include <com_deepin_wm.h>
 #include <QMenuBar>
+#include <QWidgetAction>
 #include "../../appmenu/appmenumodel.h"
 #include "QClickableLabel.h"
 #include <com_deepin_wm.h>
@@ -34,14 +36,13 @@ public:
 public slots:
     void activeWindowInfoChanged();
     void maximizeWindow();
-    void applyCustomSettings(const CustomSettings& settings);
-    void toggleStartMenu();
-    void toggleMenu();
+    void toggleMenu(int id);
 
 protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
+    void initMenuBar(QLayout *layout);
     void setButtonsVisible(bool visible);
     int currScreenNum();
 
@@ -50,30 +51,25 @@ private:
     void mouseMoveEvent(QMouseEvent *event) override;
 
 private slots:
-    void maxButtonClicked();
-    void minButtonClicked();
-    void closeButtonClicked();
     void updateMenu();
     void windowChanged(WId, NET::Properties, NET::Properties2);
     void themeTypeChanged(DGuiApplicationHelper::ColorType themeType);
     void reloadAppItems();
+    // void clearAboutWindow();
 
 private:
-    QMenu *menu;
-    QHBoxLayout *m_layout;
-    QLabel *m_winTitleLabel;
+    // QQmlApplicationEngine *engine = nullptr;
+    QAction *startAction;
+    QAction *appTitleAction;
 
     QStack<int> activeIdStack;
     int currActiveWinId;
-    QString currActiveWinTitle;
 
     QWidget *m_buttonWidget;
-    QHBoxLayout *m_buttonLayout;
     QToolButton *closeButton;
     QToolButton *minButton;
     QToolButton *maxButton;
 
-    QLabel *m_iconLabel;
     QMenuBar *menuBar;
     AppMenuModel *m_appMenuModel;
 

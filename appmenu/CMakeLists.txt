@@ -38,7 +38,7 @@ qt5_add_dbus_adaptor(SRCS com.canonical.AppMenu.Registrar.xml
 
 
 # add_library(globalmenu STATIC IMPORTED)
-# set_target_properties(globalmenu  
+# set_target_properties(globalmenu
 #   PROPERTIES IMPORTED_LOCATION
 #   ${CMAKE_CURRENT_SOURCE_DIR}/libglobalmenu.a)
 

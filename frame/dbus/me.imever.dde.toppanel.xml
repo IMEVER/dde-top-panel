@@ -1,8 +1,6 @@
 <interface name="me.imever.dde.TopPanel">
     <method name="ActivateWindow"></method>
-    <method name="Activate">
-        <arg type="b" direction="out"></arg>
+    <method name="ToggleMenu">
+        <arg name="id" type="i" direction="in"></arg>
     </method>
-    <method name="ToggleStartMenu"></method>
-    <method name="ToggleMenu"></method>
 </interface>

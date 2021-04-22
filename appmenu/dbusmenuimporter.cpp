@@ -453,6 +453,7 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
     for ( QAction *action : menu->actions() )
     {
         d->m_actionForId.remove(action->property(DBUSMENU_PROPERTY_ID).toInt());
+        action->setVisible(false);
     }
 
     menu->clear();
@@ -554,6 +555,7 @@ void DBusMenuImporter::slotAboutToShowDBusCallFinished(QDBusPendingCallWatcher *
     }
     else if (menu == d->m_menu)
     {
+        d->m_mustEmitMenuUpdated = false;
         emit menuUpdated();
     }
 

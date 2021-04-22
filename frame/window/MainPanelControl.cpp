@@ -101,7 +101,7 @@ void MainPanelControl::removeItem(DockItem *item)
             break;
         case DockItem::FixedPlugin:
             removeFixedPluginAreaItem(item);
-            break;            
+            break;
         default:
             break;
     }
@@ -144,12 +144,8 @@ void MainPanelControl::removeFixedPluginAreaItem(QWidget *wdg)
     m_fixedPluginLayout->removeWidget(wdg);
 }
 
-void MainPanelControl::toggleStartMenu() {
-    this->activeWindowControlWidget->toggleStartMenu();
-}
-
-void MainPanelControl::toggleMenu() {
-    this->activeWindowControlWidget->toggleMenu();
+void MainPanelControl::toggleMenu(int id) {
+    this->activeWindowControlWidget->toggleMenu(id);
 }
 
 void MainPanelControl::mouseDoubleClickEvent(QMouseEvent *event) {
@@ -298,5 +294,4 @@ void MainPanelControl::dragLeaveEvent(QDragLeaveEvent *event) {
 }
 
 void MainPanelControl::applyCustomSettings(const CustomSettings &customSettings) {
-    this->activeWindowControlWidget->applyCustomSettings(customSettings);
 }

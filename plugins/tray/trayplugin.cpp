@@ -76,7 +76,7 @@ void TrayPlugin::init(PluginProxyInterface *proxyInter)
 
     m_trayInter->Manage();
 
-    QTimer::singleShot(0, this, &TrayPlugin::loadIndicator);
+    // QTimer::singleShot(0, this, &TrayPlugin::loadIndicator);
     QTimer::singleShot(0, m_systemTraysController, &SystemTraysController::startLoader);
     QTimer::singleShot(0, this, &TrayPlugin::initSNI);
     QTimer::singleShot(0, this, &TrayPlugin::initXEmbed);
@@ -340,29 +340,29 @@ void TrayPlugin::traySNIAdded(const QString &itemKey, const QString &sniServiceP
     connect(trayWidget, &SNITrayWidget::statusChanged, this, &TrayPlugin::onSNIItemStatusChanged);
 }
 
-void TrayPlugin::trayIndicatorAdded(const QString &itemKey, const QString &indicatorName)
-{
-    if (m_trayMap.contains(itemKey) || !IndicatorTrayWidget::isIndicatorKey(itemKey)) {
-        return;
-    }
+// void TrayPlugin::trayIndicatorAdded(const QString &itemKey, const QString &indicatorName)
+// {
+//     if (m_trayMap.contains(itemKey) || !IndicatorTrayWidget::isIndicatorKey(itemKey)) {
+//         return;
+//     }
 
-    IndicatorTray *indicatorTray = nullptr;
-    if (!m_indicatorMap.keys().contains(indicatorName)) {
-        indicatorTray = new IndicatorTray(indicatorName);
-        m_indicatorMap[indicatorName] = indicatorTray;
-    } else {
-        indicatorTray = m_indicatorMap[itemKey];
-    }
+//     IndicatorTray *indicatorTray = nullptr;
+//     if (!m_indicatorMap.keys().contains(indicatorName)) {
+//         indicatorTray = new IndicatorTray(indicatorName);
+//         m_indicatorMap[indicatorName] = indicatorTray;
+//     } else {
+//         indicatorTray = m_indicatorMap[itemKey];
+//     }
 
-    connect(indicatorTray, &IndicatorTray::delayLoaded,
-    indicatorTray, [ = ]() {
-        addTrayWidget(itemKey, indicatorTray->widget());
-    }, Qt::UniqueConnection);
+//     connect(indicatorTray, &IndicatorTray::delayLoaded,
+//     indicatorTray, [ = ]() {
+//         addTrayWidget(itemKey, indicatorTray->widget());
+//     }, Qt::UniqueConnection);
 
-    connect(indicatorTray, &IndicatorTray::removed, this, [ = ] {
-        trayRemoved(itemKey);
-    }, Qt::UniqueConnection);
-}
+//     connect(indicatorTray, &IndicatorTray::removed, this, [ = ] {
+//         trayRemoved(itemKey);
+//     }, Qt::UniqueConnection);
+// }
 
 void TrayPlugin::trayRemoved(const QString &itemKey, const bool deleteObject)
 {
@@ -431,12 +431,12 @@ void TrayPlugin::onSNIItemStatusChanged(SNITrayWidget::ItemStatus status)
     }
 }
 
-void TrayPlugin::loadIndicator()
-{
-    QDir indicatorConfDir("/etc/dde-dock/indicator");
+// void TrayPlugin::loadIndicator()
+// {
+//     QDir indicatorConfDir("/etc/dde-dock/indicator");
 
-    for (const QFileInfo &fileInfo : indicatorConfDir.entryInfoList({"*.json"}, QDir::Files | QDir::NoDotAndDotDot)) {
-        const QString &indicatorName = fileInfo.baseName();
-        trayIndicatorAdded(IndicatorTrayWidget::toIndicatorKey(indicatorName), indicatorName);
-    }
-}
+//     for (const QFileInfo &fileInfo : indicatorConfDir.entryInfoList({"*.json"}, QDir::Files | QDir::NoDotAndDotDot)) {
+//         const QString &indicatorName = fileInfo.baseName();
+//         trayIndicatorAdded(IndicatorTrayWidget::toIndicatorKey(indicatorName), indicatorName);
+//     }
+// }

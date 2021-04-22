@@ -26,8 +26,8 @@
 #include "pluginsiteminterface.h"
 #include "dbus/dbustraymanager.h"
 #include "xembedtraywidget.h"
-#include "indicatortray.h"
-#include "indicatortraywidget.h"
+// #include "indicatortray.h"
+// #include "indicatortraywidget.h"
 #include "snitraywidget.h"
 #include "system-trays/systemtrayscontroller.h"
 #include "dbus/sni/statusnotifierwatcher_interface.h"
@@ -63,7 +63,7 @@ public:
     const QVariant getValue(const QString &itemKey, const QString &key, const QVariant& fallback = QVariant());
 
 private:
-    void loadIndicator();
+    // void loadIndicator();
     bool isSystemTrayItem(const QString &itemKey);
     QString itemKeyOfTrayWidget(AbstractTrayWidget *trayWidget);
 
@@ -75,7 +75,7 @@ private slots:
     void xembedItemsChanged();
     void trayXEmbedAdded(const QString &itemKey, quint32 winId);
     void traySNIAdded(const QString &itemKey, const QString &sniServicePath);
-    void trayIndicatorAdded(const QString &itemKey, const QString &indicatorName);
+    // void trayIndicatorAdded(const QString &itemKey, const QString &indicatorName);
     void trayRemoved(const QString &itemKey, const bool deleteObject = true);
     void xembedItemChanged(quint32 winId);
     void onRequestWindowAutoHide(const bool autoHide){};
@@ -92,7 +92,7 @@ private:
 
     QMap<QString, AbstractTrayWidget *> m_trayMap;
     QMap<QString, SNITrayWidget *> m_passiveSNITrayMap;
-    QMap<QString, IndicatorTray*> m_indicatorMap;
+    // QMap<QString, IndicatorTray*> m_indicatorMap;
 
     bool m_pluginLoaded;
 };

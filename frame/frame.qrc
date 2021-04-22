@@ -1,6 +1,9 @@
 <RCC>
-    <qresource prefix="/">
-        <file>qss/frame.qss</file>
+    <qresource prefix="/qss">
+        <file alias="frame.qss">resources/qss/frame.qss</file>
+    </qresource>
+    <qresource prefix="/qml">
+        <file alias="about.qml">resources/qml/about.qml</file>
     </qresource>
     <qresource prefix="/icons">
         <file alias="close.svg">resources/icons/close.svg</file>

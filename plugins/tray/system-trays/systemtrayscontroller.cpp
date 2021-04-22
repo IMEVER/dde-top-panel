@@ -74,11 +74,15 @@ void SystemTraysController::itemRemoved(PluginsItemInterface * const itemInter, 
         return;
 
     item->detachPluginWidget();
-
     emit pluginItemRemoved(itemKey, item);
+
 
     QMap<PluginsItemInterface *, QMap<QString, QObject *>> &mPluginsMap = pluginsMap();
     mPluginsMap[itemInter].remove(itemKey);
+    if (mPluginsMap[itemInter].isEmpty())
+    {
+        mPluginsMap.remove(itemInter);
+    }
 
     // do not delete the itemWidget object(specified in the plugin interface)
     item->centralWidget()->setParent(nullptr);

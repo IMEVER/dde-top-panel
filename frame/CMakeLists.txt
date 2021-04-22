@@ -5,8 +5,7 @@ set(BIN_NAME dde-top-panel)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Sources files
-file(GLOB_RECURSE SRCS "*.h" "*.cpp" "../widgets/*.h" "../widgets/*.cpp" "util/XUtils.h"
-        "util/XUtils.cpp" "../widgets/*.ui" )
+file(GLOB_RECURSE SRCS "*.h" "*.cpp" "../widgets/*.h" "../widgets/*.cpp" "../widgets/*.ui" )
 
 # Find the library
 find_package(PkgConfig REQUIRED)
@@ -18,6 +17,11 @@ find_package(Qt5Svg REQUIRED)
 find_package(DtkWidget REQUIRED)
 find_package(DtkCMake REQUIRED)
 find_package(KF5WindowSystem REQUIRED)
+# find_package(Qt5Qml REQUIRED)
+# find_package(Qt5Quick REQUIRED)
+
+qt5_add_dbus_adaptor(SRCS dbus/me.imever.dde.toppanel.xml
+    window/MainWindow.h MainWindow dbustoppaneladaptors DBusTopPanelAdaptors)
 
 pkg_check_modules(XCB_EWMH REQUIRED xcb-ewmh x11)
 pkg_check_modules(DFrameworkDBus REQUIRED dframeworkdbus)
@@ -54,6 +58,8 @@ target_link_libraries(${BIN_NAME} PRIVATE
         ${QGSettings_LIBRARIES}
         ${DtkGUI_LIBRARIES}
         ${Qt5Svg_LIBRARIES}
+        # ${Qt5Qml_LIBRARIES}
+        # ${Qt5Quick_LIBRARIES}
         KF5::WindowSystem
         xdo
         X11

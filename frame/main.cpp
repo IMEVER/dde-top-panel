@@ -18,6 +18,7 @@ DUTIL_USE_NAMESPACE
 
 int main(int argc, char *argv[]) {
     qputenv("QT_LOGGING_TO_CONSOLE", QByteArray("0"));
+    DApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
     DGuiApplicationHelper::setUseInactiveColorGroup(false);
     DApplication app(argc, argv);
 
@@ -26,10 +27,9 @@ int main(int argc, char *argv[]) {
         app.setOrganizationName("IMEVER");
         app.setOrganizationDomain("imever.me");
         app.setApplicationName("dde-top-panel");
-        app.setApplicationDisplayName("全局顶栏");
-        app.setApplicationVersion("1.0.0");
+        // app.setApplicationDisplayName("全局顶栏");
+        app.setApplicationVersion("1.0.1");
         // app.loadTranslator();
-        app.setAttribute(Qt::AA_EnableHighDpiScaling, true);
         app.setAttribute(Qt::AA_UseHighDpiPixmaps, false);
 
         TopPanelLauncher launcher;

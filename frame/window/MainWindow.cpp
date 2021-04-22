@@ -6,7 +6,7 @@
 #include "MainWindow.h"
 #include "controller/dockitemmanager.h"
 #include "util/utils.h"
-#include "../dbus/dbustoppaneladaptors.h"
+#include "dbustoppaneladaptors.h"
 
 #define SNI_WATCHER_SERVICE "org.kde.StatusNotifierWatcher"
 #define SNI_WATCHER_PATH "/StatusNotifierWatcher"
@@ -25,13 +25,11 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     setWindowFlags(Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_AlwaysShowToolTips);
-    
+
     setMouseTracking(true);
     setAcceptDrops(true);
 
-    this->setLayout(this->m_layout);
     this->m_layout->addWidget(m_mainPanel);
-
     this->m_layout->setContentsMargins(0, 0, 0, 0);
     this->m_layout->setSpacing(0);
     this->m_layout->setMargin(0);
@@ -62,7 +60,7 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     m_platformWindowHandle.setShadowOffset(QPoint(0, 5));
     m_platformWindowHandle.setShadowColor(QColor(0, 0, 0, 0.3 * 255));
     m_platformWindowHandle.setBorderWidth(1);
-    
+
     this->applyCustomSettings(*CustomSettings::instance());
 }
 
@@ -218,7 +216,7 @@ void MainWindow::applyCustomSettings(const CustomSettings &customSettings) {
     this->m_mainPanel->applyCustomSettings(customSettings);
 }
 
-void MainWindow::showOverFullscreen()
+void MainWindow::ActivateWindow()
 {
     if (!isVisible())
     {
@@ -230,14 +228,9 @@ void MainWindow::showOverFullscreen()
     }
 }
 
-void MainWindow::toggleStartMenu()
+void MainWindow::ToggleMenu(int id)
 {
-    this->m_mainPanel->toggleStartMenu();
-}
-
-void MainWindow::toggleMenu()
-{
-    this->m_mainPanel->toggleMenu();
+    this->m_mainPanel->toggleMenu(id);
 }
 
 bool MainWindow::event(QEvent *event)
@@ -282,7 +275,6 @@ void TopPanelLauncher::rearrange() {
         MainWindow *mw = new MainWindow(p_screen, p_screen != qApp->primaryScreen());
         connect(mw, &MainWindow::settingActionClicked, this, [this]() {
             int screenNum = QApplication::desktop()->screenNumber(dynamic_cast<MainWindow*>(sender()));
-            
             this->m_settingWidget->move(QApplication::desktop()->screen(screenNum)->rect().center() - this->m_settingWidget->rect().center());
             this->m_settingWidget->show();
         });

@@ -61,11 +61,11 @@ FashionTrayItem::FashionTrayItem(TrayPlugin *trayPlugin, QWidget *parent)
     if(m_gsettings->get("traySupportFold").toBool())
     {
         connect(m_controlWidget, &FashionTrayControlWidget::expandChanged, this, &FashionTrayItem::onExpandChanged);
-    } 
+    }
     else
     {
         m_controlWidget->hide();
-    }    
+    }
 
     connect(m_gsettings, &QGSettings::changed, this, [ = ](const QString &key){
         if (key == "traySupportFold")
@@ -74,7 +74,7 @@ FashionTrayItem::FashionTrayItem(TrayPlugin *trayPlugin, QWidget *parent)
                 {
                     m_controlWidget->show();
                     connect(m_controlWidget, &FashionTrayControlWidget::expandChanged, this, &FashionTrayItem::onExpandChanged);
-                }                
+                }
                 else
                 {
                     m_controlWidget->hide();
@@ -83,9 +83,9 @@ FashionTrayItem::FashionTrayItem(TrayPlugin *trayPlugin, QWidget *parent)
                      {
                          m_controlWidget->setExpanded(true);
                          this->onExpandChanged(true);
-                     }                     
+                     }
                 }
-        }        
+        }
     });
 
     connect(m_normalContainer, &NormalContainer::requestDraggingWrapper, this, &FashionTrayItem::onRequireDraggingWrapper);
@@ -99,7 +99,8 @@ void FashionTrayItem::setTrayWidgets(const QMap<QString, AbstractTrayWidget *> &
     clearTrayWidgets();
 
     for (auto it = itemTrayMap.constBegin(); it != itemTrayMap.constEnd(); ++it) {
-        trayWidgetAdded(it.key(), it.value());
+        if(it.value())
+            trayWidgetAdded(it.key(), it.value());
     }
 }
 
@@ -112,7 +113,7 @@ void FashionTrayItem::trayWidgetAdded(const QString &itemKey, AbstractTrayWidget
 
     FashionTrayWidgetWrapper *wrapper = new FashionTrayWidgetWrapper(itemKey, trayWidget);
 
-        if (m_normalContainer->acceptWrapper(wrapper)) 
+        if (m_normalContainer->acceptWrapper(wrapper))
             m_normalContainer->addWrapper(wrapper);
 
     requestResize();
