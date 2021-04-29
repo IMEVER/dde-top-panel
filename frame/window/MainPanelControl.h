@@ -38,14 +38,10 @@ public slots:
     void itemUpdated(DockItem *item);
 
 signals:
-    void emptyAreaDoubleClicked();
     void itemMoved(DockItem *sourceItem, DockItem *targetItem);
 
-private:
-    void init();
 
 protected:
-    void mouseDoubleClickEvent(QMouseEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void dragLeaveEvent(QDragLeaveEvent *event) override;
@@ -55,6 +51,7 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
+    void init();
     void startDrag(DockItem *);
     void handleDragMove(QDragMoveEvent *e);
     DockItem *dropTargetItem(DockItem *sourceItem, QPoint point);

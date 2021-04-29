@@ -57,6 +57,7 @@ private:
     void createDesktopEntry(const QString desktopFile);
     void refresh();
     void parseDir(QString path);
+    QString trim(QString str);
 
 private:
     DesktopEntryCache cache;

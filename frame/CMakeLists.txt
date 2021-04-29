@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.7)
 
 set(BIN_NAME dde-top-panel)
 
+# 启用 qt moc 的支持
+set(CMAKE_AUTOMOC ON)
+# 启用 qrc 资源文件的支持
+set(CMAKE_AUTORCC ON)
+
+set(CMAKE_AUTOUIC ON)
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Sources files
@@ -22,6 +31,12 @@ find_package(KF5WindowSystem REQUIRED)
 
 qt5_add_dbus_adaptor(SRCS dbus/me.imever.dde.toppanel.xml
     window/MainWindow.h MainWindow dbustoppaneladaptors DBusTopPanelAdaptors)
+
+# set_source_files_properties(dbus/org.kde.StatusNotifierWatcher.xml CLASSNAME StatusNotifierWatcherInterface)
+# set_source_file_property(dbus/sni/org.kde.StatusNotifierWatcher.xml )
+qt5_add_dbus_interface(SRCS dbus/org.kde.StatusNotifierWatcher.xml statusnotifierwatcher_interface)
+
+# qt5_add_dbus_interface(SRCS dbus/com.deepin.daemon.Display.xml dbusdisplay_interface)
 
 pkg_check_modules(XCB_EWMH REQUIRED xcb-ewmh x11)
 pkg_check_modules(DFrameworkDBus REQUIRED dframeworkdbus)

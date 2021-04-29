@@ -19,21 +19,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef IMAGEFACTORY_H
-#define IMAGEFACTORY_H
+#include "hoverhighlighteffect.h"
+#include "util/imageutil.h"
 
-#include <QObject>
-#include <QPixmap>
-#include <QImage>
+#include <QPainter>
 
-class ImageFactory : public QObject
+HoverHighlightEffect::HoverHighlightEffect(QObject *parent)
+    : QGraphicsEffect(parent)
+    , m_highlighting(false)
 {
-    Q_OBJECT
 
-public:
-    explicit ImageFactory(QObject *parent = 0);
+}
 
-    static QPixmap lighterEffect(const QPixmap pixmap, const int delta = 120);
-};
+void HoverHighlightEffect::draw(QPainter *painter)
+{
+    const QPixmap pix = sourcePixmap(Qt::DeviceCoordinates);
 
-#endif // IMAGEFACTORY_H
+    if (m_highlighting)
+    {
+        painter->drawPixmap(0, 0, ImageUtil::lighterEffect(pix, 1));
+    } else {
+        painter->drawPixmap(0, 0, pix);
+    }
+}

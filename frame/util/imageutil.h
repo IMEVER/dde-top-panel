@@ -29,6 +29,9 @@ class ImageUtil
 {
 public:
     static const QPixmap loadSvg(const QString &iconName, const QString &localPath, const int size, const qreal ratio);
+    static const QPixmap renderSVG(const QString &path, const QSize &size, const qreal devicePixelRatio);
+    static const QPixmap getIcon(const QString iconName, const int size, const qreal ratio);
+    static const QPixmap lighterEffect(const QPixmap pixmap, const int delta);
 };
 
 #endif // IMAGEUTIL_H

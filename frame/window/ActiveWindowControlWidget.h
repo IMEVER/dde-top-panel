@@ -8,7 +8,6 @@
 #include <QWidget>
 #include <QLabel>
 #include <QHBoxLayout>
-#include <QToolButton>
 #include <DGuiApplicationHelper>
 // #include <QQmlApplicationEngine>
 #include <com_deepin_dde_daemon_dock.h>
@@ -42,6 +41,7 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
+    void initButtons(QLayout *layout);
     void initMenuBar(QLayout *layout);
     void setButtonsVisible(bool visible);
     int currScreenNum();
@@ -66,9 +66,6 @@ private:
     int currActiveWinId;
 
     QWidget *m_buttonWidget;
-    QToolButton *closeButton;
-    QToolButton *minButton;
-    QToolButton *maxButton;
 
     QMenuBar *menuBar;
     AppMenuModel *m_appMenuModel;

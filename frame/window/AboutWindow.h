@@ -15,12 +15,14 @@ public:
     AboutWindow(KWindowInfo kwin, QWidget *parent=0);
     ~AboutWindow();
     void initData(KWindowInfo kwin);
+    void showEvent(QShowEvent *event) override;
 
 private:
     void initStatusWidget();
     void initPackageInfoWidget();
     void initFileListWidget();
     QWidget *createWidget(QString title, QString value);
+    void initPackageInfo(QString cmdline);
 
 private:
     QTabWidget *tabWidget;

@@ -23,8 +23,6 @@
 #include "pluginsitem.h"
 #include "pluginsiteminterface.h"
 
-#include "util/imagefactory.h"
-
 #include <QPainter>
 #include <QBoxLayout>
 #include <QMouseEvent>
@@ -245,16 +243,9 @@ void PluginsItem::mouseClicked()
 {
     const QString command = m_pluginInter->itemCommand(m_itemKey);
     if (!command.isEmpty()) {
-        QProcess *proc = new QProcess(this);
-
-        connect(proc, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), proc, &QProcess::deleteLater);
-
-        proc->startDetached(command, {});
-        return;
-    }
-
-    // request popup applet
-    QWidget *w = m_pluginInter->itemPopupApplet(m_itemKey);
-    if (w)
+        QStringList args = command.split(" ");
+        QProcess::startDetached(args.takeFirst(), args);
+    } else if( QWidget *w = m_pluginInter->itemPopupApplet(m_itemKey)){
         showPopupApplet(w);
+    }
 }

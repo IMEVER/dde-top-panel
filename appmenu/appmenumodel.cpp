@@ -132,7 +132,6 @@ void AppMenuModel::clearMenuImporter()
         m_menu = nullptr;
         m_importer = nullptr;
     }
-    emit modelNeedsUpdate();
 }
 
 void AppMenuModel::setWinId(const WId &id, bool isDesktop)

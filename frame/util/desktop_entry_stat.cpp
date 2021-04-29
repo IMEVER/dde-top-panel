@@ -68,24 +68,37 @@ void DesktopEntryStat::createDesktopEntry(const QString desktopFile)
     auto exec = entry.stringValue("Exec");
     if (!tryExec.isEmpty()) {
         re->exec = tryExec.split(' ');
-        re->name = QFileInfo(re->exec[0]).baseName();
+        re->name = QFileInfo(trim(re->exec[0])).baseName();
     } else if (!exec.isEmpty()) {
         re->exec = exec.split(' ');
-        re->name = QFileInfo(re->exec[0]).baseName();
+        re->name = QFileInfo(trim(re->exec[0])).baseName();
     } else {
         re->name = entry.name();
     }
 
     auto wmclass = entry.stringValue("StartupWMClass");
-    if (!wmclass.isEmpty() && !QString::compare(wmclass, QFileInfo(desktopFile).fileName(), Qt::CaseInsensitive)) {
+    if (!wmclass.isEmpty()) {
         re->startup_wm_class = wmclass;
-        re->name = wmclass;
     }
 
-    if (!cache.contains(re->name) || QString::compare(re->name, QFileInfo(desktopFile).fileName(), Qt::CaseInsensitive)) {
+    if (!cache.contains(re->name)) {
         cache[re->name] = re;
-        deskToNameMap[desktopFile] = re->name;
     }
+
+    deskToNameMap[desktopFile] = re->name;
+    if (!wmclass.isEmpty() && !cache.contains(wmclass))
+    {
+        cache[wmclass.toLower()] = re;
+    }
+}
+
+QString DesktopEntryStat::trim(QString str)
+{
+    if (str.at(0) == '"')
+    {
+        str = str.mid(1, str.length() -2);
+    }
+    return str;
 }
 
 DesktopEntryStat::~DesktopEntryStat()
@@ -156,6 +169,7 @@ DesktopEntry DesktopEntryStat::searchByName(QString name)
         }
         it++;
     }
+    return nullptr;
 }
 
 DesktopEntry DesktopEntryStat::getDesktopEntryByDesktopfile(const QString desktopFile)
@@ -182,7 +196,9 @@ DesktopEntry DesktopEntryStat::getDesktopEntryByPid(int pid)
     if(cmdFile.isReadable())
     {
         QString cmd = cmdFile.readAll();
-        QString name = QFileInfo(cmd.split(" ")[0]).baseName();
+        cmd = cmd.split(" ")[0];
+
+        QString name = QFileInfo(cmd).baseName();
         entry = cache[name];
         if (!entry)
         {
@@ -200,7 +216,7 @@ DesktopEntry DesktopEntryStat::getDesktopEntryByPid(int pid)
                         {
                             entry = getDesktopEntryByDesktopfile(desktopFile);
                         }
-
+                        break;
                     }
 
                 }

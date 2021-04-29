@@ -3,7 +3,6 @@
 //
 
 #include "TopPanelSettings.h"
-#include "utils.h"
 #include <QScreen>
 #include <QAction>
 
@@ -16,17 +15,11 @@ TopPanelSettings::TopPanelSettings(DockItemManager *itemManager, QScreen *screen
     m_primaryRawRect.setHeight(m_primaryRawRect.height() * screen->devicePixelRatio());
     m_primaryRawRect.setWidth(m_primaryRawRect.width() * screen->devicePixelRatio());
 
-    m_hideSubMenu = new QMenu(&m_settingsMenu);
-    QAction *hideSubMenuAct = new QAction("插件", this);
-    hideSubMenuAct->setMenu(m_hideSubMenu);
-
-    m_settingsMenu.addAction(hideSubMenuAct);
-
-    QAction *settingAction = new QAction("设置", this);
-    m_settingsMenu.addAction(settingAction);
+    m_hideSubMenu = new QMenu("插件");
+    m_settingsMenu.addMenu(m_hideSubMenu);
+    m_settingsMenu.addAction("设置", this, &TopPanelSettings::settingActionClicked);
 
     connect(&m_settingsMenu, &QMenu::triggered, this, &TopPanelSettings::menuActionClicked);
-    connect(settingAction, &QAction::triggered, this, &TopPanelSettings::settingActionClicked);
 
     calculateWindowConfig();
 }
@@ -67,8 +60,7 @@ void TopPanelSettings::showDockSettingsMenu()
 
     // add actions
     qDeleteAll(m_hideSubMenu->actions());
-    for (auto act : actions)
-        m_hideSubMenu->addAction(act);
+    m_hideSubMenu->addActions(actions);
 
     m_settingsMenu.exec(QCursor::pos());
 }

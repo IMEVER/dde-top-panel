@@ -8,7 +8,7 @@
 #include <DBlurEffectWidget>
 #include <DPlatformWindowHandle>
 #include "MainPanelControl.h"
-#include "dbus/sni/statusnotifierwatcher_interface.h"
+#include "statusnotifierwatcher_interface.h"
 #include "util/TopPanelSettings.h"
 #include "xcb/xcb_misc.h"
 #include "util/CustomSettings.h"
@@ -61,7 +61,6 @@ private:
     TopPanelSettings *m_settings;
     XcbMisc *m_xcbMisc;
     DPlatformWindowHandle m_platformWindowHandle;
-    QVBoxLayout *m_layout;
     Qt::WindowFlags oldFlags;
 
     QDBusConnectionInterface *m_dbusDaemonInterface;

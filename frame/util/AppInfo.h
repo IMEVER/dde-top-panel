@@ -3,7 +3,8 @@
 
 #include <QString>
 #include <QStringList>
-#include <QMap>
+#include <QVector>
+#include <QPair>
 
 struct Package
 {
@@ -15,17 +16,17 @@ struct Package
         QString desc;
         for(QString info : infos)
         {
-            if (desc.isEmpty() && info.contains(": "))
+            if (info.contains(": "))
             {
                 QStringList items = info.split(": ");
-                data.insert(items.at(0), items.at(1));
+                data.append(QPair<QString, QString>(items.at(0), items.at(1)));
             }
             else
             {
                 desc.append(info);
             }
         }
-        data.insert("Desc", desc);
+        data << QPair<QString, QString>("Desc", desc);
     }
 
     int count() const
@@ -33,7 +34,7 @@ struct Package
         return data.count();
     }
 
-    QMap<QString, QString> data;
+    QVector<QPair<QString, QString>> data;
 };
 
 // using Package = struct Package;

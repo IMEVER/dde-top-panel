@@ -5,8 +5,10 @@
 #include <xcb/xcb_misc.h>
 #include "MainWindow.h"
 #include "controller/dockitemmanager.h"
-#include "util/utils.h"
 #include "dbustoppaneladaptors.h"
+
+#include <QScreen>
+#include <QApplication>
 
 #define SNI_WATCHER_SERVICE "org.kde.StatusNotifierWatcher"
 #define SNI_WATCHER_PATH "/StatusNotifierWatcher"
@@ -17,7 +19,6 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     , m_mainPanel(new MainPanelControl(this))
     , m_xcbMisc(XcbMisc::instance())
     , m_platformWindowHandle(this, this)
-    , m_layout(new QVBoxLayout(this))
     , m_dbusDaemonInterface(QDBusConnection::sessionBus().interface())
     , m_sniWatcher(new StatusNotifierWatcher(SNI_WATCHER_SERVICE, SNI_WATCHER_PATH, QDBusConnection::sessionBus(), this))
 {
@@ -29,10 +30,10 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     setMouseTracking(true);
     setAcceptDrops(true);
 
-    this->m_layout->addWidget(m_mainPanel);
-    this->m_layout->setContentsMargins(0, 0, 0, 0);
-    this->m_layout->setSpacing(0);
-    this->m_layout->setMargin(0);
+    QVBoxLayout *layout(new QVBoxLayout(this));
+    layout->addWidget(m_mainPanel);
+    layout->setSpacing(0);
+    layout->setMargin(0);
 
     m_settings = new TopPanelSettings(m_itemManager, screen, this);
 
@@ -69,9 +70,19 @@ MainWindow::~MainWindow() {
     QDBusConnection::sessionBus().unregisterService(m_sniHostService);
 }
 
+    const QScreen * screenAtByScaled(const QPoint &point) {
+        for (QScreen *screen : qApp->screens()) {
+            if (screen->geometry().contains(point)) {
+                return screen;
+            }
+        }
+
+        return nullptr;
+    }
+
 const QPoint rawXPosition(const QPoint &scaledPos)
 {
-    QScreen const *screen = Utils::screenAtByScaled(scaledPos);
+    QScreen const *screen = screenAtByScaled(scaledPos);
     return screen ? scaledPos * screen->devicePixelRatio() : scaledPos;
 }
 
@@ -275,7 +286,7 @@ void TopPanelLauncher::rearrange() {
         MainWindow *mw = new MainWindow(p_screen, p_screen != qApp->primaryScreen());
         connect(mw, &MainWindow::settingActionClicked, this, [this]() {
             int screenNum = QApplication::desktop()->screenNumber(dynamic_cast<MainWindow*>(sender()));
-            this->m_settingWidget->move(QApplication::desktop()->screen(screenNum)->rect().center() - this->m_settingWidget->rect().center());
+            this->m_settingWidget->move(qApp->screens().at(screenNum)->availableGeometry().center() - this->m_settingWidget->rect().center());
             this->m_settingWidget->show();
         });
         if (p_screen == qApp->primaryScreen()) {

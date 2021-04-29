@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QHeaderView>
 #include <QSizePolicy>
+#include <QFile>
 
 #include "../util/desktop_entry_stat.h"
 
@@ -32,6 +33,13 @@ public:
     {
         return 2;
     }
+    // QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override
+    // {
+    //     if (Qt::SizeHintRole == role && Qt::Vertical)
+    //     {
+    //         return 1;
+    //     }
+    // }
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override
     {
         const int row = index.row();
@@ -40,17 +48,24 @@ public:
             case Qt::DisplayRole:
                 if (row < m_package.count() && column < 2)
                 {
+                    QPair<QString, QString> pair = m_package.data.at(row);
                     if(column == 0)
-                        return translate(m_package.data.keys().at(row));
+                        return translate(pair.first);
                     else
-                        return m_package.data.values().at(row);
+                        return pair.second.trimmed();
                 }
                 break;
             case Qt::FontRole:
+                if (column == 0)
+                {
+                    QFont font;
+                    font.setBold(true);
+                    return font;
+                }
                 break;
             case Qt::BackgroundColorRole:
             case Qt::TextAlignmentRole:
-                return column == 0 ? Qt::AlignHCenter : Qt::AlignLeft;
+                return column == 0 ? Qt::AlignCenter : QVariant(Qt::AlignLeft|Qt::AlignVCenter) ;
             case Qt::CheckStateRole:
                 break;
         }
@@ -69,6 +84,8 @@ public:
             return "分类";
         else if(field == "Installed-Size")
             return "安装大小";
+        else if(field == "Download-Size")
+            return "下载大小";
         else if(field == "Maintainer")
             return "维护者";
         else if(field == "Architecture")
@@ -79,7 +96,7 @@ public:
             return "依赖";
         else if(field == "Description")
             return "描述";
-        else if(field == "desc")
+        else if(field == "Desc")
             return "详细描述";
         else if(field == "Homepage")
             return "主页";
@@ -99,6 +116,10 @@ public:
             return "源码";
         else if(field == "Multi-Arch")
             return "多架构";
+        else if(field == "License")
+            return "版权";
+        else if(field == "Vendor")
+            return "供应商";
         else
             return field;
     }
@@ -121,7 +142,7 @@ AboutWindow::AboutWindow(KWindowInfo kwin, QWidget *parent) : QDialog(parent)
     setFixedSize(640, 480);
     setWindowFlags(windowFlags() & ~Qt::WindowMinMaxButtonsHint);
     setAttribute(Qt::WA_QuitOnClose, false);
-    setWindowTitle(QString("关于--").append(appInfo.m_title));
+    setWindowTitle(QString("关于 - ").append(appInfo.m_title));
 }
 
 AboutWindow::~AboutWindow()
@@ -131,9 +152,8 @@ AboutWindow::~AboutWindow()
 
 void AboutWindow::initStatusWidget()
 {
-    QWidget *statusWidget = new QWidget(this);
-    QVBoxLayout * vbox = new QVBoxLayout(statusWidget);
-    vbox->addSpacing(2);
+    QWidget *statusWidget = new QWidget(this);statusWidget->setFixedSize(550, 410);
+    QVBoxLayout * vbox = new QVBoxLayout(statusWidget);vbox->setContentsMargins(2, 2, 2, 2);
     tabWidget->addTab(statusWidget, "状态");
 
     vbox->addWidget(createWidget("标题", appInfo.m_title));
@@ -150,19 +170,21 @@ QWidget *AboutWindow::createWidget(QString name, QString value)
     QWidget *widget = new QWidget(this);
     QHBoxLayout *hbox = new QHBoxLayout(widget);
 
-    widget->setFixedHeight(40);
+    widget->setFixedSize(550, 30);
 
     QLabel *title = new QLabel(name, this);
     title->setFixedWidth(100);
-    title->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-    title->setAlignment(Qt::AlignHCenter);
+    // title->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    title->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 
     title->setStyleSheet("font-weight: bold;");
     hbox->addWidget(title);
 
-    QLabel *content = new QLabel(value, this);
-    content->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    content->setAlignment(Qt::AlignLeft);
+    QLabel *content = new QLabel(value.trimmed(), this);
+    // content->setWordWrap(true);
+    // content->setFixedWidth(500);
+    // content->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    content->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     hbox->addWidget(content);
 
     return widget;
@@ -172,8 +194,15 @@ void AboutWindow::initPackageInfoWidget()
 {
     QTableView *packageInfoWidget = new QTableView(this);
     tabWidget->addTab(packageInfoWidget, "包信息");
+    // packageInfoWidget->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    packageInfoWidget->setColumnWidth(0, 100);
+    packageInfoWidget->horizontalHeader()->setStretchLastSection(true);
+    packageInfoWidget->verticalHeader()->setDefaultSectionSize(1);
+    packageInfoWidget->setWordWrap(true);
+    // packageInfoWidget->setTextElideMode(Qt::ElideMiddle);
+    packageInfoWidget->resizeRowsToContents();
     packageInfoWidget->setModel(new PackageModel(appInfo.m_package, this));
-    packageInfoWidget->resizeColumnToContents(1);
+
     packageInfoWidget->verticalHeader()->hide();
     packageInfoWidget->horizontalHeader()->hide();
 }
@@ -208,8 +237,25 @@ void AboutWindow::initData(KWindowInfo kwin)
         {
             appInfo.m_desktopFile = entry->desktopFile;
         }
-        QProcess *process = new QProcess(this);
-        process->start("dpkg", QStringList()<<"-S"<<entry->exec.first());
+        initPackageInfo(entry->exec.first());
+    }
+    else
+    {
+        QFile cmdFile(QString("/proc/%1/cmdline").arg(appInfo.m_pid));
+        if(cmdFile.isReadable())
+        {
+            QString cmd = cmdFile.readAll();
+            appInfo.m_cmdline = cmd;
+            cmd = cmd.split(" ")[0];
+            initPackageInfo(cmd);
+        }
+    }
+}
+
+void AboutWindow::initPackageInfo(QString cmdline)
+{
+    QProcess *process = new QProcess(this);
+        process->start("dpkg", QStringList()<<"-S"<<cmdline);
         if(process->waitForStarted())
         {
             if (process->waitForFinished())
@@ -250,7 +296,13 @@ void AboutWindow::initData(KWindowInfo kwin)
         }
         process->close();
         process->deleteLater();
-    }
+}
+
+void AboutWindow::showEvent(QShowEvent *event)
+{
+    QDialog::showEvent(event);
+    QTableView *view =  qobject_cast<QTableView *>(tabWidget->widget(1));
+    view->resizeRowsToContents();
 }
 
  #include "AboutWindow.moc"

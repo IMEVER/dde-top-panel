@@ -40,12 +40,10 @@ void MainPanelControl::init() {
     this->m_mainPanelLayout->addWidget(new ShowDesktopWidget(this));
 
     m_mainPanelLayout->setMargin(0);
-    m_mainPanelLayout->setContentsMargins(0, 0, 0, 0);
     m_mainPanelLayout->setSpacing(10);
 
     // 托盘
     m_trayAreaWidget->setLayout(m_trayAreaLayout);
-    m_trayAreaLayout->setMargin(0);
     m_trayAreaLayout->setSpacing(0);
     m_trayAreaLayout->setContentsMargins(0, 3, 0, 3);
 
@@ -54,7 +52,6 @@ void MainPanelControl::init() {
     m_pluginAreaWidget->setAcceptDrops(true);
     m_pluginLayout->setMargin(0);
     m_pluginLayout->setSpacing(10);
-    // m_pluginLayout->setContentsMargins(5, 0, 5, 0);
 
     m_pluginAreaWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     m_trayAreaWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
@@ -62,12 +59,9 @@ void MainPanelControl::init() {
     m_fixedPluginWidget->setLayout(m_fixedPluginLayout);
     m_fixedPluginLayout->setMargin(0);
     m_fixedPluginLayout->setSpacing(10);
-    // m_fixedPluginLayout->setContentsMargins(5, 0, 5, 0);
-    // m_fixedPluginWidget->setFixedWidth(100);
     m_fixedPluginWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
 //    this->m_xdo = xdo_new(nullptr);
-    connect(this, &MainPanelControl::emptyAreaDoubleClicked, this->activeWindowControlWidget, &ActiveWindowControlWidget::maximizeWindow);
     this->activeWindowControlWidget->activeWindowInfoChanged();
 }
 
@@ -146,14 +140,6 @@ void MainPanelControl::removeFixedPluginAreaItem(QWidget *wdg)
 
 void MainPanelControl::toggleMenu(int id) {
     this->activeWindowControlWidget->toggleMenu(id);
-}
-
-void MainPanelControl::mouseDoubleClickEvent(QMouseEvent *event) {
-    QWidget::mouseDoubleClickEvent(event);
-    QWidget *clickedWidget = childAt(event->pos());
-    if (clickedWidget == nullptr) {
-        Q_EMIT emptyAreaDoubleClicked();
-    }
 }
 
 void MainPanelControl::dragMoveEvent(QDragMoveEvent *e) {

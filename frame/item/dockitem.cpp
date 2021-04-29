@@ -20,7 +20,6 @@
  */
 
 #include "dockitem.h"
-#include "components/hoverhighlighteffect.h"
 #include "pluginsitem.h"
 
 #include <QMouseEvent>
@@ -169,8 +168,8 @@ const QRect DockItem::perfectIconRect() const
     {
         iconRect.setWidth(itemRect.width());
         iconRect.setHeight(itemRect.height());
-    } 
-    else 
+    }
+    else
     {
         const int iconSize = std::min(itemRect.width(), itemRect.height()) * 0.8;
         iconRect.setWidth(iconSize);
