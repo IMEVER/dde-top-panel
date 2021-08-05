@@ -158,6 +158,26 @@ void XUtils::unmaximizeWindow(int winId) {
     XSendEvent(m_xdo->xdpy, DefaultRootWindow(m_xdo->xdpy), True, SubstructureNotifyMask, &xev);
 }
 
+void XUtils::maximizeWindow(int winId) {
+    openXdo();
+
+    XEvent xev;
+    Atom wm_state  =  XInternAtom(m_xdo->xdpy, "_NET_WM_STATE", True);
+    Atom max_horz  =  XInternAtom(m_xdo->xdpy, "_NET_WM_STATE_MAXIMIZED_HORZ", True);
+    Atom max_vert  =  XInternAtom(m_xdo->xdpy, "_NET_WM_STATE_MAXIMIZED_VERT", True);
+
+    memset(&xev, 0, sizeof(xev));
+    xev.type = ClientMessage;
+    xev.xclient.window = winId;
+    xev.xclient.message_type = wm_state;
+    xev.xclient.format = 32;
+    xev.xclient.data.l[0] = 1; // _NET_WM_STATE_REMOVE
+    xev.xclient.data.l[1] = max_horz;
+    xev.xclient.data.l[2] = max_vert;
+
+    XSendEvent(m_xdo->xdpy, DefaultRootWindow(m_xdo->xdpy), True, SubstructureNotifyMask, &xev);
+}
+
 QPixmap XUtils::getWindowIconNameX11(int winId) {
     openXdo();
 

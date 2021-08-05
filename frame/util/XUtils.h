@@ -31,6 +31,7 @@ public:
     static bool checkIfWinMinimun(int winId);
 
     static void unmaximizeWindow(int winId);
+    static void maximizeWindow(int winId);
 
     static QPixmap getWindowIconNameX11(int winId);
     static QPixmap getWindowIconName(int winId);

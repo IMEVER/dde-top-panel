@@ -43,7 +43,7 @@ public:
     /**
       * 公历每个月份的天数普通表
       * @Array Of Property
-      * @return Number 
+      * @return Number
       */
     const  int solarMonth[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
 
@@ -74,7 +74,7 @@ private:
 
     /**
       * 1900-2100各年的24节气日期速查表
-      * @Array Of Property 
+      * @Array Of Property
       * @return 0x string For splice
       */
     QStringList sTermInfo = {"9778397bd097c36b0b6fc9274c91aa","97b6b97bd19801ec9210c965cc920e","97bcf97c3598082c95f8c965cc920f",
@@ -154,7 +154,7 @@ private:
     {
         int i, sum = 348;
         for(i=0x8000; i>0x8; i>>=1)
-        { 
+        {
             sum += (lunarInfo[year-1900] & i) ? 1: 0;
         }
         return sum + leapDays(year);
@@ -165,7 +165,7 @@ private:
       * @param lunar Year
       * @return Number (0-12)
       */
-    int getLeapMonth(int year) 
+    int getLeapMonth(int year)
     {
         return lunarInfo[year-1900] & 0xf;
     }
@@ -176,11 +176,11 @@ private:
       * @return Number (0、29、30)
       * @eg:var leapMonthDay = calendar.leapDays(1987) ;//leapMonthDay=29
       */
-    int leapDays(int year) 
+    int leapDays(int year)
     {
-        if(getLeapMonth(year) > 0)  
+        if(getLeapMonth(year) > 0)
         {
-            return (lunarInfo[year-1900] & 0x10000) ? 30 : 29; 
+            return (lunarInfo[year-1900] & 0x10000) ? 30 : 29;
         }
         return 0;
     }
@@ -191,7 +191,7 @@ private:
       * @return Number (-1、29、30)
       * @eg:var MonthDay = calendar.monthDays(1987,9) ;//MonthDay=29
       */
-    int monthDays(int y,int m) 
+    int monthDays(int y,int m)
     {
         if(m>12 || m<1) {return -1;}//月份参数从1至12，参数错误返回-1
         return( (lunarInfo[y-1900] & (0x10000>>m))? 30: 29 );
@@ -222,7 +222,7 @@ private:
     QString toGanZhiYear(int lYear) {
         int ganKey = (lYear - 4) % 10;
         int zhiKey = (lYear - 4) % 12;
-        return 天干[ganKey] + 地支[zhiKey];        
+        return 天干[ganKey] + 地支[zhiKey];
     }
 
     /**
@@ -236,7 +236,7 @@ private:
 
     /**
       * 传入公历(!)y年获得该年第n个节气的公历日期
-      * @param y公历年(1900-2100)；n二十四节气中的第几个节气(1~24)；从n=1(小寒)算起 
+      * @param y公历年(1900-2100)；n二十四节气中的第几个节气(1~24)；从n=1(小寒)算起
       * @return day Number
       * @eg:var _24 = calendar.getTerm(1987,3) ;//_24=4;意即1987年2月4日立春
       */
@@ -257,27 +257,27 @@ private:
             _info[0].mid(1,2),
             _info[0].mid(3,1),
             _info[0].mid(4,2),
-            
+
             _info[1].mid(0,1),
             _info[1].mid(1,2),
             _info[1].mid(3,1),
             _info[1].mid(4,2),
-            
+
             _info[2].mid(0,1),
             _info[2].mid(1,2),
             _info[2].mid(3,1),
             _info[2].mid(4,2),
-            
+
             _info[3].mid(0,1),
             _info[3].mid(1,2),
             _info[3].mid(3,1),
             _info[3].mid(4,2),
-            
+
             _info[4].mid(0,1),
             _info[4].mid(1,2),
             _info[4].mid(3,1),
             _info[4].mid(4,2),
-            
+
             _info[5].mid(0,1),
             _info[5].mid(1,2),
             _info[5].mid(3,1),
@@ -293,7 +293,7 @@ private:
       * @eg:var cnMonth = calendar.toChinaMonth(12) ;//cnMonth="腊月"
     */
     QString toChinaMonth (int m) {
-        if(m>12 || m<1) 
+        if(m>12 || m<1)
         {
             return nullptr;
         }
@@ -301,7 +301,7 @@ private:
         s+= "月";//加上月字
         return s;
     }
- 
+
     /**
       * 传入农历日期数字返回汉字表示法
       * @param lunar day
@@ -325,7 +325,7 @@ private:
         }
         return(s);
     }
- 
+
     /**
       * 年份转生肖[!仅能大致转换] => 精确划分生肖分界线是“立春”
       * @param y year
@@ -346,14 +346,14 @@ private:
     QString toGanZhiBySolarYear(int year) {
         int ganKey = (year - 4) % 10;
         int zhiKey = (year - 4) % 12;
-        return 天干[ganKey] + 地支[zhiKey];        
+        return 天干[ganKey] + 地支[zhiKey];
     }
 
     QString toDizhiHour(int hour)
     {
         return 地支[(hour + 1) / 2 % 12];
     }
- 
+
     /**
       * 传入阳历年月日获得详细的公历、农历object信息 <=>JSON
       * @param y  solar year
@@ -362,17 +362,17 @@ private:
       * @return JSON object
       * @eg:console.log(calendar.solar2lunar(1987,11,01));
       */
-    QMap<QVariant, QVariant> solar2lunar (const int y, const int m, const int d, const int hour=0) 
+    QMap<QVariant, QVariant> solar2lunar (const int y, const int m, const int d, const int hour=0)
     {
          //参数区间1900.1.31~2100.12.31
-        QMap<QVariant, QVariant> a; 
+        QMap<QVariant, QVariant> a;
 
         QDate objDate(y, m, d);
         QDate epochDate(1900, 1, 31);
-        
+
         auto i=0, temp=0;
         auto offset = (QDateTime(objDate).toMSecsSinceEpoch() - QDateTime(epochDate).toMSecsSinceEpoch())/86400000;
-        for(i=1900; i<2101 && offset>0; ) 
+        for(i=1900; i<2101 && offset>0; )
         {
             temp = lYearDays(i);
             if(offset > temp)
@@ -383,7 +383,7 @@ private:
             else
             {
                 break;
-            }                        
+            }
         }
 
         //星期几
@@ -394,14 +394,14 @@ private:
         auto year = i;
         auto leap = getLeapMonth(i); //闰哪个月
         auto isLeap = false;
-        
+
         //效验闰月
         for(i=1; i<13 && offset>0; i++) {
             //闰月
             if(leap>0 && i==(leap+1) && isLeap==false)
-            { 
+            {
                 --i;
-                isLeap = true; 
+                isLeap = true;
                 temp = leapDays(year); //计算农历闰月天数
             }
             else
@@ -411,7 +411,7 @@ private:
             //解除闰月
             if(isLeap==true && i==(leap+1))
             {
-                isLeap = false; 
+                isLeap = false;
             }
             offset -= temp;
         }
@@ -420,43 +420,43 @@ private:
         {
             if(isLeap){
                 isLeap = false;
-            }else{ 
-                isLeap = true; 
+            }else{
+                isLeap = true;
                 --i;
             }
         }
 
         if(offset<0)
         {
-            offset += temp; 
+            offset += temp;
             --i;
         }
         //农历月
         auto month      = i;
         //农历日
         auto day        = offset + 1;
-        
+
         // 当月的两个节气
         // bugfix-2017-7-24 11:03:38 use lunar Year Param `y` Not `year`
         auto firstNode  = getTerm(y, m * 2 - 1);//返回当月「节」为几日开始
- 
+
         //传入的日期的节气与否
         auto isTerm = false;
         QString Term;
-        if(firstNode == d) 
+        if(firstNode == d)
         {
             isTerm  = true;
             Term    = 节气[m*2-2];
         }
-        else if(getTerm(y, m * 2) == d) 
+        else if(getTerm(y, m * 2) == d)
         {
             isTerm  = true;
             Term    = 节气[m*2-1];
         }
         //日柱 当月一日与 1900/1/1 相差天数
-        int dayCyclical = QDateTime(QDate(y, m - 1, 1)).toMSecsSinceEpoch()/86400000+25567+10;        
-        
-        a.insert("lYear", year);
+        int dayCyclical = QDateTime(QDate(y, m - 1, 1)).toMSecsSinceEpoch()/86400000+25567+10;
+
+        a.insert("lYear", year + 221);
         a.insert("lMonth", month);
         a.insert("lDay", day);
         a.insert("animal", getAnimal(year));
@@ -476,7 +476,7 @@ private:
         a.insert("Term", Term);
         return a;
     }
- 
+
     /**
       * 传入农历年月日以及传入的月份是否闰月获得详细的公历、农历object信息 <=>JSON
       * @param y  lunar year
@@ -495,18 +495,18 @@ private:
         //传参要求计算该闰月公历 但该年得出的闰月与传参的月份并不同
         if((y==2100 && m==12 && d>1) || (y==1900 && m==1 && d<31)) {
             return aa;
-        }//超出了最大极限值 
-        auto day  = monthDays(y,m); 
+        }//超出了最大极限值
+        auto day  = monthDays(y,m);
         auto _day = day;
-        //bugFix 2016-9-25 
-        //if month is leap, _day use leapDays method 
+        //bugFix 2016-9-25
+        //if month is leap, _day use leapDays method
         if(isLeapMonth) {
             _day = leapDays(y);
         }
         if(y < 1900 || y > 2100 || d > _day) {
             return aa;
         }//参数合法性效验
-        
+
         //计算农历的时间差
         auto offset = 0;
         for(auto i=1900;i<y;i++) {
@@ -514,7 +514,7 @@ private:
         }
         auto leap = 0;
         auto isAdd= false;
-        for(auto i=1;i<m;i++) 
+        for(auto i=1;i<m;i++)
         {
             leap = getLeapMonth(y);
             if(!isAdd) {//处理闰月
@@ -621,7 +621,7 @@ QString DatetimeWidget::currentChinaTime() const
     {
         date.append(current.toString("yyyy/MM/dd"));
     }
-    
+
     date.append(current.toString(m_24HourFormat ? "hh:mm" : "hh:mm AP"));
 
     if(m_showWeek)
@@ -633,7 +633,7 @@ QString DatetimeWidget::currentChinaTime() const
     {
         date.append(QString("%1年  %2时").arg(lunar.toGanZhiBySolarYear(current.date().year())).arg(lunar.toDizhiHour(current.time().hour())));
     }
-    
+
     return date.join(" ");
 }
 

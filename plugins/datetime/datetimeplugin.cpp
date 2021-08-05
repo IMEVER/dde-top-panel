@@ -44,7 +44,7 @@ DatetimePlugin::DatetimePlugin(QObject *parent)
 
 const QString DatetimePlugin::pluginName() const
 {
-    return "datetime";
+    return "custom_datetime";
 }
 
 const QString DatetimePlugin::pluginDisplayName() const
@@ -186,7 +186,7 @@ void DatetimePlugin::invokedMenuItem(const QString &itemKey, const QString &menu
     Q_UNUSED(itemKey)
     Q_UNUSED(checked)
 
-    if (menuId == "open") 
+    if (menuId == "open")
     {
         DDBusSender()
         .service("com.deepin.dde.ControlCenter")
@@ -202,7 +202,7 @@ void DatetimePlugin::invokedMenuItem(const QString &itemKey, const QString &menu
         m_proxyInter->saveValue(this, DATE_SHOW_KEY, m_centralWidget->isShowDate());
     }
     else if (menuId == "showWeek")
-    {	
+    {
 	m_centralWidget->setShowWeek(!m_centralWidget->isShowWeek());
 	m_proxyInter->saveValue(this, WEEK_SHOW_KEY, m_centralWidget->isShowWeek());
     }
@@ -210,7 +210,7 @@ void DatetimePlugin::invokedMenuItem(const QString &itemKey, const QString &menu
     {
         m_centralWidget->setShowLunar(!m_centralWidget->isShowLunar());
         m_proxyInter->saveValue(this, LUNAR_SHOW_KEY, m_centralWidget->isShowLunar());
-    }    
+    }
     else
     {
         const bool value = is24HourFormat();
@@ -249,14 +249,14 @@ void DatetimePlugin::updateCurrentTimeString()
 	    QStringList t;
 	    foreach(QString s, tips)
 		    t.append(s);
-	    
+
 	    if (m_centralWidget->is24HourFormat())
 	    {
-		    t.append("时间：" + currentDateTime.toString(" HH:mm:ss"));
+		    t.append("时间：" + currentDateTime.toString("HH:mm:ss"));
 	    }
 	    else
 	    {
-		    t.append("时间：" + currentDateTime.toString(" hh:mm:ss A"));
+		    t.append("时间：" + currentDateTime.toString("hh:mm:ss A"));
 	    }
 	    m_dateTipsLabel->setTextList(t);
     }
@@ -311,5 +311,5 @@ void DatetimePlugin::save24HourFormat(bool format)
         QDBusInterface *m_interface = new QDBusInterface("com.deepin.daemon.Timedate", "/com/deepin/daemon/Timedate", "com.deepin.daemon.Timedate");
         m_interface->setProperty(TIME_FORMAT_KEY, format);
         m_interface->deleteLater();
-    } 
+    }
 }

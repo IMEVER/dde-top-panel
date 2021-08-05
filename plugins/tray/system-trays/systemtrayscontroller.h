@@ -45,8 +45,8 @@ public:
     void itemAdded(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
     void itemUpdate(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
     void itemRemoved(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
-    void requestWindowAutoHide(PluginsItemInterface * const itemInter, const QString &itemKey, const bool autoHide);
-    void requestRefreshWindowVisible(PluginsItemInterface * const itemInter, const QString &itemKey);    
+    void requestWindowAutoHide(PluginsItemInterface * const itemInter, const QString &itemKey, const bool autoHide) override;
+    void requestRefreshWindowVisible(PluginsItemInterface * const itemInter, const QString &itemKey) override;
     void requestSetAppletVisible(PluginsItemInterface * const itemInter, const QString &itemKey, const bool visible) Q_DECL_OVERRIDE;
 
     int systemTrayItemSortKey(const QString &itemKey);

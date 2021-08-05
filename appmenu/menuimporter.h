@@ -33,6 +33,7 @@
 #include <QDBusObjectPath>
 #include <QObject>
 #include <QWidget>
+#include "dbus_registrar.h"
 
 class QDBusObjectPath;
 class QDBusServiceWatcher;
@@ -57,13 +58,14 @@ public:
     QList<WId> ids() { return m_menuServices.keys(); }
 
 Q_SIGNALS:
-    void WindowRegistered(WId id, const QString& service, const QDBusObjectPath&);
-    void WindowUnregistered(WId id);
+    void WindowRegistered(uint window_id, const QString& service, const QDBusObjectPath&);
+    void WindowUnregistered(uint window_id);
 
 public Q_SLOTS:
     Q_NOREPLY void RegisterWindow(WId id, const QDBusObjectPath& path);
     Q_NOREPLY void UnregisterWindow(WId id);
     QString GetMenuForWindow(WId id, QDBusObjectPath& path);
+    MenuList GetMenus();
 
 private Q_SLOTS:
     void slotServiceUnregistered(const QString& service);

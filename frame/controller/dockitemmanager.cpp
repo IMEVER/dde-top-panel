@@ -127,7 +127,7 @@ void DockItemManager::pluginItemInserted(PluginsItem *item)
 
     // find first plugins item position
     int firstPluginPosition = m_itemList.size();
-    for (int i(0); i != m_itemList.size(); ++i) 
+    for (int i(0); i != m_itemList.size(); ++i)
     {
         DockItem::ItemType type = m_itemList[i]->itemType();
         if (type != pluginType)

@@ -83,7 +83,7 @@ void Logger::logHelper(const QString inMessage, const LogLevel inLogLevel)
     QString str(buffer);
     str.append(" [").append(inLogLevel).append("] ").append(inMessage);
 #ifdef QT_DEBUG
-    qDebug()<<str<<endl;
+    qDebug()<<str<<Qt::endl;
 #endif
     mOutputStream<<str.toStdString()<<endl;
 }

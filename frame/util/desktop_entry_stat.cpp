@@ -57,6 +57,11 @@ void DesktopEntryStat::createDesktopEntry(const QString desktopFile)
 {
     DDesktopEntry entry(desktopFile);
 
+    if (entry.contains("NoDisplay") && entry.stringValue("NoDisplay") == "true")
+    {
+        return;
+    }
+
     auto re = DesktopEntry(new desktop_entry {});
 
     re->desktopFile = desktopFile;
@@ -66,29 +71,34 @@ void DesktopEntryStat::createDesktopEntry(const QString desktopFile)
 
     auto tryExec = entry.stringValue("TryExec");
     auto exec = entry.stringValue("Exec");
-    if (!tryExec.isEmpty()) {
+    if (!tryExec.isEmpty() && !tryExec.contains("AppRun")) {
         re->exec = tryExec.split(' ');
         re->name = QFileInfo(trim(re->exec[0])).baseName();
-    } else if (!exec.isEmpty()) {
+    } else if (!exec.isEmpty() && !exec.contains("AppRun")) {
         re->exec = exec.split(' ');
         re->name = QFileInfo(trim(re->exec[0])).baseName();
     } else {
+        if(!tryExec.isEmpty())
+            re->exec = tryExec.split(' ');
+        else if(!exec.isEmpty())
+            re->exec = exec.split(' ');
+
         re->name = entry.name();
     }
 
-    auto wmclass = entry.stringValue("StartupWMClass");
-    if (!wmclass.isEmpty()) {
-        re->startup_wm_class = wmclass;
-    }
+    auto wmclass = entry.stringValue("StartupWMClass").toLower();
 
-    if (!cache.contains(re->name)) {
+    if (!cache.contains(re->name) && wmclass.isEmpty()) {
         cache[re->name] = re;
-    }
+        deskToNameMap[desktopFile] = re->name;
+    } else if (!wmclass.isEmpty()) {
+        re->startup_wm_class = wmclass;
 
-    deskToNameMap[desktopFile] = re->name;
-    if (!wmclass.isEmpty() && !cache.contains(wmclass))
-    {
-        cache[wmclass.toLower()] = re;
+        if (!cache.contains(wmclass))
+        {
+            cache[wmclass] = re;
+            deskToNameMap[desktopFile] = wmclass;
+        }
     }
 }
 
@@ -107,7 +117,6 @@ DesktopEntryStat::~DesktopEntryStat()
 
 void DesktopEntryStat::refresh()
 {
-
     for(QString appPath :  QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation))
     {
         parseDir(appPath);

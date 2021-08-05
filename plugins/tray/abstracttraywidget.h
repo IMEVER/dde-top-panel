@@ -43,7 +43,7 @@ public:
     virtual void updateIcon() = 0;
     virtual void sendClick(uint8_t mouseButton, int x, int y) = 0;
     virtual const QImage trayImage() = 0;
-    virtual inline TrayType trayTyep() const { return TrayType::ApplicationTray; } // default is ApplicationTray
+    virtual inline TrayType trayType() const { return TrayType::ApplicationTray; } // default is ApplicationTray
     virtual bool isValid() {return true;}
 
 Q_SIGNALS:
@@ -59,7 +59,7 @@ protected:
 
     void handleMouseRelease();
     const QRect perfectIconRect() const;
-    void resizeEvent(QResizeEvent *event) override;    
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     QTimer *m_handleMouseReleaseTimer;

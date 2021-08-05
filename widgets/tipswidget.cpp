@@ -1,6 +1,8 @@
 #include "tipswidget.h"
 
 #include <QPainter>
+#include <QTextDocument>
+#include <QEvent>
 
 TipsWidget::TipsWidget(QWidget *parent) : QFrame(parent)
 {
@@ -9,9 +11,13 @@ TipsWidget::TipsWidget(QWidget *parent) : QFrame(parent)
 
 void TipsWidget::setText(const QString &text)
 {
-    m_text = text;
+    m_type = TipsWidget::SingleLine;
+    QTextDocument document;
+    document.setHtml(text);
 
-    setFixedSize(fontMetrics().horizontalAdvance(text) + 6, fontMetrics().height());
+    m_text = document.toPlainText().simplified();
+
+    setFixedSize(fontMetrics().horizontalAdvance(m_text) + 6, fontMetrics().height());
 
     update();
 }
@@ -31,12 +37,6 @@ void TipsWidget::setTextList(const QStringList &textList)
     m_width = maxLength;
     setFixedWidth(maxLength);
 
-    update();
-}
-
-void TipsWidget::refreshFont()
-{
-    setFixedSize(fontMetrics().horizontalAdvance(m_text) + 6, fontMetrics().height());
     update();
 }
 
@@ -64,4 +64,30 @@ void TipsWidget::paintEvent(QPaintEvent *event)
         }
         break;
     }
+}
+
+
+bool TipsWidget::event(QEvent *event)
+{
+    if (event->type() == QEvent::FontChange) {
+        if (m_type == SingleLine) {
+            if (!m_text.trimmed().isEmpty()) {
+                 setFixedSize(fontMetrics().horizontalAdvance(m_text) + 6, fontMetrics().height());
+                 update();
+            }
+        } else {
+            if (m_textList.size() > 0) {
+                int maxLength = 0;
+                setFixedHeight(fontMetrics().height() * m_textList.size());
+                for (QString text : m_textList) {
+                    int fontLength = fontMetrics().horizontalAdvance(text) + 6;
+                    maxLength = qMax(maxLength,fontLength);
+                }
+                m_width = maxLength;
+                setFixedWidth(maxLength);
+                update();
+            }
+        }
+    }
+    return QFrame::event(event);
 }

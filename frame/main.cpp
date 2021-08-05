@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include "window/MainWindow.h"
 
+#include "../interfaces/constants.h"
 #include "../globalmenu/menuproxy.h"
 
 DWIDGET_USE_NAMESPACE
@@ -30,10 +31,24 @@ int main(int argc, char *argv[]) {
         // app.setApplicationDisplayName("全局顶栏");
         app.setApplicationVersion("1.0.1");
         // app.loadTranslator();
+
+        QLocale locale = QLocale::system();
+        QString translatePath = QString("/usr/share/dde-dock/translations/dde-dock_%1.qm").arg(locale.name());
+        if (QFile::exists(translatePath)) {
+            qDebug() << "load translate" << translatePath;
+            auto translator = new QTranslator();
+            translator->load(translatePath);
+            app.installTranslator(translator);
+        }
+
         app.setAttribute(Qt::AA_UseHighDpiPixmaps, false);
 
+        app.setProperty(PROP_POSITION, Dock::Top);
+        app.setProperty(PROP_DISPLAY_MODE, Dock::Fashion);
+        app.setAttribute(Qt::AA_DontUseNativeMenuBar, true);
+
         TopPanelLauncher launcher;
-        MenuProxy proxy;
+        MenuProxy menuPrxy;
 
         return app.exec();
     }

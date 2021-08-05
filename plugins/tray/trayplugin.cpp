@@ -82,11 +82,6 @@ void TrayPlugin::init(PluginProxyInterface *proxyInter)
     QTimer::singleShot(0, this, &TrayPlugin::initXEmbed);
 }
 
-bool TrayPlugin::pluginIsDisable()
-{
-    return false;
-}
-
 QWidget *TrayPlugin::itemWidget(const QString &itemKey)
 {
     if (itemKey == FASHION_MODE_ITEM_KEY) {
@@ -94,20 +89,6 @@ QWidget *TrayPlugin::itemWidget(const QString &itemKey)
     }
 
     return m_trayMap.value(itemKey);
-}
-
-QWidget *TrayPlugin::itemTipsWidget(const QString &itemKey)
-{
-    Q_UNUSED(itemKey);
-
-    return nullptr;
-}
-
-QWidget *TrayPlugin::itemPopupApplet(const QString &itemKey)
-{
-    Q_UNUSED(itemKey);
-
-    return nullptr;
 }
 
 int TrayPlugin::itemSortKey(const QString &itemKey)
@@ -195,7 +176,7 @@ bool TrayPlugin::isSystemTrayItem(const QString &itemKey)
 {
     AbstractTrayWidget *const trayWidget = m_trayMap.value(itemKey, nullptr);
 
-    if (trayWidget && trayWidget->trayTyep() == AbstractTrayWidget::TrayType::SystemTray) {
+    if (trayWidget && trayWidget->trayType() == AbstractTrayWidget::TrayType::SystemTray) {
         return true;
     }
 
@@ -376,7 +357,7 @@ void TrayPlugin::trayRemoved(const QString &itemKey, const bool deleteObject)
 
     // only delete tray object when it is a tray of applications
     // set the parent of the tray object to avoid be deconstructed by parent(DockItem/PluginsItem/TrayPluginsItem)
-    if (widget->trayTyep() == AbstractTrayWidget::TrayType::SystemTray) {
+    if (widget->trayType() == AbstractTrayWidget::TrayType::SystemTray) {
         widget->setParent(nullptr);
     } else if (deleteObject) {
         widget->deleteLater();

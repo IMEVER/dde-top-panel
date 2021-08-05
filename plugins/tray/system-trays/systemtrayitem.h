@@ -29,7 +29,6 @@
 #include <QGestureEvent>
 #include <QMenu>
 
-class QGSettings;
 class SystemTrayItem : public AbstractTrayWidget
 {
     Q_OBJECT
@@ -44,7 +43,7 @@ public:
     void updateIcon() Q_DECL_OVERRIDE;
     const QImage trayImage() Q_DECL_OVERRIDE;
     void sendClick(uint8_t mouseButton, int x, int y) Q_DECL_OVERRIDE;
-    inline TrayType trayTyep() const Q_DECL_OVERRIDE { return TrayType::SystemTray; }
+    inline TrayType trayType() const Q_DECL_OVERRIDE { return TrayType::SystemTray; }
 
     QWidget *trayTipsWidget();
     QWidget *trayPopupApplet();
@@ -88,8 +87,6 @@ protected Q_SLOTS:
 
 private:
     void updatePopupPosition();
-    void onGSettingsChanged(const QString &key);
-    bool checkGSettingsControl() const;
     void menuActionClicked(QAction *action);
 
 private:
@@ -107,7 +104,6 @@ private:
     QString m_itemKey;
 
     static QPointer<DockPopupWindow> PopupWindow;
-    QGSettings* m_gsettings;
 };
 
 #endif // SYSTEMTRAYITEM_H

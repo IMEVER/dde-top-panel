@@ -7,6 +7,8 @@
 
 #include <DBlurEffectWidget>
 #include <DPlatformWindowHandle>
+#include <com_deepin_dde_daemon_dock.h>
+
 #include "MainPanelControl.h"
 #include "statusnotifierwatcher_interface.h"
 #include "util/TopPanelSettings.h"
@@ -19,6 +21,7 @@ DWIDGET_USE_NAMESPACE
 
 using org::kde::StatusNotifierWatcher;
 using namespace Dock;
+using DBusDock = com::deepin::dde::daemon::Dock;
 
 class MainWindow : public DBlurEffectWidget
 {
@@ -66,6 +69,7 @@ private:
     QDBusConnectionInterface *m_dbusDaemonInterface;
     org::kde::StatusNotifierWatcher *m_sniWatcher;
     QString m_sniHostService;
+    DBusDock *m_dockInter;
 };
 
 class TopPanelLauncher : public QObject {

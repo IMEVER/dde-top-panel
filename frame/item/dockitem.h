@@ -24,7 +24,7 @@
 
 #include "constants.h"
 #include "util/dockpopupwindow.h"
-#include "hoverhighlighteffect.h"
+// #include "hoverhighlighteffect.h"
 
 #include <QFrame>
 #include <QPointer>
@@ -103,7 +103,7 @@ protected:
     QMenu m_contextMenu;
 
     QPointer<QWidget> m_lastPopupWidget;
-    QPointer<HoverHighlightEffect> m_hoverEffect;
+    // QPointer<HoverHighlightEffect> m_hoverEffect;
 
     QTimer *m_popupTipsDelayTimer;
     QTimer *m_popupAdjustDelayTimer;

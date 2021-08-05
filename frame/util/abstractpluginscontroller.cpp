@@ -32,6 +32,7 @@ static const QStringList CompatiblePluginApiList {
     "1.1.1",
     "1.2",
     "1.2.1",
+    "1.2.2",
     DOCK_PLUGIN_API_VERSION
 };
 
@@ -238,7 +239,7 @@ void AbstractPluginsController::refreshPluginSettings()
     for (PluginsItemInterface *pluginInter : m_pluginsMap.keys()) {
         pluginInter->pluginSettingsChanged();
     }
-    
+
     qDebug()<<"settings: "<<m_pluginSettingsObject<<Qt::endl;
 
     // reload all plugin items for sort order or container

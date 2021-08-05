@@ -11,6 +11,9 @@ This is a modification of dde-dock for top panel. Comparing to dde-dock, it:
 * remove lots of unnecessary things so it is just a top panel. It is fixed to the top of the screen, and there is no way to change that.
 * separate plugin config gsetting path `/com/deepin/dde/toppanel`
 * different plugin directories: `/usr/lib/dde-top-panel/plugins` and `~/.local/lib/dde-top-panel/plugins`
+* ```bash
+  sudo setcap cap_sys_rawio,cap_net_raw,cap_dac_read_search,cap_sys_ptrace+ep `which dde-top-panel`
+  ```
 
 
 ## Features
@@ -84,7 +87,7 @@ Then go to step 2 in How to run for Deepin V20
 ## For tray icons of wine applications
 
 Due to the logical of tray plugins, only one tray widget can hold the wine trays (You can click the icon and it will response to the click).
- 
+
 The main code of wine trays is in `plugins/tray/xembedtraywidget`. Generally, it wraps the raw wine trays with a new widget and embeds it to the tray, then it operates on the new widget. The problem is every tray widget will create a new container widget for each wine trays, and the tray widgets launched before can't the window id of the new container widget.
 
 This part needs help.
@@ -92,3 +95,6 @@ This part needs help.
 ------
 
 <div>Icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
+
+dh_make --native --single --packagename me.imever.dde-top-panel_1.0.0 --email Rhett_Tian@imever.me
+dpkg-buildpackage -rfakeroot -tc -b

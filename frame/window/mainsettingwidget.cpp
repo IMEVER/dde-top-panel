@@ -64,6 +64,7 @@ MainSettingWidget::MainSettingWidget(QWidget *parent) :
     connect(ui->showButtonsCheckBox, &QCheckBox::stateChanged, this, [this]() {
         CustomSettings::instance()->setShowControlButtons(ui->showButtonsCheckBox->isChecked());
     });
+    setAttribute(Qt::WA_QuitOnClose, false);
 }
 
 MainSettingWidget::~MainSettingWidget()

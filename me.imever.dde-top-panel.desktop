@@ -1,0 +1,14 @@
+[Desktop Entry]
+Categories=Application
+Comment=顶栏
+Exec=/opt/apps/me.imever.dde-top-panel/files/bin/dde-top-panel
+GenericName=顶栏
+Icon=me.imever.dde-top-panel
+Name=顶栏
+StartupNotify=false
+Terminal=false
+Type=Application
+X-Deepin-CreatedBy=com.deepin.SessionManager
+X-Deepin-AppID=dde-top-panel
+Hidden=false
+

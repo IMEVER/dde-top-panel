@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 
 set(BIN_NAME dde-top-panel)
+set(CMAKE_INSTALL_PREFIX /opt/apps/me.imever.dde-top-panel)
 
 # 启用 qt moc 的支持
 set(CMAKE_AUTOMOC ON)
@@ -26,8 +27,6 @@ find_package(Qt5Svg REQUIRED)
 find_package(DtkWidget REQUIRED)
 find_package(DtkCMake REQUIRED)
 find_package(KF5WindowSystem REQUIRED)
-# find_package(Qt5Qml REQUIRED)
-# find_package(Qt5Quick REQUIRED)
 
 qt5_add_dbus_adaptor(SRCS dbus/me.imever.dde.toppanel.xml
     window/MainWindow.h MainWindow dbustoppaneladaptors DBusTopPanelAdaptors)
@@ -91,3 +90,7 @@ endif()
 if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
     target_compile_definitions(${BIN_NAME} PUBLIC DISABLE_SHOW_ANIMATION)
 endif()
+
+install(TARGETS ${BIN_NAME}
+	RUNTIME DESTINATION files/bin/
+	)

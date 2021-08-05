@@ -40,6 +40,14 @@ public:
         Fixed
     };
 
+    /**
+    * @brief Plugin size policy
+    */
+    enum PluginSizePolicy {
+        System = 1 << 0, // Follow the system
+        Custom = 1 << 1  // The custom
+    };
+
     ///
     /// \brief ~PluginsItemInterface
     /// DON'T try to delete m_proxyInter.
@@ -177,13 +185,46 @@ public:
     virtual void pluginStateSwitched() {}
 
     ///
+    /// \brief displayModeChanged
+    /// override this function to receive display mode changed signal
+    /// \param displayMode
+    ///
+    virtual void displayModeChanged(const Dock::DisplayMode displayMode) {Q_UNUSED(displayMode);}
+    ///
+    /// \brief positionChanged
+    /// override this function to receive dock position changed signal
+    /// \param position
+    ///
+    virtual void positionChanged(const Dock::Position position) {Q_UNUSED(position);}
+
+    ///
     /// \brief refreshIcon
     /// refresh item icon, its triggered when system icon theme changed.
     /// \param itemKey
     /// item key
     ///
     virtual void refreshIcon(const QString &itemKey) { Q_UNUSED(itemKey); }
-    
+
+    ///
+    /// \brief displayMode
+    /// get current dock display mode
+    /// \return
+    ///
+    inline Dock::DisplayMode displayMode() const
+    {
+        return Dock::Fashion;
+    }
+
+    ///
+    /// \brief position
+    /// get current dock position
+    /// \return
+    ///
+    inline Dock::Position position() const
+    {
+        return Dock::Top;
+    }
+
     ///
     /// \brief settingsChanged
     /// override this function to receive plugin settings changed signal(DeepinSync)
@@ -195,6 +236,12 @@ public:
     /// default plugin add dock right,fixed plugin add to dock fixed area
     ///
     virtual PluginType type() { return Normal; }
+
+    ///
+    /// \brief plugin size policy
+    /// default plugin size policy
+    ///
+    virtual PluginSizePolicy pluginSizePolicy() const { return System; }
 
 protected:
     ///

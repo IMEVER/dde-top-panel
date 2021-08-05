@@ -20,7 +20,7 @@
  */
 
 #include "snitraywidget.h"
-#include "util/themeappicon.h"
+#include "util/imageutil.h"
 #include <QPainter>
 #include <QApplication>
 #include <xcb/xproto.h>
@@ -144,14 +144,14 @@ SNITrayWidget::~SNITrayWidget()
     if (m_dbusMenuImporter != nullptr)
     {
         m_dbusMenuImporter->deleteLater();
-    }    
+    }
 
     m_updateAttentionIconTimer->deleteLater();
     m_updateIconTimer->deleteLater();
     m_updateOverlayIconTimer->deleteLater();
     m_popupTipsDelayTimer->deleteLater();
-    
-    
+
+
     qDebug()<<"delete in snitraywidget";
 }
 
@@ -553,7 +553,7 @@ QPixmap SNITrayWidget::newIconPixmap(IconType iconType)
         // so, it should be the last fallback
         if (!iconName.isEmpty()) {
             // ThemeAppIcon::getIcon 会处理高分屏缩放问题
-            pixmap = ThemeAppIcon::getIcon(iconName, IconSize, devicePixelRatioF());
+            pixmap = ImageUtil::getIcon(iconName, IconSize, devicePixelRatioF());
             if (!pixmap.isNull()) {
                 break;
             }

@@ -77,7 +77,7 @@ public Q_SLOTS:
      */
     void updateMenu();
 
-    void updateMenu(QMenu *menu);
+    // void updateMenu(QMenu *menu);
 
 Q_SIGNALS:
     /**
@@ -85,8 +85,6 @@ Q_SIGNALS:
      * @see updateMenu()
      */
     void menuUpdated();
-
-    void clearMenu();
 
     /**
      * Emitted when the exporter was asked to activate an action
@@ -108,6 +106,7 @@ protected:
 
 private Q_SLOTS:
     void sendClickedEvent(int);
+    void sendHoveredEvent(int);
     void slotMenuAboutToShow();
     void slotMenuAboutToHide();
     void slotAboutToShowDBusCallFinished(QDBusPendingCallWatcher *);

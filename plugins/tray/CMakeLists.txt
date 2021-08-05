@@ -5,13 +5,11 @@ project(${PLUGIN_NAME})
 
 # Sources files
 file(GLOB_RECURSE SRCS "*.h" "*.cpp"
-    "../../frame/util/themeappicon.h" "../../frame/util/themeappicon.cpp"
+    "../../frame/util/imageutil.*"
     "../../frame/util/dockpopupwindow.h" "../../frame/util/dockpopupwindow.cpp"
     "../../frame/util/abstractpluginscontroller.h" "../../frame/util/abstractpluginscontroller.cpp"
     "../../frame/util/pluginloader.h" "../../frame/util/pluginloader.cpp"
-    "../../frame/dbus/sni/*.h" "../../frame/dbus/sni/*.cpp"
     "../../widgets/tipswidget.h" "../../widgets/tipswidget.cpp"
-     "../../frame/util/imageutil.h" "../../frame/util/imageutil.cpp"
 )
 
 find_package(PkgConfig REQUIRED)
@@ -20,6 +18,9 @@ find_package(Qt5Svg REQUIRED)
 find_package(Qt5DBus REQUIRED)
 find_package(Qt5X11Extras REQUIRED)
 find_package(DtkWidget REQUIRED)
+
+
+qt5_add_dbus_interface(SRCS org.kde.StatusNotifierWatcher.xml statusnotifierwatcher_interface)
 
 pkg_check_modules(XCB_LIBS REQUIRED xcb-ewmh xcb xcb-image xcb-composite xtst x11 xext xcb-icccm dbusmenu-qt5)
 pkg_check_modules(DDE-Network-Utils REQUIRED dde-network-utils)
@@ -51,4 +52,4 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
     xdo
 )
 
-install(TARGETS ${PLUGIN_NAME} LIBRARY DESTINATION lib/dde-dock/plugins)
+# install(TARGETS ${PLUGIN_NAME} LIBRARY DESTINATION lib/dde-dock/plugins)

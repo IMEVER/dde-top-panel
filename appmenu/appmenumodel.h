@@ -22,17 +22,20 @@
 #ifndef APPMENUMODEL_H
 #define APPMENUMODEL_H
 
-#include <QAbstractNativeEventFilter>
 #include <QStringList>
 #include <KWindowSystem>
 #include <QPointer>
 #include <QWidget>
+#include <QMap>
+#include <QMenu>
+#include <QAction>
 
-class QMenu;
 class QDBusServiceWatcher;
 class KDBusMenuImporter;
+// class RegistrarProxy;
+class DBusRegistrar;
 
-class AppMenuModel : public QObject, public QAbstractNativeEventFilter
+class AppMenuModel : public QObject
 {
     Q_OBJECT
 
@@ -43,17 +46,16 @@ public:
     ~AppMenuModel() override;
 
     QMenu *menu() const;
-
-    void updateApplicationMenu(const QString &serviceName, const QString &menuObjectPath);
-
-    bool menuAvailable() const;
+    QAction * getAppMenu(QAction::MenuRole role);
+    void updateApplicationMenu(KDBusMenuImporter *importer);
     void setWinId(const WId &id, bool isDesktop = false);
-
-protected:
-    bool nativeEventFilter(const QByteArray &eventType, void *message, long int *result) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     void clearMenuImporter();
+    void initDesktopMenu();
+    void parseAppMenu(QMenu *menu);
+    void deleAppMenu(QMenu *menu);
 
 private Q_SLOTS:
     void onActiveWindowChanged();
@@ -62,13 +64,22 @@ signals:
     void requestActivateIndex(int index);
     void modelNeedsUpdate();
     void clearMenu();
+    void actionRemoved(QAction *action);
+    void actionAdded(QAction *action, QAction *before);
 
 private:
     WId m_winId = 0;
     QPointer<QMenu> m_menu;
+    QPointer<QMenu> desktopMenu;
     QDBusServiceWatcher *m_serviceWatcher;
-    QString m_serviceName;
-    QPointer<KDBusMenuImporter> m_importer;
+    KDBusMenuImporter *m_importer;
+
+    QMap<WId, KDBusMenuImporter *> cachedImporter;
+
+    QMap<QAction::MenuRole, QAction*> *m_appMenuMap;
+
+    // RegistrarProxy *registrarProxy;
+    DBusRegistrar *dbusRegistrar;
 };
 
 #endif

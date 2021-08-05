@@ -19,14 +19,18 @@ struct Package
             if (info.contains(": "))
             {
                 QStringList items = info.split(": ");
-                data.append(QPair<QString, QString>(items.at(0), items.at(1)));
+                if(items.at(0).trimmed().contains(" "))
+                    desc.append(info);
+                else
+                    data.append(QPair<QString, QString>(items.at(0), items.at(1)));
             }
             else
             {
                 desc.append(info);
             }
         }
-        data << QPair<QString, QString>("Desc", desc);
+        if(!desc.isEmpty())
+            data << QPair<QString, QString>("Desc", desc);
     }
 
     int count() const

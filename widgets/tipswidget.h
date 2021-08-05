@@ -19,16 +19,16 @@ public:
     const QStringList &textList() { return  m_textList; }
     void setText(const QString &text);
     void setTextList(const QStringList &textList);
-    void refreshFont();
-    
+
 protected:
     void paintEvent(QPaintEvent *event) override;
+    bool event(QEvent *event) override;
 
 private:
     QString m_text;
     QStringList m_textList;
     int m_width;
-    ShowType m_type;    
+    ShowType m_type;
 };
 
 #endif // TIPSWIDGET_H

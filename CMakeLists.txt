@@ -6,6 +6,7 @@ project(dde-top-panel)
 
 # set (CMAKE_PREFIX_PATH "/usr/include/x86_64-linux-gnu/qt5/QtWidgets")
 
+set(CMAKE_INSTALL_PREFIX /opt/apps/me.imever.dde-top-panel)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -51,3 +52,9 @@ add_subdirectory("globalmenu")
 if (CMAKE_BUILD_TYPE STREQUAL "RELEASE")
     add_definitions(-DQT_NO_DEBUG_OUTPUT)
 endif (CMAKE_BUILD_TYPE STREQUAL "RELEASE")
+
+install(FILES me.imever.dde-top-panel.desktop DESTINATION entries/applications/)
+install(FILES me.imever.dde-top-panel.desktop DESTINATION entries/autostart/)
+install(FILES schemas/me.imever.dde.toppanel.gschema.xml DESTINATION entries/glib-2.0/schemas/)
+install(FILES me.imever.dde-top-panel.jpeg DESTINATION entries/icons/hicolor/scalable/apps/)
+install(FILES info DESTINATION files/)

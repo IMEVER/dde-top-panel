@@ -30,7 +30,7 @@
 // #include "indicatortraywidget.h"
 #include "snitraywidget.h"
 #include "system-trays/systemtrayscontroller.h"
-#include "dbus/sni/statusnotifierwatcher_interface.h"
+#include "../../frame/StatusNotifierWatcherInterface.h"
 
 #include <org_kde_statusnotifieritem.h>
 
@@ -38,7 +38,6 @@
 #include <QLabel>
 
 class FashionTrayItem;
-class TipsWidget;
 class TrayPlugin : public QObject, PluginsItemInterface
 {
     Q_OBJECT
@@ -50,10 +49,7 @@ public:
 
     const QString pluginName() const Q_DECL_OVERRIDE;
     void init(PluginProxyInterface *proxyInter) Q_DECL_OVERRIDE;
-    bool pluginIsDisable() override;
     QWidget *itemWidget(const QString &itemKey) Q_DECL_OVERRIDE;
-    QWidget *itemTipsWidget(const QString &itemKey) Q_DECL_OVERRIDE;
-    QWidget *itemPopupApplet(const QString &itemKey) Q_DECL_OVERRIDE;
     int itemSortKey(const QString &itemKey) Q_DECL_OVERRIDE;
     void setSortKey(const QString &itemKey, const int order) Q_DECL_OVERRIDE;
     void refreshIcon(const QString &itemKey) Q_DECL_OVERRIDE;

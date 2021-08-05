@@ -10,18 +10,14 @@
 #include <QHBoxLayout>
 #include <DGuiApplicationHelper>
 // #include <QQmlApplicationEngine>
-#include <com_deepin_dde_daemon_dock.h>
-#include <com_deepin_wm.h>
 #include <QMenuBar>
 #include <QWidgetAction>
 #include "../../appmenu/appmenumodel.h"
 #include "QClickableLabel.h"
 #include <com_deepin_wm.h>
 #include "../util/CustomSettings.h"
-#include "../item/appitem.h"
+#include "../util/CustomizeMenubar.h"
 
-using DBusDock = com::deepin::dde::daemon::Dock;
-using DBusWM = com::deepin::wm;
 using Dtk::Gui::DGuiApplicationHelper;
 
 class ActiveWindowControlWidget : public QWidget {
@@ -41,8 +37,8 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
-    void initButtons(QLayout *layout);
     void initMenuBar(QLayout *layout);
+    void updateAppMenu();
     void setButtonsVisible(bool visible);
     int currScreenNum();
 
@@ -54,30 +50,19 @@ private slots:
     void updateMenu();
     void windowChanged(WId, NET::Properties, NET::Properties2);
     void themeTypeChanged(DGuiApplicationHelper::ColorType themeType);
-    void reloadAppItems();
     // void clearAboutWindow();
 
 private:
     // QQmlApplicationEngine *engine = nullptr;
-    QAction *startAction;
-    QAction *appTitleAction;
+    QMenu *appMenu;
 
-    QStack<int> activeIdStack;
-    int currActiveWinId;
+    QStack<WId> activeIdStack;
+    WId currActiveWinId;
 
-    QWidget *m_buttonWidget;
-
-    QMenuBar *menuBar;
+    CustomizeMenubar *menuBar;
     AppMenuModel *m_appMenuModel;
 
-    DBusDock *m_appInter;
-    DBusWM  *m_wmInter;
     bool mouseClicked;
-
-    QPropertyAnimation *m_buttonShowAnimation;
-    QPropertyAnimation *m_buttonHideAnimation;
-    QTimer *m_fixTimer;
-    QMap<QString, AppItem *> m_appItemMap;
 };
 
 #endif //DDE_TOP_PANEL_ACTIVEWINDOWCONTROLWIDGET_H

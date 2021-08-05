@@ -11,7 +11,7 @@
 #include "ActiveWindowControlWidget.h"
 #include "util/CustomSettings.h"
 
-using DockEntryInter = com::deepin::dde::daemon::dock::Entry;
+// using DockEntryInter = com::deepin::dde::daemon::dock::Entry;
 
 class MainPanelControl : public QWidget
 {

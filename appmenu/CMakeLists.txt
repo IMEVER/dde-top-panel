@@ -31,6 +31,8 @@ set(SRCS
         dbusmenu_interface.h dbusmenu_interface.cpp
         menuimporter.h menuimporter.cpp
         utils_p.h utils.cpp
+        dbus_registrar.h dbus_registrar.cpp
+        # registrar_proxy.h registrar_proxy.cpp
         )
 
 qt5_add_dbus_adaptor(SRCS com.canonical.AppMenu.Registrar.xml
@@ -48,6 +50,7 @@ target_include_directories(${PROJECT} PUBLIC
         ${Qt5Widgets_INCLUDE_DIRS}
         ${Qt5DBus_INCLUDE_DIRS}
         ${Qt5X11Extras_INCLUDE_DIRS}
+        # ${DFrameworkDBus_INCLUDE_DIRS}
         # ${dbusmenu-qt5_INCLUDE_DIRS}
         )
 
@@ -57,6 +60,8 @@ target_link_libraries(${PROJECT}
         Qt5::X11Extras
         KF5::WindowSystem
         xcb
+        # ${Qt5DBus_LIBRARIES}
+        # ${DFrameworkDBus_LIBRARIES}
         # globalmenu
         # dbusmenu-qt5
         )

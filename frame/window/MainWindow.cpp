@@ -21,14 +21,16 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     , m_platformWindowHandle(this, this)
     , m_dbusDaemonInterface(QDBusConnection::sessionBus().interface())
     , m_sniWatcher(new StatusNotifierWatcher(SNI_WATCHER_SERVICE, SNI_WATCHER_PATH, QDBusConnection::sessionBus(), this))
+    , m_dockInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
 {
 //    setWindowFlag(Qt::WindowDoesNotAcceptFocus);
     setWindowFlags(Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground);
-    setAttribute(Qt::WA_AlwaysShowToolTips);
+    // setAttribute(Qt::WA_AlwaysShowToolTips);
 
     setMouseTracking(true);
     setAcceptDrops(true);
+    setVisible(true);
 
     QVBoxLayout *layout(new QVBoxLayout(this));
     layout->addWidget(m_mainPanel);
@@ -51,16 +53,18 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
 
     this->move(m_settings->primaryRect().topLeft());
 
-    setVisible(true);
-
     // platformwindowhandle only works when the widget is visible...
     DPlatformWindowHandle::enableDXcbForWindow(this, true);
     m_platformWindowHandle.setEnableBlurWindow(true);
-    m_platformWindowHandle.setTranslucentBackground(true);
+    // m_platformWindowHandle.setTranslucentBackground(true);
     m_platformWindowHandle.setWindowRadius(0);  // have no idea why it doesn't work :(
     m_platformWindowHandle.setShadowOffset(QPoint(0, 5));
     m_platformWindowHandle.setShadowColor(QColor(0, 0, 0, 0.3 * 255));
     m_platformWindowHandle.setBorderWidth(1);
+    m_platformWindowHandle.setShadowRadius(15);
+
+    setMaskColor(AutoColor);
+    setMaskAlpha(m_dockInter->opacity() * 255);
 
     this->applyCustomSettings(*CustomSettings::instance());
 }
@@ -171,22 +175,18 @@ void MainWindow::initConnections() {
     connect(m_mainPanel, &MainPanelControl::itemMoved, m_itemManager, &DockItemManager::itemMoved, Qt::DirectConnection);
 
     connect(DWindowManagerHelper::instance(), &DWindowManagerHelper::hasCompositeChanged, this, [this](){
-        // const bool enabled = DWindowManagerHelper::instance()->hasComposite();
-        // setMaskColor(AutoColor);
-        // setMaskAlpha(DockSettings::Instance().Opacity());
-        // m_platformWindowHandle.setBorderWidth(enabled ? 1 : 0);
-
         QTimer::singleShot(10000, this, [ this ](){
             DPlatformWindowHandle::enableDXcbForWindow(this, true);
             m_platformWindowHandle.setEnableBlurWindow(true);
             m_platformWindowHandle.setTranslucentBackground(true);
-            m_platformWindowHandle.setWindowRadius(0);  // have no idea why it doesn't work :(
-            m_platformWindowHandle.setShadowOffset(QPoint(0, 5));
-            m_platformWindowHandle.setShadowColor(QColor(0, 0, 0, 0.3 * 255));
-            m_platformWindowHandle.setBorderWidth(1);
         });
 
     }, Qt::QueuedConnection);
+
+    connect(m_dockInter, &DBusDock::OpacityChanged, [ this ](double opacity) {
+        setMaskAlpha(opacity * 255);
+        this->m_platformWindowHandle.setShadowRadius(opacity < 0.2 ? 10 : 20);
+    });
 
     connect(m_dbusDaemonInterface, &QDBusConnectionInterface::serviceOwnerChanged, this, &MainWindow::onDbusNameOwnerChanged);
 

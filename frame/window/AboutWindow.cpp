@@ -120,6 +120,10 @@ public:
             return "版权";
         else if(field == "Vendor")
             return "供应商";
+        else if(field == "Build-Depends")
+            return "构建依赖";
+        else if(field == "Standards-Version")
+            return "标准版本";
         else
             return field;
     }
@@ -223,7 +227,23 @@ void AboutWindow::initData(KWindowInfo kwin)
     appInfo.m_desktop = kwin.desktop();
     appInfo.m_pid = kwin.pid();
 
+    if (appInfo.m_className == "dde-desktop")
+    {
+        return;
+    }
+
+    if (appInfo.m_title.contains(QRegExp("[–—-]")))
+    {
+        appInfo.m_title = appInfo.m_title.split(QRegExp("[–—-]")).last().trimmed();
+    }
+
     DesktopEntry entry = DesktopEntryStat::instance()->getDesktopEntryByName(kwin.windowClassName());
+
+    if(!entry)
+    {
+        entry = DesktopEntryStat::instance()->getDesktopEntryByName(appInfo.m_title);
+    }
+
     if (!entry)
     {
         entry = DesktopEntryStat::instance()->getDesktopEntryByPid(kwin.pid());

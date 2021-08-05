@@ -84,11 +84,6 @@ void DockPluginsController::itemRemoved(PluginsItemInterface *const itemInter, c
     QMap<PluginsItemInterface *, QMap<QString, QObject *>> &mPluginsMap = pluginsMap();
     mPluginsMap[itemInter].remove(itemKey);
 
-    if (mPluginsMap[itemInter].isEmpty())
-    {
-        mPluginsMap.remove(itemInter);
-    }
-    
     if (item->isDragging()) {
         QDrag::cancel();
     }
@@ -117,13 +112,14 @@ void DockPluginsController::startLoader()
 
 void DockPluginsController::loadLocalPlugins()
 {
-    QString pluginsDir(QString("%1/.local/lib/dde-top-panel/plugins/").arg(QDir::homePath()));
+    // QString pluginsDir(QString("%1/.local/lib/dde-top-panel/plugins/").arg(QDir::homePath()));
+    QStringList pluginsDirs({QString("/usr/lib/dde-dock/plugins/"), QString("%1/.local/lib/dde-top-panel/plugins/").arg(QDir::homePath())});
 
-    if (!QDir(pluginsDir).exists()) {
-        return;
+    for(QString pluginsDir : pluginsDirs)
+    {
+        if (QDir(pluginsDir).exists()) {
+            qDebug() << "using dock local plugins dir:" << pluginsDir;
+            AbstractPluginsController::startLoader(new PluginLoader(pluginsDir, this));
+        }
     }
-
-    qDebug() << "using dock local plugins dir:" << pluginsDir;
-
-    AbstractPluginsController::startLoader(new PluginLoader(pluginsDir, this));
 }

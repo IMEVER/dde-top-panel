@@ -27,7 +27,7 @@
 namespace Dock {
 
 #define DOCK_PLUGIN_MIME    "dock/plugin"
-#define DOCK_PLUGIN_API_VERSION    "1.2.2"
+#define DOCK_PLUGIN_API_VERSION    "1.2.3"
 
 #define PLUGIN_BACKGROUND_MAX_SIZE 20
 #define PLUGIN_BACKGROUND_MIN_SIZE 20
@@ -41,7 +41,36 @@ namespace Dock {
 #define PLUGIN_MIN_ICON_NAME "-dark"
 
 #define DEFAULT_HEIGHT 24
+#define DOCK_MAX_SIZE 24
+
+#define PROP_DISPLAY_MODE   "DisplayMode"
+
+///
+/// \brief The DisplayMode enum
+/// spec dock display mode
+///
+enum DisplayMode {
+    Fashion     = 0,
+    Efficient   = 1,
+    // deprecreated
+//    Classic     = 2,
+};
+
+#define PROP_POSITION       "Position"
+
+///
+/// \brief The Position enum
+/// spec dock position, dock always placed at primary screen,
+/// so all position is the primary screen edge.
+///
+enum Position {
+    Top         = 0,
+    Right       = 1,
+    Bottom      = 2,
+    Left        = 3,
+};
 
 }
-
+Q_DECLARE_METATYPE(Dock::DisplayMode)
+Q_DECLARE_METATYPE(Dock::Position)
 #endif // CONSTANTS_H
