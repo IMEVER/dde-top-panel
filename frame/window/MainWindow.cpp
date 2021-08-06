@@ -23,10 +23,11 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     , m_sniWatcher(new StatusNotifierWatcher(SNI_WATCHER_SERVICE, SNI_WATCHER_PATH, QDBusConnection::sessionBus(), this))
     , m_dockInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
 {
-//    setWindowFlag(Qt::WindowDoesNotAcceptFocus);
-    setWindowFlags(Qt::WindowStaysOnTopHint | Qt::Tool);
+   setWindowFlag(Qt::WindowDoesNotAcceptFocus);
+    setWindowFlags(Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_TranslucentBackground);
-    // setAttribute(Qt::WA_AlwaysShowToolTips);
+    setAttribute(Qt::WA_AlwaysShowToolTips);
+    // setAttribute(Qt::WA_QuitOnClose, false);
 
     setMouseTracking(true);
     setAcceptDrops(true);

@@ -212,7 +212,7 @@ public:
     ///
     inline Dock::DisplayMode displayMode() const
     {
-        return Dock::Fashion;
+        return qApp->property(PROP_DISPLAY_MODE).value<Dock::DisplayMode>();
     }
 
     ///
@@ -222,7 +222,7 @@ public:
     ///
     inline Dock::Position position() const
     {
-        return Dock::Top;
+        return qApp->property(PROP_POSITION).value<Dock::Position>();
     }
 
     ///
@@ -248,7 +248,7 @@ protected:
     /// \brief m_proxyInter
     /// NEVER delete this object.
     ///
-    PluginProxyInterface *m_proxyInter;
+    PluginProxyInterface *m_proxyInter = nullptr;
 };
 
 QT_BEGIN_NAMESPACE

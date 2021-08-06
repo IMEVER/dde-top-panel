@@ -4,3 +4,9 @@
 [submodule "globalmenu"]
 	path = globalmenu
 	url = ./globalmenu
+[submodule "plugins/dde-mpris"]
+	path = plugins/dde-mpris
+	url = https://github.com/SeptemberHX/dde-mpris2-plugin.git
+[submodule "plugins/dde-smart-dir"]
+	path = plugins/dde-smart-dir
+	url = https://github.com/SeptemberHX/dde-smart-dir.git

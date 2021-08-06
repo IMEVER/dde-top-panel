@@ -227,11 +227,10 @@ void AppMenuModel::initDesktopMenu()
     {
         createMenu->addSeparator();
 
-        QFileIconProvider iconProvider;
         QFileInfoList list = dir.entryInfoList(QDir::Files);
         for(QFileInfo fileInfo : list)
         {
-            createMenu->addAction(iconProvider.icon(fileInfo), fileInfo.baseName(), [ = ](){
+            createMenu->addAction(QFileIconProvider().icon(fileInfo), fileInfo.baseName(), [ = ](){
                 // createNewFile(fileInfo.baseName(), fileInfo.suffix());
                 QDir::setCurrent(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
                 QFile file(fileInfo.fileName());

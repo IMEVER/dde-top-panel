@@ -2,6 +2,8 @@ add_subdirectory("datetime")
 # add_subdirectory("tray")
 # add_subdirectory("multitasking")
 add_subdirectory("dde-istate-menus")
+add_subdirectory("dde-mpris")
+add_subdirectory("dde-smart-dir")
 # add_subdirectory("onboard")
 # add_subdirectory("switch_graphics_card/src")
 
