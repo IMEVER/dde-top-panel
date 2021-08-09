@@ -43,7 +43,6 @@ signals:
     void itemInserted(const int index, DockItem *item) const;
     void itemRemoved(DockItem *item) const;
     void itemUpdated(DockItem *item) const;
-    void trayVisableCountChanged(const int &count) const;
     void requestWindowAutoHide(const bool autoHide) const;
     void requestRefershWindowVisible() const;
 

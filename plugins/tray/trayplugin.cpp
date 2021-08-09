@@ -76,7 +76,7 @@ void TrayPlugin::init(PluginProxyInterface *proxyInter)
 
     m_trayInter->Manage();
 
-    // QTimer::singleShot(0, this, &TrayPlugin::loadIndicator);
+    QTimer::singleShot(0, this, &TrayPlugin::loadIndicator);
     QTimer::singleShot(0, m_systemTraysController, &SystemTraysController::startLoader);
     QTimer::singleShot(0, this, &TrayPlugin::initSNI);
     QTimer::singleShot(0, this, &TrayPlugin::initXEmbed);

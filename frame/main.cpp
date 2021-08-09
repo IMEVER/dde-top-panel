@@ -43,8 +43,8 @@ int main(int argc, char *argv[]) {
 
         app.setAttribute(Qt::AA_UseHighDpiPixmaps, false);
 
-        app.setProperty(PROP_POSITION, Dock::Top);
-        app.setProperty(PROP_DISPLAY_MODE, Dock::Fashion);
+        app.setProperty(PROP_POSITION, QVariant::fromValue(Dock::Top));
+        app.setProperty(PROP_DISPLAY_MODE, QVariant::fromValue(Dock::Fashion));
         app.setAttribute(Qt::AA_DontUseNativeMenuBar, true);
 
         TopPanelLauncher launcher;

@@ -15,7 +15,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Sources files
-file(GLOB_RECURSE SRCS "*.h" "*.cpp" "../widgets/*.h" "../widgets/*.cpp" "../widgets/*.ui" )
+file(GLOB_RECURSE SRCS "*.h" "*.cpp" "../widgets/*.h" "../widgets/*.cpp")
 
 # Find the library
 find_package(PkgConfig REQUIRED)
@@ -72,8 +72,6 @@ target_link_libraries(${BIN_NAME} PRIVATE
         ${QGSettings_LIBRARIES}
         ${DtkGUI_LIBRARIES}
         ${Qt5Svg_LIBRARIES}
-        # ${Qt5Qml_LIBRARIES}
-        # ${Qt5Quick_LIBRARIES}
         KF5::WindowSystem
         xdo
         X11

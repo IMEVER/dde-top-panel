@@ -89,13 +89,16 @@ public:
     bool hasPreferenceRole = false;
 
     QSet<int> m_idsRefreshedByAboutToShow;
+    QSet<int> m_needAboutToShow;
     QSet<int> m_pendingLayoutUpdates;
     QTimer *m_pendingLayoutUpdateTimer;
     bool m_mustEmitMenuUpdated = true;
 
     DBusMenuImporterType m_type;
 
-    QDBusPendingCallWatcher *refresh(int id) {
+    QDBusPendingCallWatcher *refresh(int id, bool needAboutToShow = false) {
+        if(needAboutToShow)
+            m_needAboutToShow.insert(id);
         // auto call = m_interface->GetLayout(id, 1, QStringList());
         QDBusPendingCall call = m_interface->asyncCall("GetLayout", id, 1, QStringList());
         QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, q);
@@ -205,7 +208,7 @@ public:
         QAction::MenuRole role = QAction::NoRole;
         if(!action->menu() && (!hasAboutRole || !hasPreferenceRole || !hasQuitRole))
         {
-            QString txt = text.replace(QRegExp("\\(.*\\)|\\[.*\\]|\\.*|\\s*"), "").trimmed().toLower();
+            const QString txt = text.replace(QRegExp("\\(.*\\)|\\[.*\\]|\\.*|\\s*"), "").trimmed().toLower();
             if(txt.length() < 12)
             {
                 if(!hasQuitRole && (txt.startsWith("退出") || txt.startsWith("quit") || txt.startsWith("exit")))
@@ -224,7 +227,7 @@ public:
                         hasAboutRole = true;
                     }
                 }
-                else if(!hasPreferenceRole && (txt.startsWith("设置") || txt.startsWith("偏好设置") || txt.startsWith("常规设置") || txt.startsWith("首选项") || txt.startsWith("选项") || txt.startsWith("preferences") || txt.startsWith("options") || txt.startsWith("settings") || txt.startsWith("config") || txt.startsWith("setup")))
+                else if(!hasPreferenceRole && (txt == "设置" || txt.startsWith("偏好设置") || txt.startsWith("常规设置") || txt.startsWith("首选项") || txt.startsWith("选项") || txt.startsWith("preferences") || txt.startsWith("options") || txt.startsWith("settings") || txt.startsWith("config") || txt.startsWith("setup")))
                 {
                     role = QAction::PreferencesRole;
                     hasPreferenceRole = true;
@@ -409,7 +412,7 @@ DBusMenuImporter::DBusMenuImporter(const QString &service, const QString &path, 
             d->m_pendingLayoutUpdates.clear();
 
         Q_FOREACH(int id, ids)
-            d->refresh(id);
+            d->refresh(id, true);
     });
 
     d->m_type = type;
@@ -555,6 +558,8 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
 
             if (action->menu())
             {
+                if(d->m_needAboutToShow.contains(parentId))
+                    d->m_needAboutToShow.insert(action->property(DBUSMENU_PROPERTY_ID).toInt());
                 d->refresh(action->property(DBUSMENU_PROPERTY_ID).toInt())->waitForFinished();
             }
         } else {
@@ -570,9 +575,11 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
     }
     // qInfo()<<"GetLayout finish with menu id: " << parentId;
     // if(parentId == 0 && d->m_pendingLayoutUpdates.contains(0)) {
+    if(d->m_needAboutToShow.contains(parentId)) {
+        d->m_needAboutToShow.remove(parentId);
         QMetaObject::invokeMethod(menu, "aboutToShow");
         // d->m_pendingLayoutUpdates.clear();
-    // }
+    }
 }
 
 void DBusMenuImporter::sendClickedEvent(int id)

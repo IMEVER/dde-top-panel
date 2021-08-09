@@ -26,7 +26,6 @@
 TrayPluginItem::TrayPluginItem(PluginsItemInterface * const pluginInter, const QString &itemKey, QWidget *parent)
     : PluginsItem(pluginInter, itemKey, parent)
 {
-    centralWidget()->installEventFilter(this);
 }
 
 void TrayPluginItem::setSuggestIconSize(QSize size)
@@ -39,22 +38,4 @@ void TrayPluginItem::setRightSplitVisible(const bool visible)
 {
     // invoke the method "setRightSplitVisible" of FashionTrayItem class
     QMetaObject::invokeMethod(centralWidget(), "setRightSplitVisible", Qt::QueuedConnection, Q_ARG(bool, visible));
-}
-
-int TrayPluginItem::trayVisableItemCount()
-{
-    return m_trayVisableItemCount;
-}
-
-bool TrayPluginItem::eventFilter(QObject *watched, QEvent *e)
-{
-    if (watched == centralWidget() && e->type() == QEvent::DynamicPropertyChange) {
-        const QString &propertyName = static_cast<QDynamicPropertyChangeEvent *>(e)->propertyName();
-        if (propertyName == "TrayVisableItemCount") {
-            m_trayVisableItemCount = watched->property("TrayVisableItemCount").toInt();
-            Q_EMIT trayVisableCountChanged(m_trayVisableItemCount);
-        }
-    }
-
-    return PluginsItem::eventFilter(watched, e);
 }

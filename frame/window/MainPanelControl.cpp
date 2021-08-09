@@ -53,6 +53,7 @@ void MainPanelControl::init() {
     m_pluginLayout->setMargin(0);
     m_pluginLayout->setSpacing(10);
 
+    activeWindowControlWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     m_pluginAreaWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     m_trayAreaWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 

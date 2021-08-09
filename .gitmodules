@@ -1,12 +1,16 @@
+[submodule "globalmenu"]
+	path = globalmenu
+	url = git@github.com:IMEVER/globalmenu
+
 [submodule "plugins/dde-istate-menus"]
 	path = plugins/dde-istate-menus
 	url = https://github.com/SeptemberHX/dde-istate-menus
-[submodule "globalmenu"]
-	path = globalmenu
-	url = ./globalmenu
 [submodule "plugins/dde-mpris"]
 	path = plugins/dde-mpris
 	url = https://github.com/SeptemberHX/dde-mpris2-plugin.git
 [submodule "plugins/dde-smart-dir"]
 	path = plugins/dde-smart-dir
 	url = https://github.com/SeptemberHX/dde-smart-dir.git
+[submodule "plugins/dde-datetime"]
+	path = plugins/datetime
+	url = git@github.com:IMEVER/dde-datetime.git

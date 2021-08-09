@@ -37,7 +37,9 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     layout->setSpacing(10);
     layout->setMargin(0);
 
-    this->initMenuBar(layout);
+    this->initMenuBar();
+
+    layout->addWidget(this->menuBar);
 
     this->m_appMenuModel = new AppMenuModel(this);
     connect(this->m_appMenuModel, &AppMenuModel::clearMenu, this, [ = ](){
@@ -46,6 +48,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
             this->menuBar->removeAction(this->menuBar->actions()[5]);
             this->updateAppMenu();
         }
+        this->menuBar->actions().last()->setVisible(false);
     });
     connect(this->m_appMenuModel, &AppMenuModel::modelNeedsUpdate, this, &ActiveWindowControlWidget::updateMenu);
     connect(this->m_appMenuModel, &AppMenuModel::requestActivateIndex, this, [ this ](int index){
@@ -65,7 +68,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
         this->updateAppMenu();
     });
 
-    layout->addStretch();
+    // layout->addStretch();
 
     // detect whether active window maximized signal
     connect(KWindowSystem::self(), qOverload<WId, NET::Properties, NET::Properties2>(&KWindowSystem::windowChanged), this, &ActiveWindowControlWidget::windowChanged);
@@ -76,7 +79,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     themeTypeChanged(DGuiApplicationHelper::instance()->themeType());
 }
 
-void ActiveWindowControlWidget::initMenuBar(QLayout *layout)
+void ActiveWindowControlWidget::initMenuBar()
 {
     this->menuBar = new CustomizeMenubar(this);
 
@@ -277,7 +280,6 @@ void ActiveWindowControlWidget::initMenuBar(QLayout *layout)
     searchMenu->addAction(searchAction);
 
     this->menuBar->addMenu(searchMenu);
-    layout->addWidget(this->menuBar);
 }
 
 void ActiveWindowControlWidget::updateAppMenu()
@@ -436,6 +438,7 @@ void ActiveWindowControlWidget::updateMenu() {
     if (QMenu *menu = m_appMenuModel->menu())
     {
         this->menuBar->insertActions(this->menuBar->actions().at(5), menu->actions());
+        this->menuBar->actions().last()->setVisible(true);
         this->menuBar->adjustSize();
 
         this->updateAppMenu();

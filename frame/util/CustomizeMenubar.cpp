@@ -28,7 +28,7 @@ void CustomizeMenubar::paintEvent(QPaintEvent *e)
 
     int hmargin = style()->pixelMetric(QStyle::PM_MenuBarPanelWidth, 0, this);
     QRect result = rect();
-    result.adjust(hmargin, 0, -hmargin-50, 0);
+    result.adjust(hmargin, 0, -hmargin-60, 0);
     // if (extVisible) {
     //     if (isRightToLeft())
     //         result.setLeft(result.left() + extension->sizeHint().width());

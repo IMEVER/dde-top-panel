@@ -37,7 +37,7 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
-    void initMenuBar(QLayout *layout);
+    void initMenuBar();
     void updateAppMenu();
     void setButtonsVisible(bool visible);
     int currScreenNum();
