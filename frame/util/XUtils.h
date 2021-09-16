@@ -27,8 +27,8 @@ public:
 
     static bool checkIfWinMaximum(int winId);
     static bool checkIfWinMinimunX11(int winId);
-
     static bool checkIfWinMinimun(int winId);
+    static bool checkIfWinFullscreen(int winId);
 
     static void unmaximizeWindow(int winId);
     static void maximizeWindow(int winId);
@@ -46,6 +46,8 @@ public:
 
     static int getFocusWindowIdByX();
     static Display *m_display;
+
+    static int comparePluginApi(const QString &pluginApi1, const QString &pluginApi2);
 private:
     static void openXdo();
     static void openDisplay();

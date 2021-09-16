@@ -47,7 +47,6 @@
 #include "dbusmenuimporter.h"
 // #include <dbusmenu-qt5/dbusmenuimporter.h>
 
-#include "menuimporter.h"
 // #include "registrar_proxy.h"
 #include "dbus_registrar.h"
 
@@ -90,40 +89,35 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
         return;
     }
 
-    connect(KWindowSystem::self(), &KWindowSystem::windowRemoved, [ this ](WId wId){
-        QTimer::singleShot(5000, [ this, wId ]{
-            KDBusMenuImporter *importer = this->cachedImporter.take(wId);
-            delete importer;
-        });
-    });
-
     m_serviceWatcher->setConnection(QDBusConnection::sessionBus());
     //if our current DBus connection gets lost, close the menu
     //we'll select the new menu when the focus changes
-    /*
+
     connect(m_serviceWatcher, &QDBusServiceWatcher::serviceUnregistered, this, [this](const QString & serviceName) {
-        QTimer::singleShot(5000, [ this, serviceName ](){
-            WId delWId;
-            QPointer<KDBusMenuImporter> delImporter;
-            QMap<WId, QPointer<KDBusMenuImporter>>::iterator iter = this->cachedImporter.begin();
+        QTimer::singleShot(0, [ this, serviceName ]{
+            QList<WId> delWIdList;
+            QMap<WId, KDBusMenuImporter *>::iterator iter = this->cachedImporter.begin();
             while (iter != this->cachedImporter.end())
             {
-                if(iter.value().data()->serviceName() == serviceName)
+                if(iter.value()->serviceName() == serviceName)
                 {
-                    delWId = iter.key();
-                    delImporter = iter.value();
-                    break;
+                    delWIdList.append(iter.key());
                 }
                 iter ++;
             }
-            if(delWId > 0)
+            KDBusMenuImporter *delImporter;
+            for(auto wId : delWIdList)
             {
-                this->cachedImporter.remove(delWId);
-                delImporter.data()->deleteLater();
+                delImporter = this->cachedImporter.value(wId);
+                this->cachedImporter.remove(wId);
+                if(delImporter == this->m_importer)
+                    this->clearMenuImporter();
+                delImporter->deleteLater();
             }
+            m_serviceWatcher->removeWatchedService(serviceName);
         });
     });
-    */
+
     // connect(KWindowSystem::self(), qOverload<WId, NET::Properties, NET::Properties2>(&KWindowSystem::windowChanged),
     //         this, [this](WId id, NET::Properties properties, NET::Properties2 properties2) {
     //     if (KWindowSystem::activeWindow() != id)
@@ -147,14 +141,35 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
     //     }
     // });
 
-    auto *menuImporter = new MenuImporter(this);
-    menuImporter->connectToBus();
-
     m_importer = nullptr;
     m_menu = nullptr;
     // registrarProxy = new RegistrarProxy(this);
     // registrarProxy->Reference();
     dbusRegistrar = new DBusRegistrar(this);
+
+    connect(KWindowSystem::self(), &KWindowSystem::windowRemoved, [ this ](WId wId){
+        QTimer::singleShot(5000, [ this, wId ]{
+            if(this->cachedImporter.contains(wId))
+            {
+                KDBusMenuImporter *importer = this->cachedImporter.take(wId);
+                if(importer == m_importer)
+                    clearMenuImporter();
+                importer->deleteLater();
+            }
+        });
+    });
+
+    connect(dbusRegistrar, &DBusRegistrar::WindowUnregistered, [ this ](WId wId){
+        QTimer::singleShot(0, [ this, wId ]{
+            if(this->cachedImporter.contains(wId))
+            {
+                KDBusMenuImporter *importer = this->cachedImporter.take(wId);
+                if(importer == m_importer)
+                    clearMenuImporter();
+                importer->deleteLater();
+            }
+        });
+    });
 
     connect(dbusRegistrar, &DBusRegistrar::WindowRegistered, [ this ](uint wId, const QString &service, const QDBusObjectPath &path){
         QTimer::singleShot(1000, [this, wId, service, path]{
@@ -163,13 +178,13 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
             {
                 KDBusMenuImporter *importer = new KDBusMenuImporter(service, path.path(), this);
                 this->cachedImporter.insert(wId, importer);
+                m_serviceWatcher->addWatchedService(service);
                 this->updateApplicationMenu(importer);
             }
         });
     });
 
     initDesktopMenu();
-    m_appMenuMap = new QMap<QAction::MenuRole, QAction *>();
 }
 
 AppMenuModel::~AppMenuModel()
@@ -223,11 +238,11 @@ void AppMenuModel::initDesktopMenu()
 
     QDir dir;
     dir.setCurrent(QStandardPaths::writableLocation(QStandardPaths::HomeLocation) + QDir::separator() + ".Templates");
-    if(dir.exists() && dir.isReadable())
+    if(dir.exists() && dir.isReadable() && dir != QDir::home())
     {
         createMenu->addSeparator();
 
-        QFileInfoList list = dir.entryInfoList(QDir::Files);
+        QFileInfoList list = dir.entryInfoList(QDir::Files | QDir::Readable | QDir::NoSymLinks);
         for(QFileInfo fileInfo : list)
         {
             createMenu->addAction(QFileIconProvider().icon(fileInfo), fileInfo.baseName(), [ = ](){
@@ -309,12 +324,9 @@ void AppMenuModel::initDesktopMenu()
 
 void AppMenuModel::clearMenuImporter()
 {
-    m_appMenuMap->clear();
-    emit clearMenu();
     if (m_importer)
     {
         disconnect(m_importer, &DBusMenuImporter::menuUpdated, this, nullptr);
-        m_serviceWatcher->removeWatchedService(m_importer->serviceName());
         m_importer = nullptr;
 
         if(m_menu && m_menu != desktopMenu)
@@ -323,6 +335,7 @@ void AppMenuModel::clearMenuImporter()
         }
     }
 
+    emit clearMenu();
     m_menu = nullptr;
 }
 
@@ -381,6 +394,7 @@ void AppMenuModel::onActiveWindowChanged()
                 KDBusMenuImporter *importer = new KDBusMenuImporter(serviceName, menuObjectPath, this);
                 this->m_winId = id;
                 this->cachedImporter.insert(id, importer);
+                m_serviceWatcher->addWatchedService(importer->serviceName());
                 updateApplicationMenu(importer);
                 return true;
             }
@@ -406,30 +420,30 @@ QMenu *AppMenuModel::menu() const
     return m_menu.data();
 }
 
-QAction * AppMenuModel::getAppMenu(QAction::MenuRole role)
+QAction * AppMenuModel::getAction(QAction::MenuRole role)
 {
-    return m_appMenuMap->value(role, nullptr);
+    if(m_importer)
+        return m_importer->getAction(role);
+
+    return nullptr;
 }
 
 void AppMenuModel::updateApplicationMenu(KDBusMenuImporter *importer)
 {
-    m_serviceWatcher->setWatchedServices(QStringList({importer->serviceName()}));
-
     m_importer = importer;
     m_menu = m_importer->menu();
-    if(m_menu->isEmpty())
+    if(m_importer->isFirstShow())
     {
-        QMetaObject::invokeMethod(m_importer, "updateMenu", Qt::QueuedConnection);
         // qInfo()<<"before update ......";
-        connect(m_importer, &DBusMenuImporter::menuUpdated, this, [ = ]() {
+        connect(m_importer, &DBusMenuImporter::menuUpdated, this, [ = ] {
             // qInfo()<<"after update ......";
             m_menu->installEventFilter(this);
-            parseAppMenu(m_menu);
             emit modelNeedsUpdate();
         });
+
+        QTimer::singleShot(100, [ importer ] { QMetaObject::invokeMethod(importer, "updateMenu", Qt::QueuedConnection); });
     } else {
         m_menu->installEventFilter(this);
-        parseAppMenu(m_menu);
         emit modelNeedsUpdate();
     }
 
@@ -445,120 +459,19 @@ void AppMenuModel::updateApplicationMenu(KDBusMenuImporter *importer)
     });
 }
 
-void AppMenuModel::parseAppMenu(QMenu *menu)
-{
-    QList<QAction::MenuRole> roles{QAction::AboutRole, QAction::QuitRole, QAction::PreferencesRole};
-    auto parser = [ this, roles ](QAction *action) {
-        QAction::MenuRole role = action->menuRole();
-        if(roles.contains(role))
-        {
-            this->m_appMenuMap->insert(role, action);
-            return true;
-        }
-        return false;
-    };
-
-    if (!menu->isEmpty() && menu != desktopMenu)
-    {
-        for(auto *action : menu->actions())
-        {
-            if(action->menu())
-            {
-                for(auto *subAction : action->menu()->actions())
-                {
-                    if(subAction->menu())
-                    {
-                        for(auto lastAction : subAction->menu()->actions())
-                        {
-                            if(!lastAction->menu())
-                            {
-                                if(parser(lastAction) && m_appMenuMap->size() == 3)
-                                    return;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if(parser(subAction) && m_appMenuMap->size() == 3)
-                            return;
-                    }
-                }
-            }
-            else
-            {
-                if(parser(action) && m_appMenuMap->size() == 3)
-                    return;
-            }
-        }
-    }
-}
-
-void AppMenuModel::deleAppMenu(QMenu *menu)
-{
-    if(m_appMenuMap->size() > 0)
-    {
-        for(auto *action : menu->actions())
-        {
-            if(!action->menu())
-            {
-                if(m_appMenuMap->remove(action->menuRole()) == 1 && m_appMenuMap->size() == 0)
-                    return;
-            }
-            else
-            {
-                for(auto *subAction : action->menu()->actions())
-                {
-                    if(!subAction->menu())
-                    {
-                        if(m_appMenuMap->remove(subAction->menuRole()) == 1 && m_appMenuMap->size() == 0)
-                            return;
-                    }
-                    else
-                    {
-                        for(auto lastAction : subAction->menu()->actions())
-                        {
-                            if (!lastAction->menu())
-                            {
-                                if(m_appMenuMap->remove(lastAction->menuRole()) == 1 && m_appMenuMap->size() == 0)
-                                    return;
-                            }
-                        }
-                    }
-
-                }
-            }
-        }
-    }
-}
-
 bool AppMenuModel::eventFilter(QObject *watched, QEvent *event)
 {
     if(watched == m_menu)
     {
         QActionEvent *actionEvent;
-        QMenu *menu;
         switch (event->type())
         {
         case QEvent::ActionAdded:
             actionEvent = static_cast<QActionEvent *>(event);
-            menu = new QMenu;
-            menu->addAction(actionEvent->action());
-            parseAppMenu(menu);
-            menu->deleteLater();
             emit actionAdded(actionEvent->action(), actionEvent->before());
-            // QMetaObject::invokeMethod(m_menu, "aboutToShow");
-            // if(actionEvent->action()->menu())
-            // {
-                // QMetaObject::invokeMethod(actionEvent->action()->menu(), "aboutToShow");
-                // actionEvent->action()->menu()->aboutToShow();
-            // }
             break;
         case QEvent::ActionRemoved:
             actionEvent = static_cast<QActionEvent *>(event);
-            menu = new QMenu;
-            menu->addAction(actionEvent->action());
-            deleAppMenu(menu);
-            menu->deleteLater();
             emit actionRemoved(actionEvent->action());
             break;
         default:

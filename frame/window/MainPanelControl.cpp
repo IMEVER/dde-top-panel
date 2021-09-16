@@ -5,10 +5,7 @@
 #include "MainPanelControl.h"
 #include <QApplication>
 #include <QDrag>
-
 #include "ShowDesktopWidget.h"
-
-#define PLUGIN_MAX_SIZE  40
 
 MainPanelControl::MainPanelControl(QWidget *parent)
     : QWidget(parent)
@@ -21,48 +18,51 @@ MainPanelControl::MainPanelControl(QWidget *parent)
     , m_fixedPluginLayout(new QHBoxLayout())
     , activeWindowControlWidget(new ActiveWindowControlWidget(this))
 {
-    this->init();
-
     this->setFixedHeight(DEFAULT_HEIGHT);
     this->setMouseTracking(true);
     this->setAcceptDrops(true);
+
+    this->init();
 
     QPalette palette = this->palette();
     palette.setColor(QPalette::Background, Qt::transparent);
     this->setPalette(palette);
 }
 
-void MainPanelControl::init() {
+void MainPanelControl::init()
+{
+    this->activeWindowControlWidget->setFixedHeight(DEFAULT_HEIGHT);
+
     this->m_mainPanelLayout->addWidget(this->activeWindowControlWidget);
+    // this->m_mainPanelLayout->addStretch();
     this->m_mainPanelLayout->addWidget(this->m_trayAreaWidget);
     this->m_mainPanelLayout->addWidget(this->m_pluginAreaWidget);
     this->m_mainPanelLayout->addWidget(this->m_fixedPluginWidget);
     this->m_mainPanelLayout->addWidget(new ShowDesktopWidget(this));
 
     m_mainPanelLayout->setMargin(0);
-    m_mainPanelLayout->setSpacing(10);
+    m_mainPanelLayout->setSpacing(5);
 
     // 托盘
     m_trayAreaWidget->setLayout(m_trayAreaLayout);
     m_trayAreaLayout->setSpacing(0);
-    m_trayAreaLayout->setContentsMargins(0, 3, 0, 3);
+    m_trayAreaLayout->setContentsMargins(0, 2, 0, 2);
 
     // 插件
     m_pluginAreaWidget->setLayout(m_pluginLayout);
     m_pluginAreaWidget->setAcceptDrops(true);
     m_pluginLayout->setMargin(0);
-    m_pluginLayout->setSpacing(10);
+    m_pluginLayout->setSpacing(5);
 
-    activeWindowControlWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    activeWindowControlWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     m_pluginAreaWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     m_trayAreaWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
     m_fixedPluginWidget->setLayout(m_fixedPluginLayout);
     m_fixedPluginLayout->setMargin(0);
-    m_fixedPluginLayout->setSpacing(10);
+    m_fixedPluginLayout->setSpacing(5);
     m_fixedPluginWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
-//    this->m_xdo = xdo_new(nullptr);
     this->activeWindowControlWidget->activeWindowInfoChanged();
 }
 
@@ -78,6 +78,7 @@ void MainPanelControl::insertItem(int index, DockItem *item)
             addPluginAreaItem(index, item);
             break;
         case DockItem::FixedPlugin:
+            // addPluginAreaItem(index, item);
             addFixedPluginAreaItem(index, item);
             break;
         default:
@@ -102,6 +103,11 @@ void MainPanelControl::removeItem(DockItem *item)
     }
 }
 void MainPanelControl::addPluginAreaItem(int index, QWidget *wdg) {
+    PluginsItem *item = qobject_cast<PluginsItem *>(wdg);
+    if(item->pluginSizePolicy() == PluginsItemInterface::Custom)
+        wdg->setMaximumHeight(height());
+    else
+        wdg->setFixedSize(height() - 4, height() - 4);
     m_pluginLayout->insertWidget(index, wdg, 0, Qt::AlignCenter);
     m_pluginAreaWidget->adjustSize();
 }
@@ -129,9 +135,14 @@ void MainPanelControl::removeTrayAreaItem(QWidget *wdg)
 
 void MainPanelControl::addFixedPluginAreaItem(int index, QWidget *wdg)
 {
-    m_fixedPluginLayout->addWidget(wdg, 0, Qt::AlignCenter);
+    PluginsItem *item = qobject_cast<PluginsItem *>(wdg);
+    if(item->pluginSizePolicy() == PluginsItemInterface::Custom)
+        wdg->setMaximumHeight(height());
+    else
+        wdg->setFixedSize(height() - 4, height() - 4);
+
+    m_fixedPluginLayout->insertWidget(index, wdg, 0, Qt::AlignCenter);
     m_fixedPluginWidget->adjustSize();
-    adjustSize();
 }
 
 void MainPanelControl::removeFixedPluginAreaItem(QWidget *wdg)
@@ -193,7 +204,7 @@ DockItem *MainPanelControl::dropTargetItem(DockItem *sourceItem, QPoint point) {
 
         rect.setTopLeft(dockItem->pos());
         if (dockItem->itemType() == DockItem::Plugins) {
-            rect.setSize(QSize(PLUGIN_MAX_SIZE, height()));
+            rect.setSize(QSize(DOCK_MAX_SIZE, height()));
         } else {
             rect.setSize(dockItem->size());
         }

@@ -138,6 +138,30 @@ bool XUtils::checkIfWinMinimunX11(int winId) {
     return maxFlag;
 }
 
+bool XUtils::checkIfWinFullscreen(int winId) {
+    openXdo();
+
+    unsigned char *value;
+    long n;
+
+    int ret = xdo_get_window_property(m_xdo, winId, "_NET_WM_STATE", &value, &n, NULL, NULL);
+    if (ret != XDO_SUCCESS) {
+        return false;
+    }
+
+    Atom *result = (Atom*) value;
+    Atom fullscreenAtom = XInternAtom(m_xdo->xdpy, "_NET_WM_STATE_FULLSCREEN", False);
+    bool fullscreenFlag = false;
+    for (int i = 0; i < n; ++i) {
+        if (result[i] == fullscreenAtom) {
+            fullscreenFlag = true;
+            break;
+        }
+    }
+    XFree(value);
+    return fullscreenFlag;
+}
+
 void XUtils::unmaximizeWindow(int winId) {
     openXdo();
 
@@ -320,4 +344,45 @@ QString XUtils::getWindowAppName(int winId) {
         }
     }
     return "";
+}
+
+/**
+* @brief 比较两个插件版本号的大小
+* @param pluginApi1 第一个插件版本号
+* @param pluginApi2 第二个插件版本号
+* @return 0:两个版本号相等,1:第一个版本号大,-1:第二个版本号大
+*/
+int XUtils::comparePluginApi(const QString &pluginApi1, const QString &pluginApi2) {
+    // 版本号相同
+    if (pluginApi1 == pluginApi2)
+        return 0;
+
+    // 拆分版本号
+    QStringList subPluginApis1 = pluginApi1.split(".", QString::SkipEmptyParts, Qt::CaseSensitive);
+    QStringList subPluginApis2 = pluginApi2.split(".", QString::SkipEmptyParts, Qt::CaseSensitive);
+    for (int i = 0; i < subPluginApis1.size(); ++i) {
+        auto subPluginApi1 = subPluginApis1[i];
+        if (subPluginApis2.size() > i) {
+            auto subPluginApi2 = subPluginApis2[i];
+
+            // 相等判断下一个子版本号
+            if (subPluginApi1 == subPluginApi2)
+                continue;
+
+            // 转成整形比较
+            if (subPluginApi1.toInt() > subPluginApi2.toInt()) {
+                return 1;
+            } else {
+                return -1;
+            }
+        }
+    }
+
+    // 循环结束但是没有返回,说明子版本号个数不同,且前面的子版本号都相同
+    // 子版本号多的版本号大
+    if (subPluginApis1.size() > subPluginApis2.size()) {
+        return 1;
+    } else {
+        return -1;
+    }
 }

@@ -18,9 +18,9 @@ public:
     void showEvent(QShowEvent *event) override;
 
 private:
-    void initStatusWidget();
-    void initPackageInfoWidget();
-    void initFileListWidget();
+    QWidget* createStatusWidget();
+    QWidget* createPackageInfoWidget();
+    QWidget* createFileListWidget();
     QWidget *createWidget(QString title, QString value);
     void initPackageInfo(QString cmdline);
 

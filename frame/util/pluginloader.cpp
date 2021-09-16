@@ -41,10 +41,6 @@ void PluginLoader::run()
         if (!QLibrary::isLibrary(file))
             continue;
 
-        // TODO: old dock plugins is uncompatible
-        if (file.startsWith("libdde-dock-"))
-            continue;
-
         emit pluginFounded(pluginsDir.absoluteFilePath(file));
     }
 

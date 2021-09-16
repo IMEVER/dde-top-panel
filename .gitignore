@@ -42,3 +42,4 @@ build
 build-debug
 .vscode
 tags
+core

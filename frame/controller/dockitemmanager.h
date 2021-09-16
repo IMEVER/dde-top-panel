@@ -52,7 +52,7 @@ public slots:
     void itemMoved(DockItem *const sourceItem, DockItem *const targetItem);
 
 private:
-    explicit DockItemManager(QObject *parent = nullptr, bool enableBlacklist = false);
+    explicit DockItemManager(QObject *parent = nullptr);
     void pluginItemInserted(PluginsItem *item);
     void pluginItemRemoved(PluginsItem *item);
 
@@ -61,7 +61,6 @@ private:
     DockPluginsController *m_pluginsInter;
     static DockItemManager *INSTANCE;
     QList<QPointer<DockItem>> m_itemList;
-    bool enableBlacklist;
 };
 
 #endif // DOCKITEMMANAGER_H

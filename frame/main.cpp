@@ -9,6 +9,7 @@
 
 #include "../interfaces/constants.h"
 #include "../globalmenu/menuproxy.h"
+#include "../appmenu/menuimporter.h"
 
 DWIDGET_USE_NAMESPACE
 #ifdef DCORE_NAMESPACE
@@ -49,6 +50,9 @@ int main(int argc, char *argv[]) {
 
         TopPanelLauncher launcher;
         MenuProxy menuPrxy;
+
+        auto *menuImporter = new MenuImporter();
+        menuImporter->connectToBus();
 
         return app.exec();
     }

@@ -207,18 +207,21 @@ void DockItem::showContextMenu()
 
     hidePopup();
 
-    m_contextMenu.popup(QCursor::pos());
+    emit requestWindowAutoHide(false);
+
+    m_contextMenu.exec(QCursor::pos());
 
     onContextMenuAccepted();
 }
 
 void DockItem::menuActionClicked(QAction *action)
 {
-    invokedMenuItem(action->data().toString(), true);
+    invokedMenuItem(action->data().toString(), action->isChecked());
 }
 
 void DockItem::onContextMenuAccepted()
 {
+    emit requestWindowAutoHide(true);
 }
 
 void DockItem::showHoverTips()
@@ -241,6 +244,9 @@ void DockItem::showHoverTips()
 
 void DockItem::showPopupWindow(QWidget *const content, const bool model)
 {
+    if(model)
+        emit requestWindowAutoHide(false);
+
     if(itemType() == App){
         PopupWindow->setRadius(18);
     }else {
@@ -339,6 +345,9 @@ const QPoint DockItem::topleftPoint() const
 
 void DockItem::hidePopup()
 {
+    if(m_popupShown && PopupWindow->model())
+        emit requestWindowAutoHide(true);
+
     m_popupTipsDelayTimer->stop();
     m_popupAdjustDelayTimer->stop();
     m_popupShown = false;

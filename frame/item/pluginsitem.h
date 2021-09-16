@@ -30,7 +30,7 @@ class PluginsItem : public DockItem
     Q_OBJECT
 
 public:
-    explicit PluginsItem(PluginsItemInterface *const pluginInter, const QString &itemKey, QWidget *parent = nullptr);
+    explicit PluginsItem(PluginsItemInterface *const pluginInter, const QString &itemKey, const QString &api, QWidget *parent = nullptr);
     ~PluginsItem() override;
 
     int itemSortKey() const;
@@ -45,6 +45,7 @@ public:
     using DockItem::hidePopup;
 
     ItemType itemType() const override;
+    PluginsItemInterface::PluginSizePolicy pluginSizePolicy() const;
     QSize sizeHint() const override;
 
     QWidget *centralWidget() const;
@@ -77,6 +78,7 @@ private:
     QWidget *m_centralWidget;
 
     const QString m_itemKey;
+    const QString m_api;
     bool m_dragging;
 
     static QPoint MousePressPoint;

@@ -5,9 +5,11 @@
 #ifndef DDE_TOP_PANEL_MAINWINDOW_H
 #define DDE_TOP_PANEL_MAINWINDOW_H
 
+#include <QVariantAnimation>
 #include <DBlurEffectWidget>
 #include <DPlatformWindowHandle>
 #include <com_deepin_dde_daemon_dock.h>
+#include <com_deepin_api_xeventmonitor.h>
 
 #include "MainPanelControl.h"
 #include "statusnotifierwatcher_interface.h"
@@ -19,6 +21,7 @@
 
 DWIDGET_USE_NAMESPACE
 
+using XEventMonitor = ::com::deepin::api::XEventMonitor;
 using org::kde::StatusNotifierWatcher;
 using namespace Dock;
 using DBusDock = com::deepin::dde::daemon::Dock;
@@ -27,13 +30,17 @@ class MainWindow : public DBlurEffectWidget
 {
     Q_OBJECT
 
+    enum Flag{
+        Motion = 1 << 0,
+        Button = 1 << 1,
+        Key    = 1 << 2
+    };
+
 public:
-    explicit MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent = 0);
+    explicit MainWindow(QScreen *screen, bool disablePlugin, QWidget *parent = 0);
     ~MainWindow() override;
 
-    void loadPlugins();
     void moveToScreen(QScreen *screen);
-    void adjustPanelSize();
     void applyCustomSettings(const CustomSettings& customSettings);
 
 signals:
@@ -42,18 +49,20 @@ signals:
 
 private slots:
     void onDbusNameOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner);
+    void onRegionMonitorChanged(int x, int y, const QString &key);
+    void updateRegionMonitorWatch();
 
 public Q_SLOTS:
     void setRadius(int radius) {};
     void ToggleMenu(int id);
     void ActivateWindow();
+    void DeactivateWindow();
 
 protected:
-    bool event(QEvent *event) override;
+    void mousePressEvent(QMouseEvent *e) override;
+    void leaveEvent(QEvent *event) override;
 
 private:
-    void mousePressEvent(QMouseEvent *e) override;
-    void clearStrutPartial();
     void setStrutPartial();
     void initConnections();
     void initSNIHost();
@@ -64,12 +73,16 @@ private:
     TopPanelSettings *m_settings;
     XcbMisc *m_xcbMisc;
     DPlatformWindowHandle m_platformWindowHandle;
-    Qt::WindowFlags oldFlags;
 
-    QDBusConnectionInterface *m_dbusDaemonInterface;
     org::kde::StatusNotifierWatcher *m_sniWatcher;
     QString m_sniHostService;
     DBusDock *m_dockInter;
+    XEventMonitor *m_eventInter;
+    QString m_registerKey;
+    QVariantAnimation *m_showAnimation;
+    QVariantAnimation *m_hideAnimation;
+    QTimer *m_leaveTimer;
+    QSet<WId> fullscreenIds;
 };
 
 class TopPanelLauncher : public QObject {
@@ -79,16 +92,13 @@ public:
     explicit TopPanelLauncher();
 
 private slots:
-    void monitorsChanged();
     void primaryChanged();
+    void rearrange();
 
 private:
-    MainSettingWidget *m_settingWidget;
-
     QScreen *primaryScreen;
     DBusDisplay *m_display;
     QMap<QScreen *, MainWindow *> mwMap;
-    void rearrange();
 };
 
 

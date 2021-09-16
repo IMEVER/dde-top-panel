@@ -16,25 +16,22 @@ class TopPanelSettings : public QObject
     Q_OBJECT
 
 public:
-    explicit TopPanelSettings(DockItemManager *itemManager, QScreen *screen, QWidget *parent = 0);
+    explicit TopPanelSettings(QScreen *screen, QWidget *parent = 0);
 
     inline const QRect primaryRawRect() const { return m_primaryRawRect; }
-    inline const QSize windowSize() const { return m_mainWindowSize; }
-
+    QSize windowSize();
     const QRect windowRect() const;
-
     const QRect primaryRect() const;
-
     void showDockSettingsMenu();
-    void calculateWindowConfig();
-
-    QSize m_mainWindowSize;
-    QScreen *m_screen;
-
     void moveToScreen(QScreen *screen);
+    inline bool autoHide() { return m_autoHide; };
 
 signals:
     void settingActionClicked();
+    void autoHideChanged(bool autoHide);
+
+public slots:
+    void setAutoHide(bool autoHide);
 
 private slots:
     void menuActionClicked(QAction *action);
@@ -45,10 +42,11 @@ private:
     qreal dockRatio() const;
 
 private:
+    QScreen *m_screen;
     QRect m_primaryRawRect;
     QMenu m_settingsMenu;
     QMenu *m_hideSubMenu;
-    DockItemManager *m_itemManager;
+    bool m_autoHide;
 };
 
 #endif //DDE_TOP_PANEL_TOPPANELSETTINGS_H

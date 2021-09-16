@@ -23,13 +23,11 @@
 
 // Qt
 #include <QObject>
+#include <QMenu>
 
-class QAction;
 class QDBusPendingCallWatcher;
 class QDBusVariant;
 class QIcon;
-class QMenu;
-
 class DBusMenuImporterPrivate;
 
 /**
@@ -67,6 +65,10 @@ public:
      * The menu created from listening to the DBusMenuExporter over DBus
      */
     QMenu *menu() const;
+
+    QAction *getAction(QAction::MenuRole role);
+
+    bool isFirstShow();
 
 public Q_SLOTS:
     /**

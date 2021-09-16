@@ -6,38 +6,32 @@
 #include <QScreen>
 #include <QAction>
 
-TopPanelSettings::TopPanelSettings(DockItemManager *itemManager, QScreen *screen, QWidget *parent)
-        : QObject(parent)
-        , m_screen(screen)
-        , m_itemManager(itemManager)
+TopPanelSettings::TopPanelSettings(QScreen *screen, QWidget *parent)
+    : QObject(parent)
+    , m_autoHide(true)
 {
-    m_primaryRawRect = screen->geometry();
-    m_primaryRawRect.setHeight(m_primaryRawRect.height() * screen->devicePixelRatio());
-    m_primaryRawRect.setWidth(m_primaryRawRect.width() * screen->devicePixelRatio());
-
     m_hideSubMenu = new QMenu("插件");
     m_settingsMenu.addMenu(m_hideSubMenu);
     m_settingsMenu.addAction("设置", this, &TopPanelSettings::settingActionClicked);
 
     connect(&m_settingsMenu, &QMenu::triggered, this, &TopPanelSettings::menuActionClicked);
-
-    calculateWindowConfig();
+    moveToScreen(screen);
 }
 
-void TopPanelSettings::moveToScreen(QScreen *screen) {
+void TopPanelSettings::moveToScreen(QScreen *screen)
+{
     this->m_screen = screen;
     m_primaryRawRect = screen->geometry();
     m_primaryRawRect.setHeight(m_primaryRawRect.height() * screen->devicePixelRatio());
     m_primaryRawRect.setWidth(m_primaryRawRect.width() * screen->devicePixelRatio());
-
-    calculateWindowConfig();
 }
 
 void TopPanelSettings::showDockSettingsMenu()
 {
+    setAutoHide(false);
     // create actions
     QList<QAction *> actions;
-    for (auto *p : m_itemManager->pluginList()) {
+    for (auto *p : DockItemManager::instance()->pluginList()) {
         if (!p->pluginIsAllowDisable())
             continue;
 
@@ -63,6 +57,8 @@ void TopPanelSettings::showDockSettingsMenu()
     m_hideSubMenu->addActions(actions);
 
     m_settingsMenu.exec(QCursor::pos());
+
+    setAutoHide(true);
 }
 
 void TopPanelSettings::menuActionClicked(QAction *action)
@@ -73,16 +69,15 @@ void TopPanelSettings::menuActionClicked(QAction *action)
     const QString &data = action->data().toString();
     if (data.isEmpty())
         return;
-    for (auto *p : m_itemManager->pluginList()) {
+    for (auto *p : DockItemManager::instance()->pluginList()) {
         if (p->pluginName() == data)
             return p->pluginStateSwitched();
     }
 }
 
-void TopPanelSettings::calculateWindowConfig()
+QSize TopPanelSettings::windowSize()
 {
-    m_mainWindowSize.setHeight(DEFAULT_HEIGHT);
-    m_mainWindowSize.setWidth(m_screen->geometry().width());
+    return QSize(m_screen->geometry().width(), DEFAULT_HEIGHT);
 }
 
 const QRect TopPanelSettings::primaryRect() const
@@ -92,10 +87,19 @@ const QRect TopPanelSettings::primaryRect() const
 
 const QRect TopPanelSettings::windowRect() const
 {
-    return QRect(primaryRect().topLeft(), m_mainWindowSize);
+    return QRect(primaryRect().topLeft(), QSize(m_screen->geometry().width(), DEFAULT_HEIGHT));
 }
 
 qreal TopPanelSettings::dockRatio() const
 {
     return m_screen->devicePixelRatio();
+}
+
+void TopPanelSettings::setAutoHide(bool autoHide)
+{
+    if(m_autoHide != autoHide)
+    {
+        m_autoHide = autoHide;
+        emit autoHideChanged(m_autoHide);
+    }
 }

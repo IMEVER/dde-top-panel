@@ -46,7 +46,7 @@ public:
     ~AppMenuModel() override;
 
     QMenu *menu() const;
-    QAction * getAppMenu(QAction::MenuRole role);
+    QAction * getAction(QAction::MenuRole role);
     void updateApplicationMenu(KDBusMenuImporter *importer);
     void setWinId(const WId &id, bool isDesktop = false);
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -54,8 +54,6 @@ public:
 private:
     void clearMenuImporter();
     void initDesktopMenu();
-    void parseAppMenu(QMenu *menu);
-    void deleAppMenu(QMenu *menu);
 
 private Q_SLOTS:
     void onActiveWindowChanged();
@@ -75,8 +73,6 @@ private:
     KDBusMenuImporter *m_importer;
 
     QMap<WId, KDBusMenuImporter *> cachedImporter;
-
-    QMap<QAction::MenuRole, QAction*> *m_appMenuMap;
 
     // RegistrarProxy *registrarProxy;
     DBusRegistrar *dbusRegistrar;

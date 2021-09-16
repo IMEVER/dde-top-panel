@@ -26,7 +26,6 @@
 #include <QDBusReply>
 #include <QDBusVariant>
 #include <QFont>
-#include <QMenu>
 #include <QPointer>
 #include <QSignalMapper>
 #include <QTime>
@@ -44,14 +43,6 @@
 // Generated
 #include "dbusmenu_interface.h"
 
-#define DMRETURN_IF_FAIL(cond) if (!(cond)) { \
-        qWarning() << "Condition failed: " #cond; \
-        return; \
-    }
-
-static const int ABOUT_TO_SHOW_TIMEOUT = 3000;
-static const int REFRESH_TIMEOUT = 4000;
-
 static const char *DBUSMENU_PROPERTY_ID = "_dbusmenu_id";
 static const char *DBUSMENU_PROPERTY_ICON_NAME = "_dbusmenu_icon_name";
 static const char *DBUSMENU_PROPERTY_ICON_DATA_HASH = "_dbusmenu_icon_data_hash";
@@ -67,6 +58,8 @@ static QAction *createKdeTitle(QAction *action, QWidget *parent)
     titleWidget->setDown(true);
     titleWidget->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
+    action->deleteLater();
+
     QWidgetAction *titleAction = new QWidgetAction(parent);
     titleAction->setDefaultWidget(titleWidget);
     return titleAction;
@@ -80,19 +73,16 @@ public:
     ComCanonicalDbusmenuInterface *m_interface;
     QMenu *m_menu;
     using ActionForId = QMap<int, QAction *>;
+    QMap<QAction::MenuRole, QAction *> m_appMenus;
     ActionForId m_actionForId;
     QSignalMapper m_mapper;
     QSignalMapper m_hoverMap;
-
-    bool hasAboutRole = false;
-    bool hasQuitRole = false;
-    bool hasPreferenceRole = false;
 
     QSet<int> m_idsRefreshedByAboutToShow;
     QSet<int> m_needAboutToShow;
     QSet<int> m_pendingLayoutUpdates;
     QTimer *m_pendingLayoutUpdateTimer;
-    bool m_mustEmitMenuUpdated = true;
+    bool m_firstShow = true;
 
     DBusMenuImporterType m_type;
 
@@ -206,35 +196,34 @@ public:
         action->setText(text);
 
         QAction::MenuRole role = QAction::NoRole;
-        if(!action->menu() && (!hasAboutRole || !hasPreferenceRole || !hasQuitRole))
+        if(!action->menu() && m_appMenus.size() < 3)
         {
             const QString txt = text.replace(QRegExp("\\(.*\\)|\\[.*\\]|\\.*|\\s*"), "").trimmed().toLower();
             if(txt.length() < 12)
             {
-                if(!hasQuitRole && (txt.startsWith("退出") || txt.startsWith("quit") || txt.startsWith("exit")))
+                if(!m_appMenus.contains(QAction::QuitRole) && (txt.startsWith("退出") || txt.startsWith("quit") || txt.startsWith("exit")))
                 {
                     if(!txt.contains("playlist") && !txt.contains("列表") && !txt.contains("登录") && !txt.contains("login") && !txt.contains("account"))
                     {
                         role = QAction::QuitRole;
-                        hasQuitRole = true;
                     }
                 }
-                else if(!hasAboutRole && (txt.startsWith("关于") || txt.startsWith("about")))
+                else if(!m_appMenus.contains(QAction::AboutRole) && (txt.startsWith("关于") || txt.startsWith("about")))
                 {
                     if(!txt.contains("qt"))
                     {
                         role = QAction::AboutRole;
-                        hasAboutRole = true;
                     }
                 }
-                else if(!hasPreferenceRole && (txt == "设置" || txt.startsWith("偏好设置") || txt.startsWith("常规设置") || txt.startsWith("首选项") || txt.startsWith("选项") || txt.startsWith("preferences") || txt.startsWith("options") || txt.startsWith("settings") || txt.startsWith("config") || txt.startsWith("setup")))
+                else if(!m_appMenus.contains(QAction::PreferencesRole) && (txt == "设置" || txt.startsWith("偏好设置") || txt.startsWith("常规设置") || txt.startsWith("首选项") || txt.startsWith("选项") || txt.startsWith("preferences") || txt.startsWith("options") || txt.startsWith("settings") || txt.startsWith("config") || txt.startsWith("setup")))
                 {
                     role = QAction::PreferencesRole;
-                    hasPreferenceRole = true;
                 }
             }
         }
         action->setMenuRole(role);
+        if(QList<QAction::MenuRole>({QAction::QuitRole, QAction::AboutRole, QAction::PreferencesRole}).contains(role))
+            m_appMenus.insert(role, action);
     }
 
     void updateActionEnabled(QAction *action, const QVariant &value) {
@@ -373,12 +362,10 @@ public:
         switch (action->menuRole())
         {
         case QAction::AboutRole:
-            hasAboutRole = false;
-            break;
         case QAction::QuitRole:
-            hasQuitRole = false;
         case QAction::PreferencesRole:
-            hasPreferenceRole = false;
+            if(m_appMenus.contains(action->menuRole()) && m_appMenus.value(action->menuRole()) == action)
+                m_appMenus.remove(action->menuRole());
         default:
             break;
         }
@@ -459,6 +446,11 @@ QMenu *DBusMenuImporter::menu() const
     return d->m_menu;
 }
 
+QAction *DBusMenuImporter::getAction(QAction::MenuRole role)
+{
+    return d->m_appMenus.value(role);
+}
+
 void DBusMenuImporterPrivate::slotItemsPropertiesUpdated(const DBusMenuItemList &updatedList, const DBusMenuItemKeysList &removedList)
 {
     Q_FOREACH (const DBusMenuItem &item, updatedList) {
@@ -495,8 +487,8 @@ void DBusMenuImporterPrivate::slotItemsPropertiesUpdated(const DBusMenuItemList 
 void DBusMenuImporter::slotItemActivationRequested(int id, uint /*timestamp*/)
 {
     QAction *action = d->m_actionForId.value(id);
-    DMRETURN_IF_FAIL(action);
-    actionActivationRequested(action);
+    if(action)
+        actionActivationRequested(action);
 }
 
 void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
@@ -560,7 +552,7 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
             {
                 if(d->m_needAboutToShow.contains(parentId))
                     d->m_needAboutToShow.insert(action->property(DBUSMENU_PROPERTY_ID).toInt());
-                d->refresh(action->property(DBUSMENU_PROPERTY_ID).toInt())->waitForFinished();
+                d->refresh(action->property(DBUSMENU_PROPERTY_ID).toInt());
             }
         } else {
             action = d->m_actionForId[id];
@@ -578,6 +570,7 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
     if(d->m_needAboutToShow.contains(parentId)) {
         d->m_needAboutToShow.remove(parentId);
         QMetaObject::invokeMethod(menu, "aboutToShow");
+        // menu->aboutToShow();
         // d->m_pendingLayoutUpdates.clear();
     }
 }
@@ -592,12 +585,18 @@ void DBusMenuImporter::sendHoveredEvent(int id)
     d->sendEvent(id, QStringLiteral("hovered"));
 }
 
+bool DBusMenuImporter::isFirstShow()
+{
+    return d->m_firstShow;
+}
+
 void DBusMenuImporter::updateMenu()
 {
-    if(!d->m_mustEmitMenuUpdated)
-        emit menuUpdated();
-    else
+    if(d->m_firstShow)
         QMetaObject::invokeMethod(menu(), "aboutToShow");
+        // menu()->aboutToShow();
+    else
+        emit menuUpdated();
 }
 
 void DBusMenuImporter::slotMenuAboutToShow()
@@ -616,18 +615,18 @@ void DBusMenuImporter::slotMenuAboutToShow()
     watcher->setProperty(DBUSMENU_PROPERTY_ID, id);
     connect(watcher, &QDBusPendingCallWatcher::finished, this, &DBusMenuImporter::slotAboutToShowDBusCallFinished);
 
-    QPointer<QObject> guard(this);
+    // QPointer<QObject> guard(this);
 
-    if (!d->waitForWatcher(watcher, ABOUT_TO_SHOW_TIMEOUT)) {
-        qDebug() << "Application did not answer to AboutToShow() before timeout";
-    }
+    // if (!d->waitForWatcher(watcher, ABOUT_TO_SHOW_TIMEOUT)) {
+    //     qDebug() << "Application did not answer to AboutToShow() before timeout";
+    // }
 
-    // "this" got deleted during the call to waitForWatcher(), get out
-    if (!guard) {
-        return;
-    }
-    if (menu == d->m_menu && d->m_mustEmitMenuUpdated) {
-        d->m_mustEmitMenuUpdated = false;
+    // // "this" got deleted during the call to waitForWatcher(), get out
+    // if (!guard) {
+    //     return;
+    // }
+    if (menu == d->m_menu && d->m_firstShow) {
+        d->m_firstShow = false;
         emit menuUpdated();
     }
     // Firefox deliberately ignores "aboutToShow" whereas Qt ignores" opened", so we'll just send both all the time...
@@ -658,10 +657,11 @@ void DBusMenuImporter::slotAboutToShowDBusCallFinished(QDBusPendingCallWatcher *
     // qInfo()<<"AboutToShow finish with menu id: "<<id<<", need refresh: "<<needRefresh<<", child count: "<<menu->actions().count();
     if (needRefresh || menu->actions().isEmpty()) {
         d->m_idsRefreshedByAboutToShow << id;
-        QDBusPendingCallWatcher *watcher2 = d->refresh(id);
-        if (!d->waitForWatcher(watcher2, REFRESH_TIMEOUT)) {
-            qDebug() << "超时前程序没有刷新！";
-        }
+        d->refresh(id);
+    } else {
+        for(auto item : menu->actions())
+            if(item->menu())
+                QMetaObject::invokeMethod(item->menu(), "aboutToShow");
     }
 }
 

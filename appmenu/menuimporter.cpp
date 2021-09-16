@@ -120,9 +120,9 @@ MenuList MenuImporter::GetMenus()
 
 void MenuImporter::slotServiceUnregistered(const QString& service)
 {
-    WId id = m_menuServices.key(service);
-
-    UnregisterWindow(id);
+    QList<WId> ids = m_menuServices.keys(service);
+    for(WId id : ids)
+        UnregisterWindow(id);
 
     m_serviceWatcher->removeWatchedService(service);
 }

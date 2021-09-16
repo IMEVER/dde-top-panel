@@ -51,26 +51,26 @@ protected:
     QObject *pluginItemAt(PluginsItemInterface * const itemInter, const QString &itemKey) const;
     PluginsItemInterface *pluginInterAt(const QString &itemKey);
     PluginsItemInterface *pluginInterAt(QObject *destItem);
-    bool enableBlacklist;
 
 protected Q_SLOTS:
     void startLoader(PluginLoader *loader);
 
 private slots:
-    void displayModeChanged(){};
-    void positionChanged(){};
     void loadPlugin(const QString &pluginFile);
     void initPlugin(PluginsItemInterface *interface);
     void refreshPluginSettings();
 
-private:
-    bool eventFilter(QObject *o, QEvent *e) Q_DECL_OVERRIDE;
+signals:
+    void pluginLoaderFinished();
 
 private:
     QDBusConnectionInterface *m_dbusDaemonInterface;
     QGSettings *m_gsettings;
 
     QMap<PluginsItemInterface *, QMap<QString, QObject *>> m_pluginsMap;
+
+    // filepath, interface, loaded
+    QMap<QPair<QString, PluginsItemInterface *>, bool> m_pluginLoadMap;
 
     QJsonObject m_pluginSettingsObject;
 };

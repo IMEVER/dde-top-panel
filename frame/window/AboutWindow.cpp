@@ -12,6 +12,7 @@
 #include <QHeaderView>
 #include <QSizePolicy>
 #include <QFile>
+#include <QFileInfo>
 
 #include "../util/desktop_entry_stat.h"
 
@@ -65,7 +66,7 @@ public:
                 break;
             case Qt::BackgroundColorRole:
             case Qt::TextAlignmentRole:
-                return column == 0 ? Qt::AlignCenter : QVariant(Qt::AlignLeft|Qt::AlignVCenter) ;
+                return column == 0 ? Qt::AlignCenter : QVariant(Qt::AlignLeft|Qt::AlignVCenter);
             case Qt::CheckStateRole:
                 break;
         }
@@ -138,35 +139,35 @@ AboutWindow::AboutWindow(KWindowInfo kwin, QWidget *parent) : QDialog(parent)
 
     initData(kwin);
 
-    initStatusWidget();
-    initPackageInfoWidget();
-    initFileListWidget();
-
     setAttribute(Qt::WA_ShowModal, true);
     setFixedSize(640, 480);
     setWindowFlags(windowFlags() & ~Qt::WindowMinMaxButtonsHint);
     setAttribute(Qt::WA_QuitOnClose, false);
     setWindowTitle(QString("关于 - ").append(appInfo.m_title));
+
+    tabWidget->addTab(createStatusWidget(), "状态");
+    tabWidget->addTab(createPackageInfoWidget(), "包信息");
+    tabWidget->addTab(createFileListWidget(), "文件列表");
 }
 
 AboutWindow::~AboutWindow()
 {
-    tabWidget->deleteLater();
 }
 
-void AboutWindow::initStatusWidget()
+QWidget* AboutWindow::createStatusWidget()
 {
-    QWidget *statusWidget = new QWidget(this);statusWidget->setFixedSize(550, 410);
-    QVBoxLayout * vbox = new QVBoxLayout(statusWidget);vbox->setContentsMargins(2, 2, 2, 2);
-    tabWidget->addTab(statusWidget, "状态");
+    QWidget *statusWidget = new QWidget(this);//statusWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    QVBoxLayout * vbox = new QVBoxLayout(statusWidget);//vbox->setContentsMargins(2, 2, 2, 2);
 
-    vbox->addWidget(createWidget("标题", appInfo.m_title));
+    vbox->addWidget(createWidget("应用", appInfo.m_title));
+    vbox->addWidget(createWidget("包名", appInfo.m_packageName));
     vbox->addWidget(createWidget("文件", appInfo.m_desktopFile));
-    vbox->addWidget(createWidget("机器", appInfo.m_machine));
     vbox->addWidget(createWidget("类名", appInfo.m_className));
     vbox->addWidget(createWidget("程序", appInfo.m_cmdline));
     vbox->addWidget(createWidget("桌面", QString::number(appInfo.m_desktop)));
     vbox->addWidget(createWidget("进程", QString::number(appInfo.m_pid)));
+
+    return statusWidget;
 }
 
 QWidget *AboutWindow::createWidget(QString name, QString value)
@@ -174,7 +175,7 @@ QWidget *AboutWindow::createWidget(QString name, QString value)
     QWidget *widget = new QWidget(this);
     QHBoxLayout *hbox = new QHBoxLayout(widget);
 
-    widget->setFixedSize(550, 30);
+    widget->setFixedSize(QWIDGETSIZE_MAX, 30);
 
     QLabel *title = new QLabel(name, this);
     title->setFixedWidth(100);
@@ -194,35 +195,37 @@ QWidget *AboutWindow::createWidget(QString name, QString value)
     return widget;
 }
 
-void AboutWindow::initPackageInfoWidget()
+QWidget* AboutWindow::createPackageInfoWidget()
 {
     QTableView *packageInfoWidget = new QTableView(this);
-    tabWidget->addTab(packageInfoWidget, "包信息");
     // packageInfoWidget->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     packageInfoWidget->setColumnWidth(0, 100);
     packageInfoWidget->horizontalHeader()->setStretchLastSection(true);
+    packageInfoWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     packageInfoWidget->verticalHeader()->setDefaultSectionSize(1);
     packageInfoWidget->setWordWrap(true);
     // packageInfoWidget->setTextElideMode(Qt::ElideMiddle);
-    packageInfoWidget->resizeRowsToContents();
     packageInfoWidget->setModel(new PackageModel(appInfo.m_package, this));
+    // packageInfoWidget->resizeRowsToContents();
 
     packageInfoWidget->verticalHeader()->hide();
     packageInfoWidget->horizontalHeader()->hide();
+
+    return packageInfoWidget;
 }
 
-void AboutWindow::initFileListWidget()
+QWidget* AboutWindow::createFileListWidget()
 {
     QListWidget *fileListWidget = new QListWidget(this);
-    tabWidget->addTab(fileListWidget, "文件列表");
     fileListWidget->addItems(appInfo.m_fileList);
+
+    return fileListWidget;
 }
 
 void AboutWindow::initData(KWindowInfo kwin)
 {
     appInfo.m_title = kwin.name();
     appInfo.m_desktopFile = kwin.desktopFileName();
-    appInfo.m_machine = kwin.clientMachine();
     appInfo.m_className = kwin.windowClassName();
     appInfo.m_desktop = kwin.desktop();
     appInfo.m_pid = kwin.pid();
@@ -257,7 +260,21 @@ void AboutWindow::initData(KWindowInfo kwin)
         {
             appInfo.m_desktopFile = entry->desktopFile;
         }
-        initPackageInfo(entry->exec.first());
+        QString searchPath;
+        if(!appInfo.m_desktopFile.isEmpty())
+        {
+            QFileInfo file(appInfo.m_desktopFile);
+            if(file.exists()) {
+                if(file.isSymbolicLink())
+                    searchPath = file.symLinkTarget();
+                else
+                    searchPath = appInfo.m_desktopFile;
+            }
+        }
+        if(searchPath.isEmpty())
+            searchPath = entry->exec.first();
+
+        initPackageInfo(searchPath);
     }
     else
     {
@@ -274,6 +291,7 @@ void AboutWindow::initData(KWindowInfo kwin)
 
 void AboutWindow::initPackageInfo(QString cmdline)
 {
+    cmdline = cmdline.replace("\"", "");
     QProcess *process = new QProcess(this);
         process->start("dpkg", QStringList()<<"-S"<<cmdline);
         if(process->waitForStarted())
@@ -284,6 +302,7 @@ void AboutWindow::initPackageInfo(QString cmdline)
                 if (reply.isEmpty() == false)
                 {
                     QString packageName = QString(reply).split(":").first();
+                    appInfo.m_packageName = packageName;
                     process->close();
                     process->start("dpkg", {"--status", packageName});
                     if (process->waitForStarted())

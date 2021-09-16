@@ -44,7 +44,7 @@ class MenuImporter : public QObject, protected QDBusContext
     Q_CLASSINFO("D-Bus Interface", "com.canonical.AppMenu.Registrar")
 
 public:
-    explicit MenuImporter(QObject*);
+    explicit MenuImporter(QObject* parent=nullptr);
     ~MenuImporter() override;
 
     bool connectToBus();

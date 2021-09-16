@@ -25,10 +25,10 @@
 
 DockItemManager *DockItemManager::INSTANCE = nullptr;
 
-DockItemManager::DockItemManager(QObject *parent, bool enableBlacklist)
+DockItemManager::DockItemManager(QObject *parent)
     : QObject(parent)
     , m_updatePluginsOrderTimer(new QTimer(this))
-    , m_pluginsInter(new DockPluginsController(enableBlacklist, this))
+    , m_pluginsInter(new DockPluginsController(this))
 {
     // 更新插件顺序
     m_updatePluginsOrderTimer->setSingleShot(true);
@@ -170,6 +170,8 @@ void DockItemManager::pluginItemInserted(PluginsItem *item)
     // qDebug()<<item->pluginName()<<":\t"<<insertIndex<<", "<<firstPluginPosition<<endl;
 
     emit itemInserted(insertIndex - firstPluginPosition, item);
+    connect(item, &DockItem::requestWindowAutoHide, this, &DockItemManager::requestWindowAutoHide);
+    connect(item, &DockItem::requestRefreshWindowVisible, this, &DockItemManager::requestRefershWindowVisible, Qt::UniqueConnection);
 }
 
 void DockItemManager::pluginItemRemoved(PluginsItem *item)

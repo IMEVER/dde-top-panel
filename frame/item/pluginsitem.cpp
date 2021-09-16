@@ -22,6 +22,7 @@
 #include "constants.h"
 #include "pluginsitem.h"
 #include "pluginsiteminterface.h"
+#include "util/XUtils.h"
 
 #include <QPainter>
 #include <QBoxLayout>
@@ -33,11 +34,12 @@
 
 QPoint PluginsItem::MousePressPoint = QPoint();
 
-PluginsItem::PluginsItem(PluginsItemInterface *const pluginInter, const QString &itemKey, QWidget *parent)
+PluginsItem::PluginsItem(PluginsItemInterface *const pluginInter, const QString &itemKey, const QString &api, QWidget *parent)
     : DockItem(parent)
     , m_pluginInter(pluginInter)
     , m_centralWidget(m_pluginInter->itemWidget(itemKey))
     , m_itemKey(itemKey)
+    , m_api(api)
     , m_dragging(false)
 {
     qDebug() << "load plugins item: " << pluginInter->pluginName() << itemKey << pluginInter->type() << itemType();
@@ -88,6 +90,14 @@ DockItem::ItemType PluginsItem::itemType() const
     } else {
         return FixedPlugin;
     }
+}
+
+PluginsItemInterface::PluginSizePolicy PluginsItem::pluginSizePolicy() const
+{
+    if(XUtils::comparePluginApi(m_api, "1.2.2") > 0)
+        return m_pluginInter->pluginSizePolicy();
+    else
+        return PluginsItemInterface::System;
 }
 
 QSize PluginsItem::sizeHint() const

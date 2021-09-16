@@ -38,7 +38,6 @@ protected:
 
 private:
     void initMenuBar();
-    void updateAppMenu();
     void setButtonsVisible(bool visible);
     int currScreenNum();
 

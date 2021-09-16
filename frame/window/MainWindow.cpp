@@ -6,6 +6,7 @@
 #include "MainWindow.h"
 #include "controller/dockitemmanager.h"
 #include "dbustoppaneladaptors.h"
+#include "util/XUtils.h"
 
 #include <QScreen>
 #include <QApplication>
@@ -13,46 +14,75 @@
 #define SNI_WATCHER_SERVICE "org.kde.StatusNotifierWatcher"
 #define SNI_WATCHER_PATH "/StatusNotifierWatcher"
 
-MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
+MainWindow::MainWindow(QScreen *screen, bool disablePlugin, QWidget *parent)
     : DBlurEffectWidget(parent)
-    , m_itemManager(DockItemManager::instance(this))
+    , m_itemManager(disablePlugin ? nullptr : DockItemManager::instance(this))
     , m_mainPanel(new MainPanelControl(this))
     , m_xcbMisc(XcbMisc::instance())
     , m_platformWindowHandle(this, this)
-    , m_dbusDaemonInterface(QDBusConnection::sessionBus().interface())
-    , m_sniWatcher(new StatusNotifierWatcher(SNI_WATCHER_SERVICE, SNI_WATCHER_PATH, QDBusConnection::sessionBus(), this))
+    , m_sniWatcher(disablePlugin ? nullptr : new StatusNotifierWatcher(SNI_WATCHER_SERVICE, SNI_WATCHER_PATH, QDBusConnection::sessionBus(), this))
     , m_dockInter(new DBusDock("com.deepin.dde.daemon.Dock", "/com/deepin/dde/daemon/Dock", QDBusConnection::sessionBus(), this))
+    , m_eventInter(new XEventMonitor("com.deepin.api.XEventMonitor", "/com/deepin/api/XEventMonitor", QDBusConnection::sessionBus(), this))
+    , m_showAnimation(new QVariantAnimation(this))
+    , m_hideAnimation(new QVariantAnimation(this))
+    , m_leaveTimer(new QTimer(this))
+    , fullscreenIds({})
 {
-   setWindowFlag(Qt::WindowDoesNotAcceptFocus);
-    setWindowFlags(Qt::WindowStaysOnTopHint);
+    // setWindowFlag(Qt::WindowDoesNotAcceptFocus);
+    setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowDoesNotAcceptFocus);
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_AlwaysShowToolTips);
-    // setAttribute(Qt::WA_QuitOnClose, false);
-
-    setMouseTracking(true);
-    setAcceptDrops(true);
-    setVisible(true);
 
     QVBoxLayout *layout(new QVBoxLayout(this));
     layout->addWidget(m_mainPanel);
     layout->setSpacing(0);
     layout->setMargin(0);
 
-    m_settings = new TopPanelSettings(m_itemManager, screen, this);
-
-    this->setFixedSize(m_settings->m_mainWindowSize);
-
+    m_settings = new TopPanelSettings(screen, this);
     m_xcbMisc->set_window_type(winId(), XcbMisc::Dock);
 
-    initSNIHost();
+    if(!disablePlugin)
+        initSNIHost();
+
     this->initConnections();
 
-    for (auto item : m_itemManager->itemList())
-        m_mainPanel->insertItem(-1, item);
+    m_showAnimation->setStartValue(-m_settings->windowSize().height());
+    m_showAnimation->setEndValue(0);
+    m_showAnimation->setDuration(300);
+    m_showAnimation->setEasingCurve(QEasingCurve::Linear);
+    connect(m_showAnimation, &QPropertyAnimation::valueChanged, [ this ](const QVariant &value){
+        move(pos().x(), value.toDouble());
+    });
+    connect(m_showAnimation, &QVariantAnimation::finished, [ this ] {
+        move(pos().x(), 0);
+        show();
+    });
 
-    setStrutPartial();
+    m_hideAnimation->setStartValue(0);
+    m_hideAnimation->setEndValue(-m_settings->windowSize().height());
+    m_hideAnimation->setDuration(300);
+    m_hideAnimation->setEasingCurve(QEasingCurve::Linear);
+    connect(m_hideAnimation, &QPropertyAnimation::valueChanged, [ this ](const QVariant &value){ move(pos().x(), value.toDouble()); });
+    connect(m_hideAnimation, &QVariantAnimation::finished, this, [ this ]{
+        hide();
+        setWindowFlag(Qt::X11BypassWindowManagerHint, false);
+        setWindowFlag(Qt::WindowDoesNotAcceptFocus);
+        move(pos().x(), 0);
+        m_xcbMisc->set_window_type(winId(), XcbMisc::Dock);
+        setStrutPartial();
+        show();
+     });
 
-    this->move(m_settings->primaryRect().topLeft());
+    m_leaveTimer->setSingleShot(true);
+    m_leaveTimer->setInterval(1000);
+    connect(m_leaveTimer, &QTimer::timeout, [this]{
+        if(m_settings->autoHide() && (windowFlags() & Qt::X11BypassWindowManagerHint) && m_hideAnimation->state() != QVariantAnimation::Running && !m_settings->windowRect().contains(QCursor::pos()))
+        {
+            if(m_showAnimation->state() == QVariantAnimation::Running)
+                m_showAnimation->stop();
+            m_hideAnimation->start();
+        }
+    });
 
     // platformwindowhandle only works when the widget is visible...
     DPlatformWindowHandle::enableDXcbForWindow(this, true);
@@ -67,7 +97,11 @@ MainWindow::MainWindow(QScreen *screen, bool enableBlacklist, QWidget *parent)
     setMaskColor(AutoColor);
     setMaskAlpha(m_dockInter->opacity() * 255);
 
+    moveToScreen(screen);
+
     this->applyCustomSettings(*CustomSettings::instance());
+    if(m_itemManager)
+        this->m_itemManager->startLoadPlugins();
 }
 
 MainWindow::~MainWindow() {
@@ -75,54 +109,18 @@ MainWindow::~MainWindow() {
     QDBusConnection::sessionBus().unregisterService(m_sniHostService);
 }
 
-    const QScreen * screenAtByScaled(const QPoint &point) {
-        for (QScreen *screen : qApp->screens()) {
-            if (screen->geometry().contains(point)) {
-                return screen;
-            }
-        }
-
-        return nullptr;
-    }
-
-const QPoint rawXPosition(const QPoint &scaledPos)
-{
-    QScreen const *screen = screenAtByScaled(scaledPos);
-    return screen ? scaledPos * screen->devicePixelRatio() : scaledPos;
-}
-
-void MainWindow::clearStrutPartial()
-{
-    m_xcbMisc->clear_strut_partial(winId());
-}
-
 void MainWindow::setStrutPartial()
 {
     // first, clear old strut partial
-    clearStrutPartial();
+    m_xcbMisc->clear_strut_partial(winId());
 
-    const auto ratio = devicePixelRatioF();
     const QRect &primaryRawRect = m_settings->primaryRawRect();
-    const int maxScreenHeight = primaryRawRect.height();
-    const int maxScreenWidth = primaryRawRect.width();
-    const QPoint &p = rawXPosition(m_settings->windowRect().topLeft());
-    const QSize &s = m_settings->windowSize();
 
-    uint strut = 0;
-    uint strutTop = 0;
-    uint strutStart = 0;
-    uint strutEnd = 0;
-
-    QRect strutArea(0, 0, maxScreenWidth, maxScreenHeight);
-
-    strut = primaryRawRect.top() + s.height() * ratio;
-    strutTop = primaryRawRect.top();
-    strutStart = primaryRawRect.left();
-    strutEnd = primaryRawRect.right();
-    strutArea.setTop(strutTop);
-    strutArea.setLeft(strutStart);
-    strutArea.setRight(strutEnd);
-    strutArea.setBottom(strut);
+    uint strut = primaryRawRect.top() + m_settings->windowSize().height() * devicePixelRatioF();
+    uint strutTop = primaryRawRect.top();
+    uint strutStart = primaryRawRect.left();
+    uint strutEnd = primaryRawRect.right();
+    QRect strutArea(strutStart, strutTop, strutEnd, strut);
 
     // pass if strut area is intersect with other screen
     int count = 0;
@@ -136,8 +134,6 @@ void MainWindow::setStrutPartial()
             ++count;
     }
     if (count > 0) {
-        qWarning() << "strutArea is intersects with another screen.";
-        qWarning() << maxScreenHeight << maxScreenWidth << p << s;
         return;
     }
     m_xcbMisc->set_strut_partial(winId(), XcbMisc::OrientationTop, strut, strutStart, strutEnd);
@@ -155,6 +151,7 @@ void MainWindow::initSNIHost()
         m_sniWatcher->RegisterStatusNotifierHost(m_sniHostService);
     } else {
         qDebug() << SNI_WATCHER_SERVICE << "SNI watcher daemon is not exist for now!";
+        connect(QDBusConnection::sessionBus().interface(), &QDBusConnectionInterface::serviceOwnerChanged, this, &MainWindow::onDbusNameOwnerChanged);
     }
 }
 
@@ -169,14 +166,38 @@ void MainWindow::onDbusNameOwnerChanged(const QString &name, const QString &oldO
 }
 
 void MainWindow::initConnections() {
-    connect(m_itemManager, &DockItemManager::itemInserted, m_mainPanel, &MainPanelControl::insertItem, Qt::DirectConnection);
-    connect(m_itemManager, &DockItemManager::itemUpdated, m_mainPanel, &MainPanelControl::itemUpdated, Qt::DirectConnection);
-    connect(m_itemManager, &DockItemManager::itemRemoved, m_mainPanel, &MainPanelControl::removeItem, Qt::DirectConnection);
+    if(m_itemManager)
+    {
+        connect(m_itemManager, &DockItemManager::itemInserted, m_mainPanel, &MainPanelControl::insertItem, Qt::DirectConnection);
+        connect(m_itemManager, &DockItemManager::itemUpdated, m_mainPanel, &MainPanelControl::itemUpdated, Qt::DirectConnection);
+        connect(m_itemManager, &DockItemManager::itemRemoved, m_mainPanel, &MainPanelControl::removeItem, Qt::DirectConnection);
+        connect(m_itemManager, &DockItemManager::requestWindowAutoHide, m_settings, &TopPanelSettings::setAutoHide);
 
-    connect(m_mainPanel, &MainPanelControl::itemMoved, m_itemManager, &DockItemManager::itemMoved, Qt::DirectConnection);
+        connect(m_mainPanel, &MainPanelControl::itemMoved, m_itemManager, &DockItemManager::itemMoved, Qt::DirectConnection);
+    }
 
-    connect(DWindowManagerHelper::instance(), &DWindowManagerHelper::hasCompositeChanged, this, [this](){
-        QTimer::singleShot(10000, this, [ this ](){
+        connect(m_settings, &TopPanelSettings::autoHideChanged, [ this ](bool autoHide) {
+            if(fullscreenIds.isEmpty())
+                return;
+
+            if(autoHide && (windowFlags() & Qt::X11BypassWindowManagerHint))
+            {
+                if(!m_leaveTimer->isActive() && m_hideAnimation->state() != QVariantAnimation::Running)
+                    m_leaveTimer->start();
+            }
+            else
+            {   if(m_leaveTimer->isActive())
+                    m_leaveTimer->stop();
+                if(m_hideAnimation->state() == QVariantAnimation::Running)
+                {
+                    m_hideAnimation->stop();
+                    m_showAnimation->start();
+                }
+            }
+        });
+
+    connect(DWindowManagerHelper::instance(), &DWindowManagerHelper::hasCompositeChanged, this, [this]{
+        QTimer::singleShot(10000, this, [ this ]{
             DPlatformWindowHandle::enableDXcbForWindow(this, true);
             m_platformWindowHandle.setEnableBlurWindow(true);
             m_platformWindowHandle.setTranslucentBackground(true);
@@ -189,12 +210,43 @@ void MainWindow::initConnections() {
         this->m_platformWindowHandle.setShadowRadius(opacity < 0.2 ? 10 : 20);
     });
 
-    connect(m_dbusDaemonInterface, &QDBusConnectionInterface::serviceOwnerChanged, this, &MainWindow::onDbusNameOwnerChanged);
-
     connect(m_settings, &TopPanelSettings::settingActionClicked, this, &MainWindow::settingActionClicked);
-    connect(CustomSettings::instance(), &CustomSettings::settingsChanged, this, [this]() {
+    connect(CustomSettings::instance(), &CustomSettings::settingsChanged, this, [this] {
         this->applyCustomSettings(*CustomSettings::instance());
     });
+
+    // connect(windowHandle(), &QWindow::visibleChanged, this, &MainWindow::updateRegionMonitorWatch);
+
+    connect(KWindowSystem::self(), qOverload<WId, NET::Properties, NET::Properties2>(&KWindowSystem::windowChanged), [this](WId wId, NET::Properties properties, NET::Properties2 properties2){
+        if(QApplication::desktop()->screenNumber(this) != XUtils::getWindowScreenNum(wId))
+            return;
+
+        if(properties.testFlag(NET::WMState))
+        {
+            KWindowInfo kwin(wId, NET::WMState);
+            if(kwin.valid())
+            {
+                if(kwin.hasState(NET::FullScreen))
+                {
+                    if(!fullscreenIds.contains(wId))
+                    {
+                        fullscreenIds.insert(wId);
+                        if(fullscreenIds.count() == 1)
+                            updateRegionMonitorWatch();
+                    }
+                }
+                else if(fullscreenIds.contains(wId))
+                {
+                    fullscreenIds.remove(wId);
+                    if(fullscreenIds.count() == 0)
+                        updateRegionMonitorWatch();
+                }
+            }
+        }
+    });
+
+    connect(m_eventInter, &XEventMonitor::CursorInto, this, &MainWindow::onRegionMonitorChanged);
+    // connect(m_eventInter, &XEventMonitor::CursorOut, this, &MainWindow::onRegionMonitorChanged);
 }
 
 void MainWindow::mousePressEvent(QMouseEvent *e)
@@ -205,21 +257,15 @@ void MainWindow::mousePressEvent(QMouseEvent *e)
     }
 }
 
-void MainWindow::loadPlugins() {
-    this->m_itemManager->startLoadPlugins();
-}
-
 void MainWindow::moveToScreen(QScreen *screen) {
+    hide();
     m_settings->moveToScreen(screen);
-    this->resize(m_settings->m_mainWindowSize);
+    this->resize(m_settings->windowSize());
     m_mainPanel->adjustSize();
     QThread::msleep(100);  // sleep for a short while to make sure the movement is successful
     this->move(m_settings->primaryRect().topLeft());
     this->setStrutPartial();
-}
-
-void MainWindow::adjustPanelSize() {
-    this->m_mainPanel->adjustSize();
+    show();
 }
 
 void MainWindow::applyCustomSettings(const CustomSettings &customSettings) {
@@ -228,15 +274,66 @@ void MainWindow::applyCustomSettings(const CustomSettings &customSettings) {
     this->m_mainPanel->applyCustomSettings(customSettings);
 }
 
+void MainWindow::updateRegionMonitorWatch()
+{
+    if (!m_registerKey.isEmpty())
+    {
+        m_eventInter->UnregisterArea(m_registerKey);
+    }
+
+    if (fullscreenIds.isEmpty())
+    {
+        if(m_showAnimation->state() == QVariantAnimation::Running)
+            m_showAnimation->stop();
+
+        if((windowFlags() & Qt::X11BypassWindowManagerHint) && !m_leaveTimer->isActive() && m_hideAnimation->state() != QVariantAnimation::Running)
+            m_hideAnimation->start();
+
+        return;
+    }
+
+    const int flags = Motion | Button | Key;
+    const QRect windowRect = m_settings->windowRect();
+    const qreal scale = devicePixelRatioF();
+    int x, y, w, h;
+
+    x = windowRect.x();
+    y = windowRect.y();
+    w = windowRect.width();
+    h = windowRect.height();
+
+    m_registerKey = m_eventInter->RegisterArea(x * scale, y * scale, w * scale, 3, flags);
+}
+
+void MainWindow::onRegionMonitorChanged(int x, int y, const QString &key)
+{
+    if(key == m_registerKey)
+    {
+        ActivateWindow();
+    }
+}
+
 void MainWindow::ActivateWindow()
 {
-    if (!isVisible())
+    if (!fullscreenIds.isEmpty() && !(windowFlags() & Qt::X11BypassWindowManagerHint))
     {
-        oldFlags = windowFlags();
-        setWindowFlag(Qt::X11BypassWindowManagerHint);
-        show();
-        activateWindow();
-        raise();
+        int wId = XUtils::getFocusWindowId();
+        if(XUtils::getWindowScreenNum(wId) == QApplication::desktop()->screenNumber(this) && XUtils::checkIfWinFullscreen(wId))
+        {
+           setWindowFlag(Qt::X11BypassWindowManagerHint);
+           setWindowFlag(Qt::WindowDoesNotAcceptFocus, false);
+           m_showAnimation->start();
+           show();
+        //    activateWindow();
+        }
+    }
+}
+
+void MainWindow::DeactivateWindow()
+{
+    if(windowFlags() & Qt::X11BypassWindowManagerHint)
+    {
+        m_hideAnimation->start();
     }
 }
 
@@ -245,29 +342,20 @@ void MainWindow::ToggleMenu(int id)
     this->m_mainPanel->toggleMenu(id);
 }
 
-bool MainWindow::event(QEvent *event)
+void MainWindow::leaveEvent(QEvent *event)
 {
-    if (event->type() == QEvent::WindowDeactivate)
-    {
-        setWindowFlags(oldFlags);
-        m_xcbMisc->set_window_type(winId(), XcbMisc::Dock);
-        setStrutPartial();
-        show();
-    }
-    return QWidget::event(event);
+    if(fullscreenIds.count() > 0 && windowFlags() & Qt::X11BypassWindowManagerHint && m_settings->autoHide() && !m_leaveTimer->isActive() && m_hideAnimation->state() != QVariantAnimation::Running)
+        m_leaveTimer->start();
+    DBlurEffectWidget::leaveEvent(event);
 }
 
 TopPanelLauncher::TopPanelLauncher()
-    : m_display(new DBusDisplay(this))
+    : primaryScreen(nullptr)
+    , m_display(new DBusDisplay(this))
 {
-    this->m_settingWidget = new MainSettingWidget();
-    connect(m_display, &DBusDisplay::MonitorsChanged, this, &TopPanelLauncher::monitorsChanged);
+    connect(m_display, &DBusDisplay::MonitorsChanged, this, &TopPanelLauncher::rearrange);
     connect(m_display, &DBusDisplay::PrimaryChanged, this, &TopPanelLauncher::primaryChanged);
     this->rearrange();
-}
-
-void TopPanelLauncher::monitorsChanged() {
-    rearrange();
 }
 
 void TopPanelLauncher::rearrange() {
@@ -275,28 +363,25 @@ void TopPanelLauncher::rearrange() {
 
     for (auto p_screen : qApp->screens()) {
         if (mwMap.contains(p_screen)) {
-            // adjust size
-            mwMap[p_screen]->hide();
             mwMap[p_screen]->moveToScreen(p_screen);
-            mwMap[p_screen]->show();
-            mwMap[p_screen]->setRadius(0);
             continue;
         }
 
         qDebug() << "===========> create top panel on" << p_screen->name();
         MainWindow *mw = new MainWindow(p_screen, p_screen != qApp->primaryScreen());
-        connect(mw, &MainWindow::settingActionClicked, this, [this]() {
+        connect(mw, &MainWindow::settingActionClicked, this, [this]{
             int screenNum = QApplication::desktop()->screenNumber(dynamic_cast<MainWindow*>(sender()));
-            this->m_settingWidget->move(qApp->screens().at(screenNum)->availableGeometry().center() - this->m_settingWidget->rect().center());
-            this->m_settingWidget->show();
+            MainSettingWidget *m_settingWidget = new MainSettingWidget();
+            m_settingWidget->move(qApp->screens().at(screenNum)->availableGeometry().center() - m_settingWidget->rect().center());
+            m_settingWidget->show();
         });
-        if (p_screen == qApp->primaryScreen()) {
-            mw->loadPlugins();
-        }
         mwMap.insert(p_screen, mw);
 
-        new DBusTopPanelAdaptors (mw);
-        QDBusConnection::sessionBus().registerObject("/me/imever/dde/TopPanel", "me.imever.dde.TopPanel", mw);
+        if(p_screen == qApp->primaryScreen())
+        {
+            new DBusTopPanelAdaptors (mw);
+            QDBusConnection::sessionBus().registerObject("/me/imever/dde/TopPanel", "me.imever.dde.TopPanel", mw);
+        }
     }
 
     for (auto screen : mwMap.keys()) {
@@ -324,40 +409,25 @@ void TopPanelLauncher::primaryChanged() {
     MainWindow *pMw = nullptr;
     if (ifRawPrimaryExisted) {
         pMw = mwMap[primaryScreen];
+        mwMap.remove(primaryScreen);
         pMw->hide();
     }
 
     if (ifCurrPrimaryExisted) {
-        mwMap[currPrimaryScreen]->hide();
         if (ifRawPrimaryExists) {
             mwMap[currPrimaryScreen]->moveToScreen(primaryScreen);
             mwMap[primaryScreen] = mwMap[currPrimaryScreen];
         } else {
-            mwMap[currPrimaryScreen]->close();
-            mwMap.remove(primaryScreen);
+            MainWindow *tmp = mwMap[currPrimaryScreen];
+            mwMap[currPrimaryScreen]->hide();
+            tmp->deleteLater();
         }
+        mwMap.remove(currPrimaryScreen);
     }
 
     if (ifRawPrimaryExisted) {
         pMw->moveToScreen(currPrimaryScreen);
-        if (mwMap.contains(currPrimaryScreen)) {
-            mwMap[currPrimaryScreen] = pMw;
-        } else {
-            mwMap.insert(currPrimaryScreen, pMw);
-        }
-        pMw->show();
-        pMw->setRadius(0);
-
-        if (ifRawPrimaryExists) {
-            mwMap[primaryScreen]->show();
-        } else {
-            mwMap.remove(primaryScreen);
-        }
-
-        if (!ifCurrPrimaryExisted) {
-            mwMap.remove(primaryScreen);
-        }
+        mwMap.insert(currPrimaryScreen, pMw);
     }
-
     this->primaryScreen = currPrimaryScreen;
 }

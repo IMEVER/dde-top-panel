@@ -48,7 +48,7 @@ struct AppInfo
     public:
     QString m_title;
     QString m_desktopFile;
-    QString m_machine;
+    QString m_packageName;
     QString m_cmdline;
     QString m_className;
     int m_desktop;

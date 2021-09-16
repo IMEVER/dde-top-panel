@@ -7,6 +7,7 @@ ShowDesktopWidget::ShowDesktopWidget(QWidget *parent) : QWidget(parent)
 {
     this->setToolTip("显示桌面");
     this->setMouseTracking(true);
+    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
 
 ShowDesktopWidget::~ShowDesktopWidget()
@@ -15,7 +16,7 @@ ShowDesktopWidget::~ShowDesktopWidget()
 
 QSize ShowDesktopWidget::sizeHint() const
 {
-    return QSize(10, 32);
+    return QSize(10, height());
 }
 
 void ShowDesktopWidget::enterEvent(QEvent *event)

@@ -27,11 +27,9 @@
 #include <QDir>
 #include <QDrag>
 
-DockPluginsController::DockPluginsController(bool enableBlacklist, QObject *parent)
+DockPluginsController::DockPluginsController(QObject *parent)
     : AbstractPluginsController(parent)
 {
-    setObjectName("DockPlugin");
-    this->enableBlacklist = enableBlacklist;
 }
 
 void DockPluginsController::itemAdded(PluginsItemInterface *const itemInter, const QString &itemKey)
@@ -43,14 +41,20 @@ void DockPluginsController::itemAdded(PluginsItemInterface *const itemInter, con
         if (mPluginsMap[itemInter].contains(itemKey))
             return;
 
+    // 取 plugin api
+    QPluginLoader *pluginLoader = qobject_cast<QPluginLoader*>(mPluginsMap[itemInter].value("pluginloader"));
+    const QJsonObject &meta = pluginLoader->metaData().value("MetaData").toObject();
+    const QString &pluginApi = meta.value("api").toString();
+
     PluginsItem *item = nullptr;
     if (itemInter->pluginName() == "tray") {
-        item = new TrayPluginItem(itemInter, itemKey);
+        item = new TrayPluginItem(itemInter, itemKey, pluginApi);
         if (item->graphicsEffect()) {
             item->graphicsEffect()->setEnabled(false);
         }
+        item->centralWidget()->setProperty("iconSize", DEFAULT_HEIGHT - 4);
     } else {
-        item = new PluginsItem(itemInter, itemKey);
+        item = new PluginsItem(itemInter, itemKey, pluginApi);
     }
 
     mPluginsMap[itemInter][itemKey] = item;
@@ -88,6 +92,9 @@ void DockPluginsController::itemRemoved(PluginsItemInterface *const itemInter, c
 
     // just delete our wrapper object(PluginsItem)
     item->deleteLater();
+
+    if(mPluginsMap[itemInter].isEmpty() && !itemInter->pluginIsAllowDisable())
+        mPluginsMap.remove(itemInter);
 }
 
 void DockPluginsController::requestSetAppletVisible(PluginsItemInterface *const itemInter, const QString &itemKey, const bool visible)
@@ -102,6 +109,25 @@ void DockPluginsController::requestSetAppletVisible(PluginsItemInterface *const 
         item->hidePopup();
     }
 }
+
+void DockPluginsController::requestWindowAutoHide(PluginsItemInterface *const itemInter, const QString &itemKey, const bool autoHide)
+{
+    PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey));
+    if (!item)
+        return;
+
+    Q_EMIT item->requestWindowAutoHide(autoHide);
+}
+
+void DockPluginsController::requestRefreshWindowVisible(PluginsItemInterface *const itemInter, const QString &itemKey)
+{
+    PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey));
+    if (!item)
+        return;
+
+    Q_EMIT item->requestRefreshWindowVisible();
+}
+
 
 void DockPluginsController::startLoader()
 {

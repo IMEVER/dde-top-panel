@@ -41,11 +41,7 @@ AbstractPluginsController::AbstractPluginsController(QObject *parent)
     , m_dbusDaemonInterface(QDBusConnection::sessionBus().interface())
     , m_gsettings(new QGSettings("me.imever.dde.toppanel"))
 {
-    qApp->installEventFilter(this);
-
     m_pluginSettingsObject = QJsonDocument::fromJson(m_gsettings->get("plugin-settings").toString().toUtf8()).object();
-
-    // refreshPluginSettings();
 }
 
 void AbstractPluginsController::saveValue(PluginsItemInterface *const itemInter, const QString &key, const QVariant &value)
@@ -129,6 +125,12 @@ PluginsItemInterface *AbstractPluginsController::pluginInterAt(QObject *destItem
 void AbstractPluginsController::startLoader(PluginLoader *loader)
 {
     connect(loader, &PluginLoader::finished, loader, &PluginLoader::deleteLater, Qt::QueuedConnection);
+    connect(loader, &PluginLoader::pluginFounded, this, [ = ](const QString &pluginFile){
+        QPair<QString, PluginsItemInterface *> pair;
+        pair.first = pluginFile;
+        pair.second = nullptr;
+        m_pluginLoadMap.insert(pair, false);
+    });
     connect(loader, &PluginLoader::pluginFounded, this, &AbstractPluginsController::loadPlugin, Qt::QueuedConnection);
 
     QTimer::singleShot(m_gsettings->get("delay-plugins-time").toUInt(), loader, [ = ] { loader->start(QThread::LowestPriority); });
@@ -139,7 +141,7 @@ void AbstractPluginsController::loadPlugin(const QString &pluginFile)
     QPluginLoader *pluginLoader = new QPluginLoader(pluginFile);
     const QJsonObject &meta = pluginLoader->metaData().value("MetaData").toObject();
     const QString &pluginApi = meta.value("api").toString();
-    bool pluginIsValid = true;
+    bool pluginIsValid = true; //qInfo()<<"File: "<<pluginFile <<"\tmeta: " << meta;
     if (pluginApi.isEmpty() || !CompatiblePluginApiList.contains(pluginApi)) {
         qWarning() << objectName()
                    << "plugin api version not matched! expect versions:" << CompatiblePluginApiList
@@ -160,6 +162,11 @@ void AbstractPluginsController::loadPlugin(const QString &pluginFile)
     }
 
     if (!pluginIsValid) {
+        for (auto &pair: m_pluginLoadMap.keys()) {
+            if (pair.first == pluginFile) {
+                m_pluginLoadMap.remove(pair);
+            }
+        }
         QString notifyMessage(tr("The plugin %1 is not compatible with the system."));
         Dtk::Core::DUtil::DNotifySender(notifyMessage.arg(QFileInfo(pluginFile).fileName())).appIcon("dialog-warning").call();
         return;
@@ -167,31 +174,50 @@ void AbstractPluginsController::loadPlugin(const QString &pluginFile)
 
     if (interface->pluginName() == "multitasking") {
         if (qEnvironmentVariable("XDG_SESSION_TYPE").contains("wayland") or Dtk::Core::DSysInfo::deepinType() == Dtk::Core::DSysInfo::DeepinServer)
-            return;
-    }
-
-    if (enableBlacklist) {
-        if (interface->pluginName() == "tray") {
-            qDebug() << "Prevent from loading tray plugin due to the blacklist";
+        {
+            for (auto &pair: m_pluginLoadMap.keys()) {
+                if (pair.first == pluginFile) {
+                    m_pluginLoadMap.remove(pair);
+                }
+            }
             return;
         }
     }
 
-    m_pluginsMap.insert(interface, QMap<QString, QObject *>());
+
+    QMapIterator<QPair<QString, PluginsItemInterface *>, bool> it(m_pluginLoadMap);
+    while (it.hasNext()) {
+        it.next();
+        if (it.key().first == pluginFile)
+        {
+            m_pluginLoadMap.remove(it.key());
+            QPair<QString, PluginsItemInterface *> newPair;
+            newPair.first = pluginFile;
+            newPair.second = interface;
+            m_pluginLoadMap.insert(newPair, false);
+
+            break;
+        }
+    }
+
+    // 保存 PluginLoader 对象指针
+    QMap<QString, QObject *> interfaceData;
+    interfaceData["pluginloader"] = pluginLoader;
+    m_pluginsMap.insert(interface, interfaceData);
 
     QString dbusService = meta.value("depends-daemon-dbus-service").toString();
-    if (!dbusService.isEmpty() && !m_dbusDaemonInterface->isServiceRegistered(dbusService).value()) {
+    if (!dbusService.isEmpty() && !m_dbusDaemonInterface->isServiceRegistered(dbusService).value())
+    {
         qDebug() << objectName() << dbusService << "daemon has not started, waiting for signal";
         connect(m_dbusDaemonInterface, &QDBusConnectionInterface::serviceOwnerChanged, this,
-        [ = ](const QString & name, const QString & oldOwner, const QString & newOwner) {
-            Q_UNUSED(oldOwner);
-            if (name == dbusService && !newOwner.isEmpty()) {
-                qDebug() << objectName() << dbusService << "daemon started, init plugin and disconnect";
-                initPlugin(interface);
-                disconnect(m_dbusDaemonInterface);
-            }
-        }
-               );
+            [ = ](const QString & name, const QString & oldOwner, const QString & newOwner) {
+                Q_UNUSED(oldOwner);
+                if (name == dbusService && !newOwner.isEmpty()) {
+                    qDebug() << objectName() << dbusService << "daemon started, init plugin and disconnect";
+                    initPlugin(interface);
+                    disconnect(m_dbusDaemonInterface);
+                }
+            });
         return;
     }
 
@@ -207,6 +233,24 @@ void AbstractPluginsController::initPlugin(PluginsItemInterface *interface)
 {
     qDebug() << objectName() << "init plugin: " << interface->pluginName();
     interface->init(this);
+
+    for (const auto &pair : m_pluginLoadMap.keys()) {
+        if (pair.second == interface)
+            m_pluginLoadMap.insert(pair, true);
+    }
+
+    bool loaded = true;
+    for (int i = 0; i < m_pluginLoadMap.keys().size(); ++i) {
+        if (!m_pluginLoadMap.values()[i]) {
+            loaded = false;
+            break;
+        }
+    }
+
+    //插件全部加载完成
+    if (loaded) {
+        emit pluginLoaderFinished();
+    }
     qDebug() << objectName() << "init plugin finished: " << interface->pluginName();
 }
 
@@ -253,14 +297,4 @@ void AbstractPluginsController::refreshPluginSettings()
             itemAdded(it.key(), key);
         }
     }
-}
-
-bool AbstractPluginsController::eventFilter(QObject *o, QEvent *e)
-{
-    if (o != qApp)
-        return false;
-    if (e->type() != QEvent::DynamicPropertyChange)
-        return false;
-
-    return false;
 }

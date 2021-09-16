@@ -29,7 +29,7 @@ class TrayPluginItem : public PluginsItem
     Q_OBJECT
 
 public:
-    TrayPluginItem(PluginsItemInterface* const pluginInter, const QString &itemKey, QWidget *parent = 0);
+    TrayPluginItem(PluginsItemInterface* const pluginInter, const QString &itemKey, const QString &api, QWidget *parent = 0);
 
     inline ItemType itemType() const Q_DECL_OVERRIDE {return ItemType::TrayPlugin;}
 

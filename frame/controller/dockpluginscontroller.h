@@ -42,12 +42,14 @@ class DockPluginsController : public AbstractPluginsController
     friend class DockItemManager;
 
 public:
-    explicit DockPluginsController(bool enableBlacklist = false, QObject *parent = 0);
+    explicit DockPluginsController(QObject *parent = 0);
 
     // implements PluginProxyInterface
     void itemAdded(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
     void itemUpdate(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
     void itemRemoved(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
+    void requestWindowAutoHide(PluginsItemInterface *const itemInter, const QString &itemKey, const bool autoHide) Q_DECL_OVERRIDE;
+    void requestRefreshWindowVisible(PluginsItemInterface *const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
     void requestSetAppletVisible(PluginsItemInterface * const itemInter, const QString &itemKey, const bool visible) Q_DECL_OVERRIDE;
 
     void startLoader();

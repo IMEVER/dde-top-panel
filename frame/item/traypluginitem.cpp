@@ -23,8 +23,8 @@
 
 #include <QEvent>
 
-TrayPluginItem::TrayPluginItem(PluginsItemInterface * const pluginInter, const QString &itemKey, QWidget *parent)
-    : PluginsItem(pluginInter, itemKey, parent)
+TrayPluginItem::TrayPluginItem(PluginsItemInterface * const pluginInter, const QString &itemKey, const QString &api, QWidget *parent)
+    : PluginsItem(pluginInter, itemKey, api, parent)
 {
 }
 
