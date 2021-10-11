@@ -71,12 +71,24 @@ void DesktopEntryStat::createDesktopEntry(const QString desktopFile)
 
     auto tryExec = entry.stringValue("TryExec");
     auto exec = entry.stringValue("Exec");
+
+    auto getExecName = [](QStringList execs) {
+        for(auto exec : execs)
+        {
+            exec = exec.remove("\"").trimmed();
+            if(exec == "bash" || exec == "sh" || exec == "python" || exec == "gksu" || exec == "pkexec" || exec == "env" || exec.contains("="))
+                continue;
+            return QFileInfo(exec).baseName();
+        }
+        return QString();
+    };
+
     if (!tryExec.isEmpty() && !tryExec.contains("AppRun")) {
         re->exec = tryExec.split(' ');
-        re->name = QFileInfo(trim(re->exec[0])).baseName();
+        re->name = getExecName(re->exec);
     } else if (!exec.isEmpty() && !exec.contains("AppRun")) {
         re->exec = exec.split(' ');
-        re->name = QFileInfo(trim(re->exec[0])).baseName();
+        re->name = getExecName(re->exec);
     } else {
         if(!tryExec.isEmpty())
             re->exec = tryExec.split(' ');

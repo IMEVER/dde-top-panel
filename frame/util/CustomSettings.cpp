@@ -4,21 +4,12 @@
 
 #include "CustomSettings.h"
 #include <QSettings>
+#include <QStandardPaths>
 
 CustomSettings::CustomSettings() {
-    this->setDefaultPanelOpacity();
-    this->setDefaultPanelBgColor();
-
-    this->setDefaultActiveFont();
-    this->setDefaultActiveFontColor();
     this->setDefaultActiveCloseIconPath();
-    this->setDefaultActiveDefaultAppIconPath();
     this->setDefaultActiveMinimizedIconPath();
     this->setDefaultActiveUnmaximizedIconPath();
-    this->setDefaultShowGlobalMenuOnHover();
-
-    this->showAppNameInsteadIcon = true;
-    this->showControlButtons = true;
 
     this->readSettings();
     connect(this, &CustomSettings::settingsChanged, this, &CustomSettings::saveSettings);
@@ -47,15 +38,6 @@ void CustomSettings::setPanelBgColor(const QColor &panelBgColor) {
     emit settingsChanged();
 }
 
-bool CustomSettings::isPanelEnablePluginsOnAllScreen() const {
-    return panelEnablePluginsOnAllScreen;
-}
-
-void CustomSettings::setPanelEnablePluginsOnAllScreen(bool panelEnablePluginsOnAllScreen) {
-    CustomSettings::panelEnablePluginsOnAllScreen = panelEnablePluginsOnAllScreen;
-    emit settingsChanged();
-}
-
 const QColor &CustomSettings::getActiveFontColor() const {
     return activeFontColor;
 }
@@ -65,17 +47,8 @@ void CustomSettings::setActiveFontColor(const QColor &activeFontColor) {
     emit settingsChanged();
 }
 
-const QFont &CustomSettings::getActiveFont() const {
-    return activeFont;
-}
-
-void CustomSettings::setActiveFont(const QFont &activeFont) {
-    CustomSettings::activeFont = activeFont;
-    emit settingsChanged();
-}
-
-const QString &CustomSettings::getActiveCloseIconPath() const {
-    return activeCloseIconPath;
+const QString CustomSettings::getActiveCloseIconPath() const {
+    return activeCloseIconPath.startsWith(":/") ? activeCloseIconPath : QString(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/icons/" + activeCloseIconPath);
 }
 
 void CustomSettings::setActiveCloseIconPath(const QString &activeCloseIconPath) {
@@ -83,8 +56,8 @@ void CustomSettings::setActiveCloseIconPath(const QString &activeCloseIconPath) 
     emit settingsChanged();
 }
 
-const QString &CustomSettings::getActiveUnmaximizedIconPath() const {
-    return activeUnmaximizedIconPath;
+const QString CustomSettings::getActiveUnmaximizedIconPath() const {
+    return activeUnmaximizedIconPath.startsWith(":/") ? activeUnmaximizedIconPath : QString(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/icons/" + activeUnmaximizedIconPath);
 }
 
 void CustomSettings::setActiveUnmaximizedIconPath(const QString &activeUnmaximizedIconPath) {
@@ -92,21 +65,12 @@ void CustomSettings::setActiveUnmaximizedIconPath(const QString &activeUnmaximiz
     emit settingsChanged();
 }
 
-const QString &CustomSettings::getActiveMinimizedIconPath() const {
-    return activeMinimizedIconPath;
+const QString CustomSettings::getActiveMinimizedIconPath() const {
+    return activeMinimizedIconPath.startsWith(":/") ? activeMinimizedIconPath : QString(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/icons/" + activeMinimizedIconPath);
 }
 
 void CustomSettings::setActiveMinimizedIconPath(const QString &activeMinimizedIconPath) {
     CustomSettings::activeMinimizedIconPath = activeMinimizedIconPath;
-    emit settingsChanged();
-}
-
-const QString &CustomSettings::getActiveDefaultAppIconPath() const {
-    return activeDefaultAppIconPath;
-}
-
-void CustomSettings::setActiveDefaultAppIconPath(const QString &activeDefaultAppIconPath) {
-    CustomSettings::activeDefaultAppIconPath = activeDefaultAppIconPath;
     emit settingsChanged();
 }
 
@@ -122,24 +86,8 @@ void CustomSettings::setDefaultActiveMinimizedIconPath() {
     this->activeMinimizedIconPath = ":/icons/minimum.svg";
 }
 
-void CustomSettings::setDefaultActiveDefaultAppIconPath() {
-    this->activeDefaultAppIconPath = ":/icons/linux.svg";
-}
-
-void CustomSettings::setDefaultActiveFont() {
-    this->activeFont = QFont();
-}
-
 void CustomSettings::setDefaultActiveFontColor() {
     this->activeFontColor = Qt::black;
-}
-
-void CustomSettings::setDefaultPanelBgColor() {
-    this->panelBgColor = Qt::white;
-}
-
-void CustomSettings::setDefaultPanelOpacity() {
-    this->panelOpacity = 50;
 }
 
 void CustomSettings::resetCloseIconPath() {
@@ -157,67 +105,45 @@ void CustomSettings::resetMinIconPath() {
     emit settingsChanged();
 }
 
-void CustomSettings::resetDefaultIconPath() {
-    this->setDefaultActiveDefaultAppIconPath();
-    emit settingsChanged();
+bool CustomSettings::isPanelCustom() const {
+    return m_panelCustom;
 }
 
-void CustomSettings::setDefaultShowGlobalMenuOnHover() {
-    this->showGlobalMenuOnHover = false;
-}
-
-bool CustomSettings::isShowGlobalMenuOnHover() const {
-    return showGlobalMenuOnHover;
-}
-
-void CustomSettings::setShowGlobalMenuOnHover(bool showGlobalMenuOnHover) {
-    CustomSettings::showGlobalMenuOnHover = showGlobalMenuOnHover;
+void CustomSettings::setPanelCustom(bool panelCustom) {
+    this->m_panelCustom = panelCustom;
     emit settingsChanged();
 }
 
 void CustomSettings::saveSettings() {
-    QSettings settings("dde-top-panel", "top-panel");
+    QSettings settings(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/dde-top-panel.ini", QSettings::IniFormat);
 
-    settings.setValue("panel/bgColor", this->getPanelBgColor());
-    settings.setValue("panel/opacity", this->getPanelOpacity());
-    settings.setValue("windowControl/fontColor", this->getActiveFontColor());
-    settings.setValue("windowControl/closeIcon", this->getActiveCloseIconPath());
-    settings.setValue("windowControl/unmaxIcon", this->getActiveUnmaximizedIconPath());
-    settings.setValue("windowControl/minIcon", this->getActiveMinimizedIconPath());
-    settings.setValue("windowControl/defaultIcon", this->getActiveDefaultAppIconPath());
-    settings.setValue("windowControl/showMenuOnHover", this->isShowGlobalMenuOnHover());
-    settings.setValue("windowControl/showControlButtons", this->isShowControlButtons());
-    settings.setValue("windowControl/showAppNameInsteadIcon", this->isShowAppNameInsteadIcon());
+    settings.setValue("panel/panelCustom", m_panelCustom);
+    settings.setValue("panel/bgColor", this->panelBgColor);
+    settings.setValue("panel/opacity", this->panelOpacity);
+    settings.setValue("windowControl/fontColor", this->activeFontColor);
+    settings.setValue("windowControl/closeIcon", activeCloseIconPath);
+    settings.setValue("windowControl/unmaxIcon", activeUnmaximizedIconPath);
+    settings.setValue("windowControl/minIcon", this->activeMinimizedIconPath);
+    settings.setValue("windowControl/buttonCustom", this->m_buttonCustom);
 }
 
 void CustomSettings::readSettings() {
-    QSettings settings("dde-top-panel", "top-panel");
-    this->panelBgColor = settings.value("panel/bgColor", this->panelBgColor).value<QColor>();
-    this->panelOpacity = settings.value("panel/opacity", this->panelOpacity).toUInt();
-    this->activeFontColor = settings.value("windowControl/fontColor", this->activeFontColor).value<QColor>();
+    QSettings settings(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/dde-top-panel.ini", QSettings::IniFormat);
+    this->m_panelCustom = settings.value("panel/panelCustom", false).toBool();
+    this->panelBgColor = settings.value("panel/bgColor", (QColor)Qt::white).value<QColor>();
+    this->panelOpacity = settings.value("panel/opacity", 50).toUInt();
+    this->activeFontColor = settings.value("windowControl/fontColor", (QColor)Qt::black).value<QColor>();
     this->activeCloseIconPath = settings.value("windowControl/closeIcon", this->activeCloseIconPath).toString();
     this->activeUnmaximizedIconPath = settings.value("windowControl/unmaxIcon", this->activeUnmaximizedIconPath).toString();
     this->activeMinimizedIconPath = settings.value("windowControl/minIcon", this->activeMinimizedIconPath).toString();
-    this->activeDefaultAppIconPath = settings.value("windowControl/defaultIcon", this->activeDefaultAppIconPath).toString();
-    this->showGlobalMenuOnHover = settings.value("windowControl/showMenuOnHover", this->showGlobalMenuOnHover).toBool();
-    this->showControlButtons = settings.value("windowControl/showControlButtons", this->showControlButtons).toBool();
-    this->showAppNameInsteadIcon = settings.value("windowControl/showAppNameInsteadIcon", this->showAppNameInsteadIcon).toBool();
+    this->m_buttonCustom = settings.value("windowControl/buttonCustom", false).toBool();
 }
 
-bool CustomSettings::isShowControlButtons() const {
-    return showControlButtons;
+bool CustomSettings::isButtonCustom() const {
+    return this->m_buttonCustom;
 }
 
-void CustomSettings::setShowControlButtons(bool showControlButtons) {
-    CustomSettings::showControlButtons = showControlButtons;
-    emit settingsChanged();
-}
-
-bool CustomSettings::isShowAppNameInsteadIcon() const {
-    return showAppNameInsteadIcon;
-}
-
-void CustomSettings::setShowAppNameInsteadIcon(bool showAppNameInsteadIcon) {
-    CustomSettings::showAppNameInsteadIcon = showAppNameInsteadIcon;
+void CustomSettings::setButtonCustom(bool buttonCustom) {
+    this->m_buttonCustom = buttonCustom;
     emit settingsChanged();
 }

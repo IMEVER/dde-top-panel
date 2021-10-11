@@ -39,7 +39,7 @@ DockPopupWindow::DockPopupWindow(QWidget *parent)
 {
     m_acceptDelayTimer->setSingleShot(true);
     m_acceptDelayTimer->setInterval(100);
-    
+
     setAccessibleName("popup");
 
     m_wmHelper = DWindowManagerHelper::instance();
@@ -131,7 +131,7 @@ bool DockPopupWindow::eventFilter(QObject *o, QEvent *e)
     // FIXME: ensure position move after global mouse release event
     if (isVisible())
     {
-        QTimer::singleShot(10, this, [=] {
+        QTimer::singleShot(10, this, [ this ] {
             // NOTE(sbw): double check is necessary, in this time, the popup maybe already hided.
             if (isVisible())
                 show(m_lastPoint, m_model);

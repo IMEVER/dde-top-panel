@@ -41,7 +41,7 @@ public:
     ~MainWindow() override;
 
     void moveToScreen(QScreen *screen);
-    void applyCustomSettings(const CustomSettings& customSettings);
+    void applyCustomSettings();
 
 signals:
     void panelGeometryChanged();
@@ -51,6 +51,7 @@ private slots:
     void onDbusNameOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner);
     void onRegionMonitorChanged(int x, int y, const QString &key);
     void updateRegionMonitorWatch();
+    void unRegisterRegion();
 
 public Q_SLOTS:
     void setRadius(int radius) {};

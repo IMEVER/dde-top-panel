@@ -32,6 +32,7 @@
 #include <QDBusMessage>
 #include <QDBusServiceWatcher>
 #include <QX11Info>
+#include <QTimer>
 
 #include <KWindowSystem>
 #include <KWindowInfo>
@@ -44,6 +45,9 @@ MenuImporter::MenuImporter(QObject* parent)
     m_serviceWatcher->setConnection(QDBusConnection::sessionBus());
     m_serviceWatcher->setWatchMode(QDBusServiceWatcher::WatchForUnregistration);
     connect(m_serviceWatcher, &QDBusServiceWatcher::serviceUnregistered, this, &MenuImporter::slotServiceUnregistered);
+    connect(KWindowSystem::self(), &KWindowSystem::windowRemoved, [ this ](WId id) {
+        QTimer::singleShot(100, [this, id]{ UnregisterWindow(id);});
+     });
 }
 
 MenuImporter::~MenuImporter()
@@ -68,11 +72,6 @@ void MenuImporter::RegisterWindow(WId id, const QDBusObjectPath& path)
     KWindowInfo info(id, NET::WMWindowType, NET::WM2WindowClass);
     NET::WindowTypes mask = NET::AllTypesMask;
 
-    // Menu can try to register, right click in gimp for example
-    if (info.windowType(mask) & (NET::Menu|NET::DropdownMenu|NET::PopupMenu)) {
-        return;
-    }
-
     if (info.windowType(mask) != NET::Normal) {
         qDebug() << "Ignoring window class name: "<<info.windowClassName()<<", id: " << id << ", type: " << info.windowType(mask);
         return;
@@ -83,8 +82,14 @@ void MenuImporter::RegisterWindow(WId id, const QDBusObjectPath& path)
 
     QString service = message().service();
 
-    QString classClass = info.windowClassClass();
-    m_windowClasses.insert(id, classClass);
+    if(m_menuServices.contains(id))
+    {
+        if(m_menuServices.value(id) == service && m_menuPaths.value(id) == path)
+            return;
+
+        UnregisterWindow(id);
+    }
+
     m_menuServices.insert(id, service);
     m_menuPaths.insert(id, path);
 
@@ -97,11 +102,13 @@ void MenuImporter::RegisterWindow(WId id, const QDBusObjectPath& path)
 
 void MenuImporter::UnregisterWindow(WId id)
 {
-    m_menuServices.remove(id);
-    m_menuPaths.remove(id);
-    m_windowClasses.remove(id);
+    if(m_menuServices.contains(id))
+    {
+        m_menuServices.remove(id);
+        m_menuPaths.remove(id);
 
-    emit WindowUnregistered(id);
+        emit WindowUnregistered(id);
+    }
 }
 
 QString MenuImporter::GetMenuForWindow(WId id, QDBusObjectPath& path)

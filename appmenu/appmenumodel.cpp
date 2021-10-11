@@ -41,6 +41,9 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include <QActionEvent>
+#include <QFileSystemWatcher>
+#include <QXmlStreamReader>
+#include <QDesktopServices>
 
 #include "../frame/util/XUtils.h"
 
@@ -54,14 +57,15 @@ class KDBusMenuImporter : public DBusMenuImporter
 {
 
 public:
-    KDBusMenuImporter(const QString &service, const QString &path, QObject *parent)
-        : KDBusMenuImporter(service, path, DBusMenuImporterType::ASYNCHRONOUS, parent) {
+    KDBusMenuImporter(const QString &service, const QString &path, const QString title, QObject *parent)
+        : KDBusMenuImporter(service, path, title, DBusMenuImporterType::ASYNCHRONOUS, parent) {
     }
-    KDBusMenuImporter(const QString &service, const QString &path, DBusMenuImporterType type, QObject *parent)
-        : DBusMenuImporter(service, path, type, parent) {
-            this->_service = service;
-            this->_path = path;
+    KDBusMenuImporter(const QString &service, const QString &path, const QString title, DBusMenuImporterType type, QObject *parent)
+        : DBusMenuImporter(service, path, title, type, parent) {
+            // this->_service = service;
+            // this->_path = path;
     }
+/*
     QString serviceName()
     {
         return _service;
@@ -70,31 +74,31 @@ public:
     {
         return _path;
     }
-
+*/
 protected:
     QIcon iconForName(const QString &name) override {
         return QIcon::fromTheme(name);
     }
 
 
-private:
-    QString _service;
-    QString _path;
+// private:
+    // QString _service;
+    // QString _path;
 
 };
 
-AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(new QDBusServiceWatcher(this))
+AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent)//, m_serviceWatcher(new QDBusServiceWatcher(this))
 {
     if (!KWindowSystem::isPlatformX11()) {
         return;
     }
 
-    m_serviceWatcher->setConnection(QDBusConnection::sessionBus());
+    // m_serviceWatcher->setConnection(QDBusConnection::sessionBus());
     //if our current DBus connection gets lost, close the menu
     //we'll select the new menu when the focus changes
-
+/*
     connect(m_serviceWatcher, &QDBusServiceWatcher::serviceUnregistered, this, [this](const QString & serviceName) {
-        QTimer::singleShot(0, [ this, serviceName ]{
+        QTimer::singleShot(100, [ this, serviceName ]{
             QList<WId> delWIdList;
             QMap<WId, KDBusMenuImporter *>::iterator iter = this->cachedImporter.begin();
             while (iter != this->cachedImporter.end())
@@ -117,7 +121,7 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
             m_serviceWatcher->removeWatchedService(serviceName);
         });
     });
-
+*/
     // connect(KWindowSystem::self(), qOverload<WId, NET::Properties, NET::Properties2>(&KWindowSystem::windowChanged),
     //         this, [this](WId id, NET::Properties properties, NET::Properties2 properties2) {
     //     if (KWindowSystem::activeWindow() != id)
@@ -142,11 +146,11 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
     // });
 
     m_importer = nullptr;
-    m_menu = nullptr;
     // registrarProxy = new RegistrarProxy(this);
     // registrarProxy->Reference();
     dbusRegistrar = new DBusRegistrar(this);
 
+/*
     connect(KWindowSystem::self(), &KWindowSystem::windowRemoved, [ this ](WId wId){
         QTimer::singleShot(5000, [ this, wId ]{
             if(this->cachedImporter.contains(wId))
@@ -158,7 +162,7 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
             }
         });
     });
-
+*/
     connect(dbusRegistrar, &DBusRegistrar::WindowUnregistered, [ this ](WId wId){
         QTimer::singleShot(0, [ this, wId ]{
             if(this->cachedImporter.contains(wId))
@@ -176,9 +180,9 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent), m_serviceWatcher(
             // qInfo()<<"windowRegistered ... wid: "<<wId<<", has importer: "<<(this->m_importer ? "true" : "false");
             if (this->m_winId == wId && this->m_importer == nullptr)
             {
-                KDBusMenuImporter *importer = new KDBusMenuImporter(service, path.path(), this);
+                KDBusMenuImporter *importer = new KDBusMenuImporter(service, path.path(), QString(), this);
                 this->cachedImporter.insert(wId, importer);
-                m_serviceWatcher->addWatchedService(service);
+                // m_serviceWatcher->addWatchedService(service);
                 this->updateApplicationMenu(importer);
             }
         });
@@ -259,6 +263,48 @@ void AppMenuModel::initDesktopMenu()
         }
     }
     fileMenu->addMenu(createMenu);
+
+    QMenu *recentMenu = new QMenu("最近使用");
+    auto createRecentItem = [ recentMenu ] {
+        recentMenu->clear();
+        QFile *xmlFile = new QFile(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation).append(QDir::separator()).append("recently-used.xbel"));
+
+        if (xmlFile->open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QXmlStreamReader *xmlReader = new QXmlStreamReader(xmlFile);
+
+            //Parse the XML until we reach end of it
+            while(!xmlReader->atEnd() && !xmlReader->hasError()) {
+                // Read next element
+                if(xmlReader->readNextStartElement() && xmlReader->name() == "bookmark")
+                {
+                        QStringRef filePath = xmlReader->attributes().value("href");
+                        if(filePath.startsWith("file:///") && !filePath.startsWith("file:///run/user"))
+                        {
+                            QFileInfo item(filePath.toString().remove("file://"));
+                            if(item.exists() && item.isFile())
+                            {
+                                recentMenu->addAction(QFileIconProvider().icon(item), item.fileName(), [item]{
+                                    QDesktopServices::openUrl(QUrl::fromLocalFile(item.absoluteFilePath()));
+                                });
+                            }
+                        }
+                }
+            }
+
+            //close reader and flush file
+            xmlReader->clear();delete xmlReader;
+            xmlFile->close();xmlFile->deleteLater();
+        }
+
+        if(recentMenu->isEmpty())
+            recentMenu->addAction("没有最近使用的文件");
+    };
+    fileMenu->addMenu(recentMenu);
+    QFileSystemWatcher *watcher = new QFileSystemWatcher({ QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation).append(QDir::separator()).append("recently-used.xbel") }, this);
+    connect(watcher, &QFileSystemWatcher::fileChanged, [ createRecentItem ](const QString filePath){
+        createRecentItem();
+    });
+    createRecentItem();
     this->desktopMenu->addMenu(fileMenu);
 
 
@@ -327,19 +373,14 @@ void AppMenuModel::clearMenuImporter()
     if (m_importer)
     {
         disconnect(m_importer, &DBusMenuImporter::menuUpdated, this, nullptr);
+        m_importer->menu()->removeEventFilter(this);
         m_importer = nullptr;
-
-        if(m_menu && m_menu != desktopMenu)
-        {
-            m_menu->removeEventFilter(this);
-        }
     }
 
     emit clearMenu();
-    m_menu = nullptr;
 }
 
-void AppMenuModel::setWinId(const WId &id, bool isDesktop)
+void AppMenuModel::setWinId(const WId &id, bool isDesktop, const QString title)
 {
     if (m_winId == id)
     {
@@ -350,22 +391,14 @@ void AppMenuModel::setWinId(const WId &id, bool isDesktop)
     m_winId = id;
 
     if(id > 0 && isDesktop == false)
-        onActiveWindowChanged();
+        switchApplicationMenu(title);
     else {
-        m_menu = desktopMenu;
         emit modelNeedsUpdate();
     }
 }
 
-void AppMenuModel::onActiveWindowChanged()
+void AppMenuModel::switchApplicationMenu(const QString title)
 {
-    int currScreenNum = QApplication::desktop()->screenNumber(qobject_cast<QWidget*>(this->parent()));
-    int activeWinScreenNum = XUtils::getWindowScreenNum(m_winId);
-
-    if (activeWinScreenNum >= 0 && activeWinScreenNum != currScreenNum) {
-        return;
-    }
-
     if (KWindowSystem::isPlatformX11()) {
         if (this->cachedImporter.contains(m_winId))
         {
@@ -378,7 +411,7 @@ void AppMenuModel::onActiveWindowChanged()
             return;
         }
 
-        auto updateMenuFromWindowIfHasMenu = [this](WId id) {
+        auto updateMenuFromWindowIfHasMenu = [this, title](WId id) {
             if(this->cachedImporter.contains(id))
             {
                 this->m_winId = id;
@@ -391,10 +424,10 @@ void AppMenuModel::onActiveWindowChanged()
             QString menuObjectPath = tmpPath.path();
 
             if (!serviceName.isEmpty() && !menuObjectPath.isEmpty()) {
-                KDBusMenuImporter *importer = new KDBusMenuImporter(serviceName, menuObjectPath, this);
+                KDBusMenuImporter *importer = new KDBusMenuImporter(serviceName, menuObjectPath, title, this);
                 this->m_winId = id;
                 this->cachedImporter.insert(id, importer);
-                m_serviceWatcher->addWatchedService(importer->serviceName());
+                // m_serviceWatcher->addWatchedService(importer->serviceName());
                 updateApplicationMenu(importer);
                 return true;
             }
@@ -417,7 +450,7 @@ void AppMenuModel::onActiveWindowChanged()
 
 QMenu *AppMenuModel::menu() const
 {
-    return m_menu.data();
+    return m_importer ? m_importer->menu() : desktopMenu.data();
 }
 
 QAction * AppMenuModel::getAction(QAction::MenuRole role)
@@ -431,23 +464,22 @@ QAction * AppMenuModel::getAction(QAction::MenuRole role)
 void AppMenuModel::updateApplicationMenu(KDBusMenuImporter *importer)
 {
     m_importer = importer;
-    m_menu = m_importer->menu();
+    QMenu *m_menu = m_importer->menu();
     if(m_importer->isFirstShow())
     {
-        // qInfo()<<"before update ......";
         connect(m_importer, &DBusMenuImporter::menuUpdated, this, [ = ] {
             // qInfo()<<"after update ......";
             m_menu->installEventFilter(this);
             emit modelNeedsUpdate();
         });
 
-        QTimer::singleShot(100, [ importer ] { QMetaObject::invokeMethod(importer, "updateMenu", Qt::QueuedConnection); });
+        QTimer::singleShot(100, importer, [ importer ] { QMetaObject::invokeMethod(importer, "updateMenu", Qt::QueuedConnection); });
     } else {
         m_menu->installEventFilter(this);
         emit modelNeedsUpdate();
     }
 
-    connect(m_importer, &DBusMenuImporter::actionActivationRequested, this, [this](QAction * action) {
+    connect(m_importer, &DBusMenuImporter::actionActivationRequested, this, [this, m_menu](QAction * action) {
         if (m_menu) {
             const auto actions = m_menu->actions();
             auto it = std::find(actions.begin(), actions.end(), action);
@@ -461,7 +493,7 @@ void AppMenuModel::updateApplicationMenu(KDBusMenuImporter *importer)
 
 bool AppMenuModel::eventFilter(QObject *watched, QEvent *event)
 {
-    if(watched == m_menu)
+    if(m_importer && watched == m_importer->menu())
     {
         QActionEvent *actionEvent;
         switch (event->type())

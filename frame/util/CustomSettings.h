@@ -7,7 +7,6 @@
 
 #include <QObject>
 #include <QColor>
-#include <QFont>
 
 class CustomSettings : public QObject {
 
@@ -24,41 +23,21 @@ public:
 
     void setPanelBgColor(const QColor &panelBgColor);
 
-    bool isPanelEnablePluginsOnAllScreen() const;
-
-    void setPanelEnablePluginsOnAllScreen(bool panelEnablePluginsOnAllScreen);
-
     const QColor &getActiveFontColor() const;
 
     void setActiveFontColor(const QColor &activeFontColor);
 
-    const QFont &getActiveFont() const;
-
-    void setActiveFont(const QFont &activeFont);
-
-    const QString &getActiveCloseIconPath() const;
+    const QString getActiveCloseIconPath() const;
 
     void setActiveCloseIconPath(const QString &activeCloseIconPath);
 
-    const QString &getActiveUnmaximizedIconPath() const;
+    const QString getActiveUnmaximizedIconPath() const;
 
     void setActiveUnmaximizedIconPath(const QString &activeUnmaximizedIconPath);
 
-    const QString &getActiveMinimizedIconPath() const;
+    const QString getActiveMinimizedIconPath() const;
 
     void setActiveMinimizedIconPath(const QString &activeMinimizedIconPath);
-
-    const QString &getActiveDefaultAppIconPath() const;
-
-    void setActiveDefaultAppIconPath(const QString &activeDefaultAppIconPath);
-
-    bool isShowControlButtons() const;
-
-    void setShowControlButtons(bool showControlButtons);
-
-    bool isShowAppNameInsteadIcon() const;
-
-    void setShowAppNameInsteadIcon(bool showAppNameInsteadIcon);
 
     void saveSettings();
     void readSettings();
@@ -68,20 +47,17 @@ public:
     void resetMinIconPath();
     void resetDefaultIconPath();
 
-    void setDefaultPanelOpacity();
-    void setDefaultPanelBgColor();
     void setDefaultActiveFontColor();
-    void setDefaultActiveFont();
     void setDefaultActiveCloseIconPath();
     void setDefaultActiveUnmaximizedIconPath();
-
-    bool isShowGlobalMenuOnHover() const;
-
-    void setShowGlobalMenuOnHover(bool showGlobalMenuOnHover);
-
     void setDefaultActiveMinimizedIconPath();
-    void setDefaultActiveDefaultAppIconPath();
-    void setDefaultShowGlobalMenuOnHover();
+
+    bool isPanelCustom() const;
+    void setPanelCustom(bool panelCustom);
+
+    bool isButtonCustom() const;
+    void setButtonCustom(bool buttonCustom);
+
 
 signals:
     void settingsChanged();
@@ -93,19 +69,15 @@ private:
     // panel
     quint8 panelOpacity;
     QColor panelBgColor;
-    bool panelEnablePluginsOnAllScreen;
-    bool showGlobalMenuOnHover;
 
-    bool showControlButtons;
-    bool showAppNameInsteadIcon;
+    bool m_panelCustom;
+    bool m_buttonCustom;
 
     // active window control
     QColor activeFontColor;
-    QFont activeFont;
     QString activeCloseIconPath;
     QString activeUnmaximizedIconPath;
     QString activeMinimizedIconPath;
-    QString activeDefaultAppIconPath;
 };
 
 

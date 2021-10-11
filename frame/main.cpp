@@ -18,11 +18,38 @@ DCORE_USE_NAMESPACE
 DUTIL_USE_NAMESPACE
 #endif
 
+
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    QByteArray localMsg = msg.toLocal8Bit();
+    const char *file = context.file ? context.file : "";
+    const char *function = context.function ? context.function : "";
+    switch (type) {
+    case QtDebugMsg:
+        fprintf(stdout, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+        break;
+    case QtInfoMsg:
+        fprintf(stderr, "Info: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+        break;
+    case QtWarningMsg:
+        fprintf(stderr, "Warning: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+        break;
+    case QtCriticalMsg:
+        fprintf(stderr, "Critical: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+        break;
+    case QtFatalMsg:
+        fprintf(stderr, "Fatal: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+        break;
+    }
+}
+
+
 int main(int argc, char *argv[]) {
-    qputenv("QT_LOGGING_TO_CONSOLE", QByteArray("0"));
+    // qputenv("QT_LOGGING_TO_CONSOLE", QByteArray("0"));
     DApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
     DGuiApplicationHelper::setUseInactiveColorGroup(false);
     DApplication app(argc, argv);
+    qInstallMessageHandler(myMessageOutput);
 
     if (app.setSingleInstance("imever"))
     {

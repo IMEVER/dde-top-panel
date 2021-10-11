@@ -30,8 +30,6 @@ public:
     void removeFixedPluginAreaItem(QWidget *wdg);
     void toggleMenu(int id);
 
-    void applyCustomSettings(const CustomSettings& customSettings);
-
 public slots:
     void insertItem(const int index, DockItem *item);
     void removeItem(DockItem *item);

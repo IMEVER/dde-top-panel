@@ -11,6 +11,12 @@ class MainSettingWidget : public QWidget
 {
     Q_OBJECT
 
+    enum FileType {
+        closeButton
+        , restoreButton
+        , minimumButton
+    };
+
 public:
     explicit MainSettingWidget(QWidget *parent = nullptr);
     ~MainSettingWidget();
@@ -25,9 +31,9 @@ protected:
 
 private:
 
-    void opacityValueChanged(int value);
     void panelColorButtonClicked();
     void fontColorButtonClicked();
+
     void closeButtonClicked();
     void closeResetButtonClicked();
 
@@ -37,8 +43,7 @@ private:
     void minButtonClicked();
     void minResetButtonClicked();
 
-    void defaultButtonClicked();
-    void defaultResetButtonClicked();
+    void copyIcon(const QString filePath, FileType type);
 };
 
 #endif // MAINSETTINGWIDGET_H

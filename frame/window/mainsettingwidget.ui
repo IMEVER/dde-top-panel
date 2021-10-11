@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>461</width>
-    <height>526</height>
+    <height>422</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>DDE Top Panel Settings</string>
+   <string>设置</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -21,13 +21,13 @@
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
-       <string>Preference</string>
+       <string>设置</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
         <widget class="QGroupBox" name="groupBox_2">
          <property name="title">
-          <string>General</string>
+          <string>通用</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -48,6 +48,69 @@
           <property name="bottomMargin">
            <number>0</number>
           </property>
+          <item>
+           <widget class="QWidget" name="widget_8" native="true">
+            <layout class="QHBoxLayout" name="horizontalLayout_9">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>5</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>5</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="label_15">
+               <property name="minimumSize">
+                <size>
+                 <width>200</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>200</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>自定义</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_7">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="panelCustomCheckBox">
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
           <item>
            <widget class="QWidget" name="widget" native="true">
             <layout class="QHBoxLayout" name="horizontalLayout">
@@ -81,7 +144,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Panel Color</string>
+                <string>顶栏背景色</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignCenter</set>
@@ -102,40 +165,24 @@
               </spacer>
              </item>
              <item>
-              <widget class="QLabel" name="panelColorlabel">
-               <property name="minimumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item>
               <widget class="QToolButton" name="panelColorToolButton">
                <property name="minimumSize">
                 <size>
-                 <width>32</width>
+                 <width>64</width>
                  <height>32</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>32</width>
+                 <width>64</width>
                  <height>32</height>
                 </size>
                </property>
                <property name="toolTip">
                 <string>Config</string>
+               </property>
+               <property name="autoFillBackground">
+                <bool>true</bool>
                </property>
                <property name="text">
                 <string/>
@@ -143,25 +190,6 @@
                <property name="icon">
                 <iconset theme=":/icons/config.svg">
                  <normaloff>.</normaloff>.</iconset>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_5">
-               <property name="minimumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="text">
-                <string/>
                </property>
               </widget>
              </item>
@@ -201,7 +229,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Panel Opacity</string>
+                <string>顶栏透明度</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignCenter</set>
@@ -254,7 +282,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Font Color</string>
+                <string>字体颜色</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignCenter</set>
@@ -275,43 +303,24 @@
               </spacer>
              </item>
              <item>
-              <widget class="QLabel" name="fontColorLabel">
-               <property name="minimumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true"/>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item>
               <widget class="QToolButton" name="fontColorToolButton">
                <property name="minimumSize">
                 <size>
-                 <width>32</width>
+                 <width>64</width>
                  <height>32</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>32</width>
+                 <width>64</width>
                  <height>32</height>
                 </size>
                </property>
                <property name="toolTip">
                 <string>Config</string>
+               </property>
+               <property name="autoFillBackground">
+                <bool>true</bool>
                </property>
                <property name="text">
                 <string/>
@@ -319,88 +328,6 @@
                <property name="icon">
                 <iconset theme=":/icons/config.svg">
                  <normaloff>.</normaloff>.</iconset>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_6">
-               <property name="minimumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="QWidget" name="widget_8" native="true">
-            <layout class="QHBoxLayout" name="horizontalLayout_9">
-             <property name="spacing">
-              <number>0</number>
-             </property>
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>5</number>
-             </property>
-             <property name="rightMargin">
-              <number>0</number>
-             </property>
-             <property name="bottomMargin">
-              <number>5</number>
-             </property>
-             <item>
-              <widget class="QLabel" name="label_15">
-               <property name="minimumSize">
-                <size>
-                 <width>200</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>200</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>Show Menu on Hover Only</string>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_7">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>40</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="menuOnHoverCheckBox">
-               <property name="text">
-                <string/>
                </property>
               </widget>
              </item>
@@ -413,7 +340,7 @@
        <item>
         <widget class="QGroupBox" name="groupBox">
          <property name="title">
-          <string>Control Buttons</string>
+          <string>控制按钮</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -467,7 +394,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Show Buttons When Max</string>
+                <string>自定义</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignCenter</set>
@@ -488,7 +415,7 @@
               </spacer>
              </item>
              <item>
-              <widget class="QCheckBox" name="showButtonsCheckBox">
+              <widget class="QCheckBox" name="buttonCustomCheckBox">
                <property name="text">
                 <string/>
                </property>
@@ -530,7 +457,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Close Button</string>
+                <string>关闭按钮</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignCenter</set>
@@ -566,6 +493,9 @@
                </property>
                <property name="text">
                 <string/>
+               </property>
+               <property name="margin">
+                <number>5</number>
                </property>
               </widget>
              </item>
@@ -657,7 +587,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Unmax Button</string>
+                <string>还原按钮</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignCenter</set>
@@ -693,6 +623,9 @@
                </property>
                <property name="text">
                 <string/>
+               </property>
+               <property name="margin">
+                <number>5</number>
                </property>
               </widget>
              </item>
@@ -784,7 +717,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Minimize Button</string>
+                <string>最小化按钮</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignCenter</set>
@@ -820,6 +753,9 @@
                </property>
                <property name="text">
                 <string/>
+               </property>
+               <property name="margin">
+                <number>5</number>
                </property>
               </widget>
              </item>
@@ -881,219 +817,11 @@
          </layout>
         </widget>
        </item>
-       <item>
-        <widget class="QGroupBox" name="groupBox_3">
-         <property name="title">
-          <string>App Icons</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-         <layout class="QVBoxLayout" name="verticalLayout_5">
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QWidget" name="widget_7" native="true">
-            <layout class="QHBoxLayout" name="horizontalLayout_7">
-             <property name="spacing">
-              <number>0</number>
-             </property>
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="rightMargin">
-              <number>0</number>
-             </property>
-             <property name="bottomMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLabel" name="label_10">
-               <property name="minimumSize">
-                <size>
-                 <width>200</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>200</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>Default Icon</string>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_6">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>40</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QLabel" name="defaultIconLabel">
-               <property name="minimumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QToolButton" name="defaultIconToolButton">
-               <property name="minimumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="toolTip">
-                <string>Config</string>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-               <property name="icon">
-                <iconset theme=":/icons/config.svg">
-                 <normaloff>.</normaloff>.</iconset>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QToolButton" name="defaultIconResetToolButton">
-               <property name="minimumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>32</width>
-                 <height>32</height>
-                </size>
-               </property>
-               <property name="toolTip">
-                <string>Reset</string>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-               <property name="icon">
-                <iconset theme=":/icons/reset.svg">
-                 <normaloff>.</normaloff>.</iconset>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="QWidget" name="widget_10" native="true">
-            <layout class="QHBoxLayout" name="horizontalLayout_11">
-             <property name="spacing">
-              <number>0</number>
-             </property>
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="rightMargin">
-              <number>0</number>
-             </property>
-             <property name="bottomMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLabel" name="label_20">
-               <property name="minimumSize">
-                <size>
-                 <width>200</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>200</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>App name instead of icon</string>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_9">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>40</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="showAppNameCheckBox">
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="tab_2">
       <attribute name="title">
-       <string>About</string>
+       <string>关于</string>
       </attribute>
       <layout class="QHBoxLayout" name="horizontalLayout_8">
        <item>
@@ -1165,7 +893,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Name</string>
+            <string>名称</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
@@ -1199,7 +927,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Version</string>
+            <string>版本</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
@@ -1264,7 +992,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Github</string>
+            <string>源地址</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
@@ -1298,7 +1026,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Email</string>
+            <string>邮箱</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
@@ -1413,7 +1141,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Author</string>
+            <string>作者</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>

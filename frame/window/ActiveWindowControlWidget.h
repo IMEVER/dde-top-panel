@@ -39,7 +39,6 @@ protected:
 private:
     void initMenuBar();
     void setButtonsVisible(bool visible);
-    int currScreenNum();
 
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;

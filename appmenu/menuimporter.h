@@ -74,8 +74,6 @@ private:
     QDBusServiceWatcher* m_serviceWatcher;
     QHash<WId, QString> m_menuServices;
     QHash<WId, QDBusObjectPath> m_menuPaths;
-    QHash<WId, QString> m_windowClasses;
-
 };
 
 #endif /* MENUIMPORTER_H */

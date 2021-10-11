@@ -48,15 +48,13 @@ public:
     QMenu *menu() const;
     QAction * getAction(QAction::MenuRole role);
     void updateApplicationMenu(KDBusMenuImporter *importer);
-    void setWinId(const WId &id, bool isDesktop = false);
+    void setWinId(const WId &id, bool isDesktop, const QString title);
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     void clearMenuImporter();
     void initDesktopMenu();
-
-private Q_SLOTS:
-    void onActiveWindowChanged();
+    void switchApplicationMenu(const QString title);
 
 signals:
     void requestActivateIndex(int index);
@@ -67,9 +65,8 @@ signals:
 
 private:
     WId m_winId = 0;
-    QPointer<QMenu> m_menu;
     QPointer<QMenu> desktopMenu;
-    QDBusServiceWatcher *m_serviceWatcher;
+    // QDBusServiceWatcher *m_serviceWatcher;
     KDBusMenuImporter *m_importer;
 
     QMap<WId, KDBusMenuImporter *> cachedImporter;

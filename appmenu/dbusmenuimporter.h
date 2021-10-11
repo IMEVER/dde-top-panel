@@ -50,13 +50,13 @@ public:
     /**
      * Creates a DBusMenuImporter listening over DBus on service, path
      */
-    DBusMenuImporter(const QString &service, const QString &path, QObject *parent = nullptr);
+    DBusMenuImporter(const QString &service, const QString &path, const QString title, QObject *parent = nullptr);
 
     /**
      * Creates a DBusMenuImporter listening over DBus on service, path, with either async
      * or sync DBus calls
      */
-    DBusMenuImporter(const QString &service, const QString &path, DBusMenuImporterType type, QObject *parent = 0);
+    DBusMenuImporter(const QString &service, const QString &path, const QString title, DBusMenuImporterType type, QObject *parent = 0);
 
     ~DBusMenuImporter() override;
 
@@ -109,7 +109,7 @@ protected:
 private Q_SLOTS:
     void sendClickedEvent(int);
     void sendHoveredEvent(int);
-    void slotMenuAboutToShow();
+    void slotMenuAboutToShow(QMenu *menu = nullptr);
     void slotMenuAboutToHide();
     void slotAboutToShowDBusCallFinished(QDBusPendingCallWatcher *);
     void slotItemActivationRequested(int id, uint timestamp);

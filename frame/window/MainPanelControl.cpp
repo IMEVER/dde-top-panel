@@ -63,7 +63,7 @@ void MainPanelControl::init()
     m_fixedPluginLayout->setSpacing(5);
     m_fixedPluginWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
-    this->activeWindowControlWidget->activeWindowInfoChanged();
+    // this->activeWindowControlWidget->activeWindowInfoChanged();
 }
 
 void MainPanelControl::insertItem(int index, DockItem *item)
@@ -289,7 +289,4 @@ void MainPanelControl::dragEnterEvent(QDragEnterEvent *e) {
 
 void MainPanelControl::dragLeaveEvent(QDragLeaveEvent *event) {
     QWidget::dragLeaveEvent(event);
-}
-
-void MainPanelControl::applyCustomSettings(const CustomSettings &customSettings) {
 }

@@ -133,7 +133,7 @@ void AbstractPluginsController::startLoader(PluginLoader *loader)
     });
     connect(loader, &PluginLoader::pluginFounded, this, &AbstractPluginsController::loadPlugin, Qt::QueuedConnection);
 
-    QTimer::singleShot(m_gsettings->get("delay-plugins-time").toUInt(), loader, [ = ] { loader->start(QThread::LowestPriority); });
+    QTimer::singleShot(m_gsettings->get("delay-plugins-time").toUInt(), loader, [ loader ] { loader->start(QThread::LowestPriority); });
 }
 
 void AbstractPluginsController::loadPlugin(const QString &pluginFile)
@@ -224,7 +224,7 @@ void AbstractPluginsController::loadPlugin(const QString &pluginFile)
     // NOTE(justforlxz): 插件的所有初始化工作都在init函数中进行，
     // loadPlugin函数是按队列执行的，initPlugin函数会有可能导致
     // 函数执行被阻塞。
-    QTimer::singleShot(1, this, [ = ] {
+    QTimer::singleShot(1, this, [ this, interface ] {
         initPlugin(interface);
     });
 }

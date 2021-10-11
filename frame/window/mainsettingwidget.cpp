@@ -6,31 +6,31 @@
 #include <QFileDialog>
 #include <QMovie>
 #include <QApplication>
+#include <QStandardPaths>
 
 MainSettingWidget::MainSettingWidget(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::MainSettingWidget)
 {
     ui->setupUi(this);
-    ui->panelColorlabel->setStyleSheet(QString("QLabel {background-color: %1;}").arg(CustomSettings::instance()->getPanelBgColor().name()));
-    ui->fontColorLabel->setStyleSheet(QString("QLabel {background-color: %1;}").arg(CustomSettings::instance()->getActiveFontColor().name()));
+    ui->panelColorToolButton->setStyleSheet(QString("QToolButton {background: %1;}").arg(CustomSettings::instance()->getPanelBgColor().name()));
+    ui->fontColorToolButton->setStyleSheet(QString("QToolButton {background: %1;}").arg(CustomSettings::instance()->getActiveFontColor().name()));
 
 
     ui->opacitySpinBox->setValue(CustomSettings::instance()->getPanelOpacity());
 
-    ui->closeButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveCloseIconPath()).pixmap(ui->closeButtonLabel->size()));
-    ui->unmaxButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveUnmaximizedIconPath()).pixmap(ui->unmaxButtonLabel->size()));
-    ui->minButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveMinimizedIconPath()).pixmap(ui->minButtonLabel->size()));
-    ui->defaultIconLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveDefaultAppIconPath()).pixmap(ui->defaultIconLabel->size()));
-    ui->menuOnHoverCheckBox->setChecked(CustomSettings::instance()->isShowGlobalMenuOnHover());
+    ui->closeButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveCloseIconPath()).pixmap(QSize(20, 20)));
+    ui->unmaxButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveUnmaximizedIconPath()).pixmap(QSize(20, 20)));
+    ui->minButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveMinimizedIconPath()).pixmap(QSize(20, 20)));
+    ui->panelCustomCheckBox->setChecked(CustomSettings::instance()->isPanelCustom());
+    ui->buttonCustomCheckBox->setChecked(CustomSettings::instance()->isButtonCustom());
 
     ui->appNameLabel->setText(QApplication::applicationDisplayName());
     ui->appVersionLabel->setText(QApplication::applicationVersion());
 
-    ui->panelColorToolButton->setIcon(QIcon(":/icons/config.svg"));
-    ui->fontColorToolButton->setIcon(QIcon(":/icons/config.svg"));
-    ui->defaultIconResetToolButton->setIcon(QIcon(":/icons/reset.svg"));
-    ui->defaultIconToolButton->setIcon(QIcon(":/icons/config.svg"));
+    movie = new QMovie(":/icons/doge.gif", QByteArray(), this);
+    ui->pMovieLabel->setMovie(movie);
+
     ui->minToolButton->setIcon(QIcon(":/icons/config.svg"));
     ui->minResetToolButton->setIcon(QIcon(":/icons/reset.svg"));
     ui->unmaxButtonToolButton->setIcon(QIcon(":/icons/config.svg"));
@@ -38,13 +38,7 @@ MainSettingWidget::MainSettingWidget(QWidget *parent) :
     ui->closeButtonToolButton->setIcon(QIcon(":/icons/config.svg"));
     ui->closeResetToolButton->setIcon(QIcon(":/icons/reset.svg"));
 
-    movie = new QMovie(":/icons/doge.gif");
-    ui->pMovieLabel->setMovie(movie);
-
-    ui->showAppNameCheckBox->setChecked(CustomSettings::instance()->isShowAppNameInsteadIcon());
-    ui->showButtonsCheckBox->setChecked(CustomSettings::instance()->isShowControlButtons());
-
-    connect(ui->opacitySpinBox, qOverload<int>(&QSpinBox::valueChanged), this, &MainSettingWidget::opacityValueChanged);
+    connect(ui->opacitySpinBox, qOverload<int>(&QSpinBox::valueChanged), CustomSettings::instance(), &CustomSettings::setPanelOpacity);
     connect(ui->panelColorToolButton, &QToolButton::clicked, this, &MainSettingWidget::panelColorButtonClicked);
     connect(ui->fontColorToolButton, &QToolButton::clicked, this, &MainSettingWidget::fontColorButtonClicked);
     connect(ui->closeButtonToolButton, &QToolButton::clicked, this, &MainSettingWidget::closeButtonClicked);
@@ -53,18 +47,8 @@ MainSettingWidget::MainSettingWidget(QWidget *parent) :
     connect(ui->unmaxResetToolButton, &QToolButton::clicked, this, &MainSettingWidget::unmaxResetButtonClicked);
     connect(ui->minToolButton, &QToolButton::clicked, this, &MainSettingWidget::minButtonClicked);
     connect(ui->minResetToolButton, &QToolButton::clicked, this, &MainSettingWidget::minResetButtonClicked);
-    connect(ui->defaultIconToolButton, &QToolButton::clicked, this, &MainSettingWidget::defaultButtonClicked);
-    connect(ui->defaultIconResetToolButton, &QToolButton::clicked, this, &MainSettingWidget::defaultResetButtonClicked);
-    connect(ui->menuOnHoverCheckBox, &QCheckBox::stateChanged, this, [this]() {
-        CustomSettings::instance()->setShowGlobalMenuOnHover(ui->menuOnHoverCheckBox->isChecked());
-    });
-    connect(ui->showAppNameCheckBox, &QCheckBox::stateChanged, this, [this]() {
-        CustomSettings::instance()->setShowAppNameInsteadIcon(ui->showAppNameCheckBox->isChecked());
-    });
-    connect(ui->showButtonsCheckBox, &QCheckBox::stateChanged, this, [this]() {
-        CustomSettings::instance()->setShowControlButtons(ui->showButtonsCheckBox->isChecked());
-    });
-    setAttribute(Qt::WA_QuitOnClose, false);
+    connect(ui->panelCustomCheckBox, &QCheckBox::stateChanged, CustomSettings::instance(), &CustomSettings::setPanelCustom);
+    connect(ui->buttonCustomCheckBox, &QCheckBox::stateChanged, CustomSettings::instance(), &CustomSettings::setButtonCustom);
 }
 
 MainSettingWidget::~MainSettingWidget()
@@ -72,73 +56,73 @@ MainSettingWidget::~MainSettingWidget()
     delete ui;
 }
 
-void MainSettingWidget::opacityValueChanged(int value) {
-    CustomSettings::instance()->setPanelOpacity(value);
-}
-
 void MainSettingWidget::panelColorButtonClicked() {
-    QColor newPanelBgColor = QColorDialog::getColor(CustomSettings::instance()->getPanelBgColor());
-    ui->panelColorlabel->setStyleSheet(QString("QLabel {background-color: %1;}").arg(newPanelBgColor.name()));
-    CustomSettings::instance()->setPanelBgColor(newPanelBgColor);
+    QColorDialog dialog(CustomSettings::instance()->getPanelBgColor(), this);
+    dialog.setOptions(QColorDialog::ShowAlphaChannel | QColorDialog::NoButtons);
+
+    connect(&dialog, &QColorDialog::currentColorChanged, [ this ](const QColor &color){
+        ui->panelColorToolButton->setStyleSheet(QString("QToolButton {background: %1;}").arg(color.name()));
+        CustomSettings::instance()->setPanelBgColor(color);
+     });
+
+    dialog.exec();
+    // QColor newPanelBgColor = QColorDialog::getColor(CustomSettings::instance()->getPanelBgColor());
+    // ui->panelColorToolButton->setStyleSheet(QString("QToolButton {background: %1;}").arg(newPanelBgColor.name()));
+    // CustomSettings::instance()->setPanelBgColor(newPanelBgColor);
 }
 
 void MainSettingWidget::fontColorButtonClicked() {
-    QColor newFontColor = QColorDialog::getColor(CustomSettings::instance()->getActiveFontColor());
-    ui->fontColorLabel->setStyleSheet(QString("QLabel {background-color: %1;}").arg(newFontColor.name()));
-    CustomSettings::instance()->setActiveFontColor(newFontColor);
+    QColorDialog dialog(CustomSettings::instance()->getPanelBgColor(), this);
+    dialog.setOptions(QColorDialog::ShowAlphaChannel | QColorDialog::NoButtons);
 
+    connect(&dialog, &QColorDialog::currentColorChanged, [ this ](const QColor &color){
+        ui->fontColorToolButton->setStyleSheet(QString("QToolButton {background: %1;}").arg(color.name()));
+        CustomSettings::instance()->setActiveFontColor(color);
+     });
+
+    dialog.exec();
+    // QColor newFontColor = QColorDialog::getColor(CustomSettings::instance()->getActiveFontColor());
+    // ui->fontColorToolButton->setStyleSheet(QString("QToolButton {background: %1;}").arg(newFontColor.name()));
+    // CustomSettings::instance()->setActiveFontColor(newFontColor);
 }
 
 void MainSettingWidget::closeButtonClicked() {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Select your close button icon"), "~", tr("Images (*.png *.jpg *.svg)"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("选择关闭按钮图标"), "~", tr("Images (*.png *.jpg *.svg)"));
     if (!fileName.isNull()) {
-        ui->closeButtonLabel->setPixmap(QIcon(fileName).pixmap(ui->closeButtonLabel->size()));
-        CustomSettings::instance()->setActiveCloseIconPath(fileName);
+        ui->closeButtonLabel->setPixmap(QIcon(fileName).pixmap(QSize(20, 20)));
+        copyIcon(fileName, closeButton);
     }
 }
 
 void MainSettingWidget::closeResetButtonClicked() {
     CustomSettings::instance()->resetCloseIconPath();
-    ui->closeButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveCloseIconPath()).pixmap(ui->closeButtonLabel->size()));
+    ui->closeButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveCloseIconPath()).pixmap(QSize(20, 20)));
 }
 
 void MainSettingWidget::unmaxButtonClicked() {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Select your unmaximized button icon"), "~", tr("Images (*.png *.jpg *.svg)"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("选择还原按钮图标"), "~", tr("Images (*.png *.jpg *.svg)"));
     if (!fileName.isNull()) {
-        ui->unmaxButtonLabel->setPixmap(QIcon(fileName).pixmap(ui->unmaxButtonLabel->size()));
-        CustomSettings::instance()->setActiveUnmaximizedIconPath(fileName);
+        ui->unmaxButtonLabel->setPixmap(QIcon(fileName).pixmap(QSize(20, 20)));
+        copyIcon(fileName, restoreButton);
     }
 }
 
 void MainSettingWidget::unmaxResetButtonClicked() {
     CustomSettings::instance()->resetUnmaxIconPath();
-    ui->unmaxButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveUnmaximizedIconPath()).pixmap(ui->unmaxButtonLabel->size()));
+    ui->unmaxButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveUnmaximizedIconPath()).pixmap(QSize(20, 20)));
 }
 
 void MainSettingWidget::minButtonClicked() {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Select your minimized button icon"), "~", tr("Images (*.png *.jpg *.svg)"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("选择最小化按钮图标"), "~", tr("Images (*.png *.jpg *.svg)"));
     if (!fileName.isNull()) {
-        ui->minButtonLabel->setPixmap(QIcon(fileName).pixmap(ui->minButtonLabel->size()));
-        CustomSettings::instance()->setActiveMinimizedIconPath(fileName);
+        ui->minButtonLabel->setPixmap(QIcon(fileName).pixmap(QSize(20, 20)));
+        copyIcon(fileName, minimumButton);
     }
 }
 
 void MainSettingWidget::minResetButtonClicked() {
     CustomSettings::instance()->resetMinIconPath();
-    ui->minButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveMinimizedIconPath()).pixmap(ui->minButtonLabel->size()));
-}
-
-void MainSettingWidget::defaultButtonClicked() {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Select your default icon"), "~", tr("Images (*.png *.jpg *.svg)"));
-    if (!fileName.isNull()) {
-        ui->defaultIconLabel->setPixmap(QIcon(fileName).pixmap(ui->defaultIconLabel->size()));
-        CustomSettings::instance()->setActiveDefaultAppIconPath(fileName);
-    }
-}
-
-void MainSettingWidget::defaultResetButtonClicked() {
-    CustomSettings::instance()->resetDefaultIconPath();
-    ui->defaultIconLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveDefaultAppIconPath()).pixmap(ui->defaultIconLabel->size()));
+    ui->minButtonLabel->setPixmap(QIcon(CustomSettings::instance()->getActiveMinimizedIconPath()).pixmap(QSize(20, 20)));
 }
 
 void MainSettingWidget::showEvent(QShowEvent *event) {
@@ -154,4 +138,34 @@ void MainSettingWidget::hideEvent(QHideEvent *event) {
 void MainSettingWidget::closeEvent(QCloseEvent *event) {
     movie->stop();
     QWidget::closeEvent(event);
+}
+
+void MainSettingWidget::copyIcon(const QString filePath, FileType type)
+{
+    QDir dir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
+    if(!dir.exists("icons"))
+        dir.mkdir("icons");
+
+    QFileInfo fileInfo(filePath);
+    QFile destFile(dir.absoluteFilePath("icons/") + fileInfo.fileName());
+    
+    if(destFile.exists())
+        destFile.remove();
+
+    QFile::copy(filePath, destFile.fileName());
+
+    switch (type)
+    {
+    case closeButton:
+        CustomSettings::instance()->setActiveCloseIconPath(fileInfo.fileName());
+        break;
+    case restoreButton:
+        CustomSettings::instance()->setActiveUnmaximizedIconPath(fileInfo.fileName());
+        break;
+    case minimumButton:
+        CustomSettings::instance()->setActiveMinimizedIconPath(fileInfo.fileName());
+        break;
+    default:
+        break;
+    }
 }

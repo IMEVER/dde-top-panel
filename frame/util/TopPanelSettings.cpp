@@ -10,11 +10,6 @@ TopPanelSettings::TopPanelSettings(QScreen *screen, QWidget *parent)
     : QObject(parent)
     , m_autoHide(true)
 {
-    m_hideSubMenu = new QMenu("插件");
-    m_settingsMenu.addMenu(m_hideSubMenu);
-    m_settingsMenu.addAction("设置", this, &TopPanelSettings::settingActionClicked);
-
-    connect(&m_settingsMenu, &QMenu::triggered, this, &TopPanelSettings::menuActionClicked);
     moveToScreen(screen);
 }
 
@@ -29,9 +24,18 @@ void TopPanelSettings::moveToScreen(QScreen *screen)
 void TopPanelSettings::showDockSettingsMenu()
 {
     setAutoHide(false);
+
+    QMenu *m_settingsMenu = new QMenu;
+    QMenu *m_hideSubMenu = new QMenu("插件", m_settingsMenu);
+    m_settingsMenu->addMenu(m_hideSubMenu);
+    m_settingsMenu->addAction("设置", this, &TopPanelSettings::settingActionClicked);
+
+    connect(m_settingsMenu, &QMenu::triggered, this, &TopPanelSettings::menuActionClicked);
+
     // create actions
     QList<QAction *> actions;
-    for (auto *p : DockItemManager::instance()->pluginList()) {
+    for (auto *p : DockItemManager::instance()->pluginList())
+    {
         if (!p->pluginIsAllowDisable())
             continue;
 
@@ -39,7 +43,7 @@ void TopPanelSettings::showDockSettingsMenu()
         const QString &name = p->pluginName();
         const QString &display = p->pluginDisplayName();
 
-        QAction *act = new QAction(display, this);
+        QAction *act = new QAction(display, m_hideSubMenu);
         act->setCheckable(true);
         act->setChecked(enable);
         act->setData(name);
@@ -53,11 +57,10 @@ void TopPanelSettings::showDockSettingsMenu()
     });
 
     // add actions
-    qDeleteAll(m_hideSubMenu->actions());
     m_hideSubMenu->addActions(actions);
 
-    m_settingsMenu.exec(QCursor::pos());
-
+    m_settingsMenu->exec(QCursor::pos());
+    m_settingsMenu->deleteLater();
     setAutoHide(true);
 }
 

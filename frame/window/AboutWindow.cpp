@@ -41,6 +41,17 @@ public:
     //         return 1;
     //     }
     // }
+
+    QString formatByteSize(int size) const
+    {
+        if(size < 1024)
+            return QString("%1 KB").arg(size);
+        else if(size > 1024 * 1024)
+            return QString("%1 GB").arg(QString::number(size / 1024.0 / 1024.0, 'f', 2));
+        else
+            return QString("%1 MB").arg(QString::number(size / 1024.0, 'f', 2));
+    }
+
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override
     {
         const int row = index.row();
@@ -52,8 +63,10 @@ public:
                     QPair<QString, QString> pair = m_package.data.at(row);
                     if(column == 0)
                         return translate(pair.first);
+                    else if(pair.first == "Installed-Size")
+                        return formatByteSize(pair.second.toInt());
                     else
-                        return pair.second.trimmed();
+                        return QStringList({"Depends", "Pre-Depends", "Build-Depends", "Replaces", "Breaks" , "Conflicts", "Suggests", "Provides", "Recommends"}).contains(pair.first) ? pair.second.replace(",", "\n") : pair.second.trimmed();
                 }
                 break;
             case Qt::FontRole:
@@ -64,11 +77,12 @@ public:
                     return font;
                 }
                 break;
-            case Qt::BackgroundColorRole:
+            // case Qt::ForegroundRole:
+                // return column == 1 && m_package.data.at(row).first == "Homepage" ? QColor(Qt::blue) : QPalette::Foreground;
             case Qt::TextAlignmentRole:
                 return column == 0 ? Qt::AlignCenter : QVariant(Qt::AlignLeft|Qt::AlignVCenter);
-            case Qt::CheckStateRole:
-                break;
+            // case Qt::CheckStateRole:
+                // break;
         }
         return QVariant();
     }
@@ -96,9 +110,7 @@ public:
         else if(field == "Depends")
             return "依赖";
         else if(field == "Description")
-            return "描述";
-        else if(field == "Desc")
-            return "详细描述";
+            return "简介";
         else if(field == "Homepage")
             return "主页";
         else if(field == "Replaces")
@@ -125,6 +137,8 @@ public:
             return "构建依赖";
         else if(field == "Standards-Version")
             return "标准版本";
+        else if(field == "Pre-Depends")
+            return "预先依赖";
         else
             return field;
     }
@@ -201,8 +215,8 @@ QWidget* AboutWindow::createPackageInfoWidget()
     // packageInfoWidget->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     packageInfoWidget->setColumnWidth(0, 100);
     packageInfoWidget->horizontalHeader()->setStretchLastSection(true);
-    packageInfoWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    packageInfoWidget->verticalHeader()->setDefaultSectionSize(1);
+    packageInfoWidget->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    // packageInfoWidget->verticalHeader()->setDefaultSectionSize(1);
     packageInfoWidget->setWordWrap(true);
     // packageInfoWidget->setTextElideMode(Qt::ElideMiddle);
     packageInfoWidget->setModel(new PackageModel(appInfo.m_package, this));
@@ -210,6 +224,8 @@ QWidget* AboutWindow::createPackageInfoWidget()
 
     packageInfoWidget->verticalHeader()->hide();
     packageInfoWidget->horizontalHeader()->hide();
+
+    packageInfoWidget->setStyleSheet("QTableView::item {padding-top: 10px; padding-bottom: 10px;}");
 
     return packageInfoWidget;
 }
@@ -240,6 +256,21 @@ void AboutWindow::initData(KWindowInfo kwin)
         appInfo.m_title = appInfo.m_title.split(QRegExp("[–—-]")).last().trimmed();
     }
 
+    auto getExecFile = [](QString cmdline){
+        cmdline = cmdline.replace("\"", "");
+        QStringList fields = cmdline.split(" ", Qt::SkipEmptyParts);
+
+        for (QString field : fields)
+        {
+            if(field == "bash" || field == "sh" || field == "python" || field == "gksu" || field == "pkexec" || field == "env" || field.contains("="))
+                continue;
+            else
+                return field;
+        }
+
+        return QString();
+    };
+
     DesktopEntry entry = DesktopEntryStat::instance()->getDesktopEntryByName(kwin.windowClassName());
 
     if(!entry)
@@ -261,10 +292,11 @@ void AboutWindow::initData(KWindowInfo kwin)
             appInfo.m_desktopFile = entry->desktopFile;
         }
         QString searchPath;
-        if(!appInfo.m_desktopFile.isEmpty())
+        if(!appInfo.m_desktopFile.isEmpty() && !appInfo.m_desktopFile.contains(".local/share/applications/"))
         {
             QFileInfo file(appInfo.m_desktopFile);
-            if(file.exists()) {
+            if(file.exists())
+            {
                 if(file.isSymbolicLink())
                     searchPath = file.symLinkTarget();
                 else
@@ -272,7 +304,7 @@ void AboutWindow::initData(KWindowInfo kwin)
             }
         }
         if(searchPath.isEmpty())
-            searchPath = entry->exec.first();
+            searchPath = getExecFile(appInfo.m_cmdline);
 
         initPackageInfo(searchPath);
     }
@@ -281,17 +313,17 @@ void AboutWindow::initData(KWindowInfo kwin)
         QFile cmdFile(QString("/proc/%1/cmdline").arg(appInfo.m_pid));
         if(cmdFile.isReadable())
         {
-            QString cmd = cmdFile.readAll();
-            appInfo.m_cmdline = cmd;
-            cmd = cmd.split(" ")[0];
-            initPackageInfo(cmd);
+            appInfo.m_cmdline = cmdFile.readAll();
+            initPackageInfo(getExecFile(appInfo.m_cmdline));
         }
     }
 }
 
 void AboutWindow::initPackageInfo(QString cmdline)
 {
-    cmdline = cmdline.replace("\"", "");
+    if(cmdline.isEmpty())
+        return;
+
     QProcess *process = new QProcess(this);
         process->start("dpkg", QStringList()<<"-S"<<cmdline);
         if(process->waitForStarted())

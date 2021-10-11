@@ -51,26 +51,27 @@ MainWindow::MainWindow(QScreen *screen, bool disablePlugin, QWidget *parent)
     m_showAnimation->setDuration(300);
     m_showAnimation->setEasingCurve(QEasingCurve::Linear);
     connect(m_showAnimation, &QPropertyAnimation::valueChanged, [ this ](const QVariant &value){
-        move(pos().x(), value.toDouble());
+        move(pos().x(), m_settings->windowRect().y() + value.toDouble());
     });
     connect(m_showAnimation, &QVariantAnimation::finished, [ this ] {
-        move(pos().x(), 0);
-        show();
+        move(m_settings->windowRect().topLeft());
     });
 
     m_hideAnimation->setStartValue(0);
     m_hideAnimation->setEndValue(-m_settings->windowSize().height());
     m_hideAnimation->setDuration(300);
     m_hideAnimation->setEasingCurve(QEasingCurve::Linear);
-    connect(m_hideAnimation, &QPropertyAnimation::valueChanged, [ this ](const QVariant &value){ move(pos().x(), value.toDouble()); });
+    connect(m_hideAnimation, &QPropertyAnimation::valueChanged, [ this ](const QVariant &value){ move(pos().x(), m_settings->windowRect().y() + value.toDouble()); show(); });
     connect(m_hideAnimation, &QVariantAnimation::finished, this, [ this ]{
         hide();
         setWindowFlag(Qt::X11BypassWindowManagerHint, false);
-        setWindowFlag(Qt::WindowDoesNotAcceptFocus);
-        move(pos().x(), 0);
+        setWindowFlag(Qt::Tool, false);
+        // setWindowFlag(Qt::WindowDoesNotAcceptFocus);
+        move(m_settings->windowRect().topLeft());
         m_xcbMisc->set_window_type(winId(), XcbMisc::Dock);
         setStrutPartial();
         show();
+        updateRegionMonitorWatch();
      });
 
     m_leaveTimer->setSingleShot(true);
@@ -94,14 +95,13 @@ MainWindow::MainWindow(QScreen *screen, bool disablePlugin, QWidget *parent)
     m_platformWindowHandle.setBorderWidth(1);
     m_platformWindowHandle.setShadowRadius(15);
 
-    setMaskColor(AutoColor);
-    setMaskAlpha(m_dockInter->opacity() * 255);
-
     moveToScreen(screen);
 
-    this->applyCustomSettings(*CustomSettings::instance());
+    this->applyCustomSettings();
     if(m_itemManager)
         this->m_itemManager->startLoadPlugins();
+
+    KWindowSystem::self()->setState(winId(), NET::SkipTaskbar);
 }
 
 MainWindow::~MainWindow() {
@@ -180,19 +180,20 @@ void MainWindow::initConnections() {
             if(fullscreenIds.isEmpty())
                 return;
 
-            if(autoHide && (windowFlags() & Qt::X11BypassWindowManagerHint))
+            if(autoHide)
             {
-                if(!m_leaveTimer->isActive() && m_hideAnimation->state() != QVariantAnimation::Running)
+                if((windowFlags() & Qt::X11BypassWindowManagerHint) && !m_leaveTimer->isActive() && m_hideAnimation->state() != QVariantAnimation::Running)
                     m_leaveTimer->start();
             }
             else
-            {   if(m_leaveTimer->isActive())
+            {
+                if(m_leaveTimer->isActive())
                     m_leaveTimer->stop();
-                if(m_hideAnimation->state() == QVariantAnimation::Running)
-                {
-                    m_hideAnimation->stop();
-                    m_showAnimation->start();
-                }
+                // if(m_hideAnimation->state() == QVariantAnimation::Running)
+                // {
+                //     m_hideAnimation->stop();
+                //     m_showAnimation->start();
+                // }
             }
         });
 
@@ -205,17 +206,17 @@ void MainWindow::initConnections() {
 
     }, Qt::QueuedConnection);
 
-    connect(m_dockInter, &DBusDock::OpacityChanged, [ this ](double opacity) {
-        setMaskAlpha(opacity * 255);
-        this->m_platformWindowHandle.setShadowRadius(opacity < 0.2 ? 10 : 20);
-    });
-
     connect(m_settings, &TopPanelSettings::settingActionClicked, this, &MainWindow::settingActionClicked);
-    connect(CustomSettings::instance(), &CustomSettings::settingsChanged, this, [this] {
-        this->applyCustomSettings(*CustomSettings::instance());
-    });
+    connect(CustomSettings::instance(), &CustomSettings::settingsChanged, this, &MainWindow::applyCustomSettings);
 
     // connect(windowHandle(), &QWindow::visibleChanged, this, &MainWindow::updateRegionMonitorWatch);
+
+    connect(KWindowSystem::self(), &KWindowSystem::windowRemoved, [ this ](WId wId){
+        if(fullscreenIds.remove(wId) && fullscreenIds.isEmpty())
+        {
+            updateRegionMonitorWatch();
+        }
+    });
 
     connect(KWindowSystem::self(), qOverload<WId, NET::Properties, NET::Properties2>(&KWindowSystem::windowChanged), [this](WId wId, NET::Properties properties, NET::Properties2 properties2){
         if(QApplication::desktop()->screenNumber(this) != XUtils::getWindowScreenNum(wId))
@@ -226,7 +227,12 @@ void MainWindow::initConnections() {
             KWindowInfo kwin(wId, NET::WMState);
             if(kwin.valid())
             {
-                if(kwin.hasState(NET::FullScreen))
+                if(kwin.hasState(NET::Hidden))
+                {
+                    if(fullscreenIds.remove(wId) && fullscreenIds.isEmpty())
+                        updateRegionMonitorWatch();
+                }
+                else if(kwin.hasState(NET::FullScreen))
                 {
                     if(!fullscreenIds.contains(wId))
                     {
@@ -235,18 +241,13 @@ void MainWindow::initConnections() {
                             updateRegionMonitorWatch();
                     }
                 }
-                else if(fullscreenIds.contains(wId))
+                else if(fullscreenIds.remove(wId) && fullscreenIds.isEmpty())
                 {
-                    fullscreenIds.remove(wId);
-                    if(fullscreenIds.count() == 0)
                         updateRegionMonitorWatch();
                 }
             }
         }
     });
-
-    connect(m_eventInter, &XEventMonitor::CursorInto, this, &MainWindow::onRegionMonitorChanged);
-    // connect(m_eventInter, &XEventMonitor::CursorOut, this, &MainWindow::onRegionMonitorChanged);
 }
 
 void MainWindow::mousePressEvent(QMouseEvent *e)
@@ -268,18 +269,30 @@ void MainWindow::moveToScreen(QScreen *screen) {
     show();
 }
 
-void MainWindow::applyCustomSettings(const CustomSettings &customSettings) {
-    this->setMaskAlpha(customSettings.getPanelOpacity());
-    this->setMaskColor(customSettings.getPanelBgColor());
-    this->m_mainPanel->applyCustomSettings(customSettings);
+void MainWindow::applyCustomSettings() {
+    const CustomSettings *customSettings = CustomSettings::instance();
+    disconnect(m_dockInter, &DBusDock::OpacityChanged, this, 0);
+
+    if(customSettings->isPanelCustom())
+    {
+        this->setMaskAlpha(customSettings->getPanelOpacity());
+        this->setMaskColor(customSettings->getPanelBgColor());
+    }
+    else
+    {
+        setMaskColor(AutoColor);
+        setMaskAlpha(m_dockInter->opacity() * 255);
+
+        connect(m_dockInter, &DBusDock::OpacityChanged, this, [ this ](double opacity) {
+            setMaskAlpha(opacity * 255);
+            this->m_platformWindowHandle.setShadowRadius(opacity < 0.2 ? 10 : 20);
+        });
+    }
 }
 
 void MainWindow::updateRegionMonitorWatch()
 {
-    if (!m_registerKey.isEmpty())
-    {
-        m_eventInter->UnregisterArea(m_registerKey);
-    }
+    unRegisterRegion();
 
     if (fullscreenIds.isEmpty())
     {
@@ -295,20 +308,32 @@ void MainWindow::updateRegionMonitorWatch()
     const int flags = Motion | Button | Key;
     const QRect windowRect = m_settings->windowRect();
     const qreal scale = devicePixelRatioF();
-    int x, y, w, h;
+    int x, y, w;
 
     x = windowRect.x();
     y = windowRect.y();
-    w = windowRect.width();
-    h = windowRect.height();
+    w = windowRect.right();
 
-    m_registerKey = m_eventInter->RegisterArea(x * scale, y * scale, w * scale, 3, flags);
+    m_registerKey = m_eventInter->RegisterArea(x * scale, y * scale, w * scale, y * scale + 1, flags);
+
+    connect(m_eventInter, &XEventMonitor::CursorInto, this, &MainWindow::onRegionMonitorChanged);
+}
+
+void MainWindow::unRegisterRegion()
+{
+    if (!m_registerKey.isEmpty())
+    {
+        disconnect(m_eventInter, &XEventMonitor::CursorInto, this, &MainWindow::onRegionMonitorChanged);
+        m_eventInter->UnregisterArea(m_registerKey);
+        m_registerKey.clear();
+    }
 }
 
 void MainWindow::onRegionMonitorChanged(int x, int y, const QString &key)
 {
     if(key == m_registerKey)
     {
+        unRegisterRegion();
         ActivateWindow();
     }
 }
@@ -317,15 +342,16 @@ void MainWindow::ActivateWindow()
 {
     if (!fullscreenIds.isEmpty() && !(windowFlags() & Qt::X11BypassWindowManagerHint))
     {
-        int wId = XUtils::getFocusWindowId();
-        if(XUtils::getWindowScreenNum(wId) == QApplication::desktop()->screenNumber(this) && XUtils::checkIfWinFullscreen(wId))
-        {
+        // int wId = XUtils::getFocusWindowId();
+        // if(XUtils::getWindowScreenNum(wId) == QApplication::desktop()->screenNumber(this) && XUtils::checkIfWinFullscreen(wId))
+        // {
            setWindowFlag(Qt::X11BypassWindowManagerHint);
-           setWindowFlag(Qt::WindowDoesNotAcceptFocus, false);
+           setWindowFlag(Qt::Tool);
+        //    setWindowFlag(Qt::WindowDoesNotAcceptFocus, false);
            m_showAnimation->start();
            show();
         //    activateWindow();
-        }
+        // }
     }
 }
 

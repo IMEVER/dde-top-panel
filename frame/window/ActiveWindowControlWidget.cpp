@@ -92,7 +92,9 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     connect(KWindowSystem::self(), &KWindowSystem::activeWindowChanged, this, [ this ](WId id) { this->activeWindowInfoChanged(); });
 
     connect(DGuiApplicationHelper::instance(), &DGuiApplicationHelper::themeTypeChanged, this, &ActiveWindowControlWidget::themeTypeChanged);
+    connect(CustomSettings::instance(), &CustomSettings::settingsChanged, this, [ this ] { themeTypeChanged(DGuiApplicationHelper::instance()->themeType()); });
     themeTypeChanged(DGuiApplicationHelper::instance()->themeType());
+    QTimer::singleShot(1000, this, &ActiveWindowControlWidget::activeWindowInfoChanged);
 }
 
 void ActiveWindowControlWidget::initMenuBar()
@@ -100,43 +102,9 @@ void ActiveWindowControlWidget::initMenuBar()
     this->menuBar = new CustomizeMenubar(this);
     this->menuBar->setFixedHeight(height());
 
-    auto findIcon = [this](QStyle::StandardPixmap button){
-        QIcon icon, retIcon;
-        QPixmap pixmap;
-
-        if(true)
-        {
-            switch (button)
-            {
-            case QStyle::SP_TitleBarCloseButton:
-                icon = QIcon::fromTheme("window-close-symbolic");
-                break;
-            case QStyle::SP_TitleBarNormalButton:
-                icon = QIcon::fromTheme("window-restore-symbolic");
-                break;
-            case QStyle::SP_TitleBarMinButton:
-                icon = QIcon::fromTheme("window-minimize-symbolic");
-                break;
-            default:
-                break;
-            }
-
-            pixmap = icon.pixmap(16).copy(2, 2, 12, 12).scaled(24, 24);
-            retIcon = QIcon(pixmap);
-        }
-        else
-        {
-            icon = style()->standardIcon(button);
-            pixmap = icon.pixmap(40, QIcon::Normal, QIcon::On).copy(13, 13, 14, 14).scaled(24, 24);retIcon.addPixmap(pixmap, QIcon::Normal, QIcon::On);
-            pixmap = icon.pixmap(40, QIcon::Active, QIcon::On).copy(13, 13, 14, 14).scaled(24, 24);retIcon.addPixmap(pixmap, QIcon::Active, QIcon::On);
-            pixmap = icon.pixmap(40, QIcon::Selected, QIcon::On).copy(13, 13, 14, 14).scaled(24, 24);retIcon.addPixmap(pixmap, QIcon::Selected, QIcon::On);
-        }
-        return retIcon;
-    };
-
-    QAction *closeAction = new QAction(findIcon(QStyle::SP_TitleBarCloseButton), "关闭(&C)", this);
+    QAction *closeAction = new QAction("关闭", this);
     closeAction->setVisible(false);
-    connect(closeAction, &QAction::triggered, [ = ]{
+    connect(closeAction, &QAction::triggered, [ this ]{
         if(this->currActiveWinId > 0)
         {
             NETRootInfo ri( QX11Info::connection(), NET::CloseWindow );
@@ -145,17 +113,15 @@ void ActiveWindowControlWidget::initMenuBar()
     });
     this->menuBar->addAction(closeAction);
 
-    QAction *restoreAction = this->menuBar->addAction( "还原", [ = ]{
+    QAction *restoreAction = this->menuBar->addAction( "还原", [ this ]{
         this->maximizeWindow();
     });
-    restoreAction->setIcon(findIcon(QStyle::SP_TitleBarNormalButton));
     restoreAction->setVisible(false);
 
-    QAction *minimizeAction = this->menuBar->addAction("最小化", [ = ]{
+    QAction *minimizeAction = this->menuBar->addAction("最小化", [ this ]{
         // this->m_appInter->MinimizeWindow(this->currActiveWinId);
         KWindowSystem::minimizeWindow(this->currActiveWinId);
     });
-    minimizeAction->setIcon(findIcon(QStyle::SP_TitleBarMinButton));
     minimizeAction->setVisible(false);
 
     QMenu *startMenu = new QMenu;
@@ -303,7 +269,7 @@ void ActiveWindowControlWidget::initMenuBar()
             searchMenu->removeAction(searchMenu->actions()[1]);
         }
 
-        QString searchTxt = searchEdit->text();
+        QString searchTxt = searchEdit->text().toLower();
 
         if(searchTxt.length() > 0 && menuBar->actions().count() > 6)
         {
@@ -314,7 +280,7 @@ void ActiveWindowControlWidget::initMenuBar()
                     for(auto *subAction : action->menu()->actions())
                         searchFunc(subAction);
                 }
-                else if(action->text().contains(searchTxt))
+                else if(action->text().toLower().contains(searchTxt))
                 {
                     list.append(action);
                 }
@@ -359,41 +325,14 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
     if (activeWinId == 0 || activeWinId == this->winId() || activeWinId == this->currActiveWinId) {
         return;
     }
-    QString activeWinTitle;
-    KWindowInfo kwin(activeWinId, NET::WMName|NET::WMPid | NET::WMState, NET::WM2WindowClass);
-    if (kwin.valid())
-    {
-        if(kwin.pid() == QCoreApplication::applicationPid())
-            return;
+    KWindowInfo kwin(activeWinId, NET::WMPid);
+    if (kwin.valid() && kwin.pid() == QCoreApplication::applicationPid())
+        return;
 
-        if (kwin.windowClassName() == "dde-desktop")
-        {
-            isDesktop = true;
-        }
-        else
-        {
-            DesktopEntry entry;
-            if(!kwin.windowClassName().isEmpty())
-                entry = DesktopEntryStat::instance()->getDesktopEntryByName(kwin.windowClassName());
+    this->activeIdStack.removeAll(activeWinId);
 
-            if (!entry && kwin.pid() > 0)
-                entry = DesktopEntryStat::instance()->getDesktopEntryByPid(kwin.pid());
-
-            if (entry)
-                activeWinTitle = entry->displayName;
-
-            if (activeWinTitle.isEmpty())
-            {
-                activeWinTitle = kwin.name();
-                if (activeWinTitle.contains(QRegExp("[–—-]"))) {
-                    activeWinTitle = activeWinTitle.split(QRegExp("[–—-]")).last().trimmed();
-                }
-            }
-        }
-    }
-
-    int currScreenNum = this->currScreenNum();
-    int activeWinScreenNum = XUtils::getWindowScreenNum(activeWinId);
+    int currScreenNum = QApplication::desktop()->screenNumber(this);
+    int activeWinScreenNum = QApplication::screens().size() > 1 ? XUtils::getWindowScreenNum(activeWinId) : -1;
     if (activeWinScreenNum >= 0 && activeWinScreenNum != currScreenNum) {
         if (XUtils::checkIfBadWindow(this->currActiveWinId) || this->currActiveWinId == activeWinId || XUtils::checkIfWinMinimun(this->currActiveWinId)) {
             int newCurActiveWinId = -1;
@@ -426,19 +365,62 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
     }
 
 
+    QString activeWinTitle;
+    bool keepUp = false;
+    QIcon appIcon;
+    if(!isDesktop)
+    {
+        KWindowInfo kwin(activeWinId, NET::WMName | NET::WMPid | NET::WMState, NET::WM2WindowClass);
+        if (kwin.valid())
+        {
+            keepUp = kwin.hasState(NET::KeepAbove);
+            if (kwin.windowClassName() == "dde-desktop")
+            {
+                isDesktop = true;
+            }
+            else
+            {
+                DesktopEntry entry;
+                if(!kwin.windowClassName().isEmpty())
+                    entry = DesktopEntryStat::instance()->getDesktopEntryByName(kwin.windowClassName());
+
+                if (!entry && kwin.pid() > 0)
+                    entry = DesktopEntryStat::instance()->getDesktopEntryByPid(kwin.pid());
+
+                if (entry)
+                {
+                    activeWinTitle = entry->displayName;
+                    if(!entry->icon.isNull())
+                    {
+                        if(entry->icon.startsWith("/"))
+                            appIcon = QIcon(entry->icon);
+                        else
+                            appIcon = QIcon::fromTheme(entry->icon);
+                    }
+                }
+
+                if (activeWinTitle.isEmpty())
+                {
+                    activeWinTitle = kwin.name();
+                    if (activeWinTitle.contains(QRegExp("[–—-]"))) {
+                        activeWinTitle = activeWinTitle.split(QRegExp("[–—-]")).last().trimmed();
+                    }
+                }
+            }
+        }
+    }
+
+
     this->appMenu->menuAction()->setText(isDesktop ? "桌面" : activeWinTitle);
 
-    QIcon appIcon;
     if (isDesktop)
     {
         appIcon = QIcon::fromTheme("dde-file-manager");
     } else {
         this->activeIdStack.push(activeWinId);
-        appIcon.addPixmap(XUtils::getWindowIconNameX11(activeWinId));
-        if (kwin.valid())
-        {
-            this->appMenu->actions().at(3)->setChecked(kwin.hasState(NET::KeepAbove));
-        }
+        if(appIcon.isNull())
+            appIcon.addPixmap(XUtils::getWindowIconNameX11(activeWinId));
+        this->appMenu->actions().at(3)->setChecked(keepUp);
     }
 
     this->appMenu->actions().at(0)->setIcon(appIcon);
@@ -446,7 +428,7 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
     this->currActiveWinId = activeWinId;
     this->setButtonsVisible(!isDesktop && XUtils::checkIfWinMaximum(this->currActiveWinId));
 
-    this->m_appMenuModel->setWinId(this->currActiveWinId, isDesktop);
+    this->m_appMenuModel->setWinId(this->currActiveWinId, isDesktop, activeWinTitle);
     int index = 3;
     while(index < 6)
     {
@@ -460,7 +442,7 @@ void ActiveWindowControlWidget::setButtonsVisible(bool visible) {
         int i = 0;
         while (i < 3)
         {
-            QTimer::singleShot(50 * i, [ = ] {
+            QTimer::singleShot(50 * i, [ this, visible, i ] {
                 this->menuBar->actions().at(i)->setVisible(visible);
             });
             i++;
@@ -529,6 +511,8 @@ void ActiveWindowControlWidget::windowChanged(WId wId, NET::Properties propertie
 }
 
 void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorType themeType){
+    CustomSettings *settings = CustomSettings::instance();
+
     QGSettings iconThemeSettings("com.deepin.dde.appearance");
     QString color;
     QString iconTheme;
@@ -547,12 +531,64 @@ void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorTyp
             // subfix = "-white";
             break;
     }
+
+    if(settings->isPanelCustom())
+        color = settings->getActiveFontColor().name();
+
     // this->closeButton->setIcon(QIcon(QString(":/icons/close%1.svg").arg(subfix)));
     // this->maxButton->setIcon(QIcon(QString(":/icons/maximum%1.svg").arg(subfix)));
     // this->minButton->setIcon(QIcon(QString(":/icons/minimum%1.svg").arg(subfix)));
 
-    if(iconThemeSettings.get("theme-auto").toBool())
-        iconThemeSettings.set("icon-theme", iconTheme);
+    if(settings->isButtonCustom())
+    {
+        this->menuBar->actions().at(0)->setIcon(QIcon(settings->getActiveCloseIconPath()));
+        this->menuBar->actions().at(1)->setIcon(QIcon(settings->getActiveUnmaximizedIconPath()));
+        this->menuBar->actions().at(2)->setIcon(QIcon(settings->getActiveMinimizedIconPath()));
+    }
+    else
+    {
+        if(iconThemeSettings.get("theme-auto").toBool())
+            iconThemeSettings.set("icon-theme", iconTheme);
+
+        auto findIcon = [this](QStyle::StandardPixmap button){
+            QIcon icon, retIcon;
+            QPixmap pixmap;
+
+            if(true)
+            {
+                switch (button)
+                {
+                case QStyle::SP_TitleBarCloseButton:
+                    icon = QIcon::fromTheme("window-close-symbolic");
+                    break;
+                case QStyle::SP_TitleBarNormalButton:
+                    icon = QIcon::fromTheme("window-restore-symbolic");
+                    break;
+                case QStyle::SP_TitleBarMinButton:
+                    icon = QIcon::fromTheme("window-minimize-symbolic");
+                    break;
+                default:
+                    break;
+                }
+
+                pixmap = icon.pixmap(16).copy(2, 2, 12, 12).scaled(24, 24);
+                retIcon = QIcon(pixmap);
+            }
+            else
+            {
+                icon = style()->standardIcon(button);
+                pixmap = icon.pixmap(40, QIcon::Normal, QIcon::On).copy(13, 13, 14, 14).scaled(24, 24);retIcon.addPixmap(pixmap, QIcon::Normal, QIcon::On);
+                pixmap = icon.pixmap(40, QIcon::Active, QIcon::On).copy(13, 13, 14, 14).scaled(24, 24);retIcon.addPixmap(pixmap, QIcon::Active, QIcon::On);
+                pixmap = icon.pixmap(40, QIcon::Selected, QIcon::On).copy(13, 13, 14, 14).scaled(24, 24);retIcon.addPixmap(pixmap, QIcon::Selected, QIcon::On);
+            }
+            return retIcon;
+        };
+
+        this->menuBar->actions().at(0)->setIcon(findIcon(QStyle::SP_TitleBarCloseButton));
+        this->menuBar->actions().at(1)->setIcon(findIcon(QStyle::SP_TitleBarNormalButton));
+        this->menuBar->actions().at(2)->setIcon(findIcon(QStyle::SP_TitleBarMinButton));
+    }
+
     this->menuBar->setStyleSheet(QString("QMenuBar { font-size: 15px; color: %1; background-color: rgba(0, 0, 0, 0); margin: 0 0 0 0; }\
         QMenuBar::item { padding-top: 3px; padding-right: 4px; padding-left: 3px;}").arg(color));
 
@@ -588,10 +624,6 @@ void ActiveWindowControlWidget::mouseMoveEvent(QMouseEvent *event) {
         }
     }
     QWidget::mouseMoveEvent(event);
-}
-
-int ActiveWindowControlWidget::currScreenNum() {
-    return QApplication::desktop()->screenNumber(this);
 }
 
 void ActiveWindowControlWidget::toggleMenu(int id) {

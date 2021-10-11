@@ -44,8 +44,6 @@ private:
 private:
     QScreen *m_screen;
     QRect m_primaryRawRect;
-    QMenu m_settingsMenu;
-    QMenu *m_hideSubMenu;
     bool m_autoHide;
 };
 

@@ -13,13 +13,15 @@ struct Package
     Package(QString str)
     {
         QStringList infos = str.split("\n");
-        QString desc;
+        QStringList desc;
         for(QString info : infos)
         {
             if (info.contains(": "))
             {
                 QStringList items = info.split(": ");
-                if(items.at(0).trimmed().contains(" "))
+                if(items.at(0) == "Description")
+                    desc.append(items.at(1));
+                else if(items.at(0).startsWith(" "))
                     desc.append(info);
                 else
                     data.append(QPair<QString, QString>(items.at(0), items.at(1)));
@@ -30,7 +32,7 @@ struct Package
             }
         }
         if(!desc.isEmpty())
-            data << QPair<QString, QString>("Desc", desc);
+            data << QPair<QString, QString>("Description", desc.join("\n"));
     }
 
     int count() const

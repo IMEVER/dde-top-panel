@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QTimer>
 
 class ShowDesktopWidget : public QWidget
 {
@@ -11,7 +12,11 @@ class ShowDesktopWidget : public QWidget
 
 private:
     bool m_isHover = false;
-    
+    QTimer *timer;
+
+private:
+    void toggleDesktop();
+
 public:
     explicit ShowDesktopWidget(QWidget *parent=0);
     ~ShowDesktopWidget();
