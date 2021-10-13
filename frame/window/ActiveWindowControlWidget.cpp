@@ -9,7 +9,6 @@
 #include <NETWM>
 #include <QtX11Extras/QX11Info>
 #include <QProcess>
-#include "QClickableLabel.h"
 #include "../util/desktop_entry_stat.h"
 #include "AboutWindow.h"
 #include "util/TopPanelSettings.h"
@@ -22,7 +21,6 @@
 #include <DDBusSender>
 #include <QToolButton>
 #include <QStyle>
-// #include <DStyle>
 #include <QGSettings>
 #include <QLineEdit>
 
@@ -45,7 +43,7 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     layout->addStretch();
 
     this->m_appMenuModel = new AppMenuModel(this);
-    connect(this->m_appMenuModel, &AppMenuModel::clearMenu, this, [ = ]{
+    connect(this->m_appMenuModel, &AppMenuModel::clearMenu, this, [ this ]{
         while (this->menuBar->actions().size() > 6)
         {
             QAction *action = this->menuBar->actions()[5];
@@ -102,99 +100,105 @@ void ActiveWindowControlWidget::initMenuBar()
     this->menuBar = new CustomizeMenubar(this);
     this->menuBar->setFixedHeight(height());
 
-    QAction *closeAction = new QAction("关闭", this);
-    closeAction->setVisible(false);
-    connect(closeAction, &QAction::triggered, [ this ]{
+    this->menuBar->addAction("关闭", [ this ]{
         if(this->currActiveWinId > 0)
         {
             NETRootInfo ri( QX11Info::connection(), NET::CloseWindow );
             ri.closeWindowRequest( this->currActiveWinId );
         }
     });
-    this->menuBar->addAction(closeAction);
 
-    QAction *restoreAction = this->menuBar->addAction( "还原", [ this ]{
-        this->maximizeWindow();
-    });
-    restoreAction->setVisible(false);
+    this->menuBar->addAction( "还原", this, &ActiveWindowControlWidget::maximizeWindow);
 
-    QAction *minimizeAction = this->menuBar->addAction("最小化", [ this ]{
+    this->menuBar->addAction("最小化", [ this ]{
         // this->m_appInter->MinimizeWindow(this->currActiveWinId);
         KWindowSystem::minimizeWindow(this->currActiveWinId);
     });
-    minimizeAction->setVisible(false);
 
-    QMenu *startMenu = new QMenu;
-        startMenu->addAction(QIcon::fromTheme("applications-other"), "关   于", [ = ](){
+    QMenu *startMenu = this->menuBar->addMenu(QIcon::fromTheme("app-launcher"), "开始");
+        startMenu->addAction(QIcon::fromTheme("applications-other"), "关   于", []{
             QProcess::startDetached("/usr/bin/dde-file-manager", {"-p", "computer:///"});
             // QProcess::startDetached("/usr/bin/dbus-send --session --print-reply --dest=com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand string:\"/usr/bin/dde-file-manager\" array:string:\"-p\",\"computer:///\"");
             // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.RunCommand", "dde-file-manager", "(", "-p", "computer:///", ")"});
         });
-        startMenu->addAction(QIcon::fromTheme("app-launcher"), "启动器", this, [ = ](){
+        startMenu->addAction(QIcon::fromTheme("app-launcher"), "启动器", this, []{
             QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.Launcher", "/com/deepin/dde/Launcher", "com.deepin.dde.Launcher.Toggle"});
         });
 
-        startMenu->addAction(QIcon::fromTheme("deepin-app-store"), "应用商店", [ = ](){
+        startMenu->addAction(QIcon::fromTheme("deepin-app-store"), "应用商店", []{
             // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/deepin-app-store.desktop", "0", "[]"});
             QProcess::startDetached("/usr/bin/deepin-home-appstore-client", {});
         });
 
-        startMenu->addAction(QIcon::fromTheme("preferences-system"), "设    置", [ = ](){
+        startMenu->addAction(QIcon::fromTheme("preferences-system"), "设    置", []{
             // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/dde-control-center.desktop", "0", "[]"});
             QProcess::startDetached("/usr/bin/dde-control-center", {"--show"});
         });
 
-        startMenu->addAction(QIcon::fromTheme("deepin-system-monitor"), "资源管理器", [ = ](){
+        startMenu->addAction(QIcon::fromTheme("deepin-system-monitor"), "资源管理器", []{
             // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/deepin-system-monitor.desktop", "0", "[]"});
             QProcess::startDetached("/usr/bin/deepin-system-monitor", {});
         });
 
-        startMenu->addAction(QIcon::fromTheme("folder"), "文件管理器", [ = ](){
+        startMenu->addAction(QIcon::fromTheme("folder"), "文件管理器", []{
             QProcess::startDetached("/usr/bin/dde-file-manager", {"-O"});
         });
 
-        startMenu->addAction(QIcon::fromTheme("gnome-panel-force-quit"), "强制关闭窗口", [ = ](){
+        startMenu->addAction(QIcon::fromTheme("gnome-panel-force-quit"), "强制关闭窗口", []{
             QProcess::startDetached("/usr/bin/xkill", {});
         });
 
-        QMenu *shutdownMenu = new QMenu("关机");
-        shutdownMenu->setIcon(QIcon::fromTheme("system-shutdown-symbolic"));
-        shutdownMenu->addAction(QIcon::fromTheme("system-log-out-symbolic"), "注销", [](){
+        QMenu *shutdownMenu = startMenu->addMenu(QIcon::fromTheme("system-shutdown-symbolic"), "关机");
+        shutdownMenu->addAction(QIcon::fromTheme("system-log-out-symbolic"), "注销", []{
             DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Logout").call();
         });
-        shutdownMenu->addAction(QIcon::fromTheme("system-lock-screen-symbolic"), "锁定", [](){
+        shutdownMenu->addAction(QIcon::fromTheme("system-lock-screen-symbolic"), "锁定", []{
             DDBusSender().service("com.deepin.dde.lockFront").path("/com/deepin/dde/lockFront").interface("com.deepin.dde.lockFront").method("Show").call();
         });
-        shutdownMenu->addAction(QIcon::fromTheme("system-switch-user-symbolic"), "切换用户", [](){
+        shutdownMenu->addAction(QIcon::fromTheme("system-switch-user-symbolic"), "切换用户", []{
             DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("SwitchUser").call();
         });
-        shutdownMenu->addAction(QIcon::fromTheme("system-suspend-symbolic"), "待机", [](){
+        shutdownMenu->addAction(QIcon::fromTheme("system-suspend-symbolic"), "待机", []{
             DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Suspend").call();
         });
-        shutdownMenu->addAction(QIcon::fromTheme("system-reboot-symbolic"), "重启", [](){
+        shutdownMenu->addAction(QIcon::fromTheme("system-reboot-symbolic"), "重启", []{
             DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Restart").call();
         });
-        shutdownMenu->addAction(QIcon::fromTheme("system-shutdown-symbolic"), "关机", [](){
+        shutdownMenu->addAction(QIcon::fromTheme("system-shutdown-symbolic"), "关机", []{
             DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Shutdown").call();
         });
 
-        startMenu->addMenu(shutdownMenu);
-
-    startMenu->setIcon(QIcon::fromTheme("app-launcher"));
-
-    this->menuBar->addMenu(startMenu);
-
-    this->appMenu = new QMenu();
-    this->appMenu->menuAction()->setObjectName("appMenu");
-    connect(this->appMenu, &QMenu::aboutToShow, [ this ]{
-        int index=1;
-        for(auto role : {QAction::AboutRole, QAction::PreferencesRole})
+    QMenu *appMenu = this->menuBar->addMenu("桌面");
+    appMenu->menuAction()->setObjectName("appMenu");
+    connect(appMenu, &QMenu::aboutToShow, [ this, appMenu ]{
+        KWindowInfo kwin(this->currActiveWinId, NET::WMState, NET::WM2WindowClass);
+        if(kwin.valid())
         {
-            this->appMenu->actions().at(index++)->setEnabled(this->m_appMenuModel->getAction(role));
+            int index = 1;
+            if(kwin.windowClassName() == "dde-desktop")
+            {
+                while(index < 6)
+                {
+                    appMenu->actions().at(index++)->setDisabled(true);
+                }
+                appMenu->actions().at(3)->setChecked(false);
+            }
+            else
+            {
+                for(auto role : {QAction::AboutRole, QAction::PreferencesRole})
+                {
+                    appMenu->actions().at(index++)->setEnabled(this->m_appMenuModel->getAction(role));
+                }
+                while(index < 6)
+                {
+                    appMenu->actions().at(index++)->setEnabled(true);
+                }
+                appMenu->actions().at(3)->setChecked(kwin.hasState(NET::KeepAbove));
+            }
         }
     });
 
-    this->appMenu->addAction(QIcon::fromTheme("applications-other"), "关于包(&P)", [ = ]{
+    appMenu->addAction(QIcon::fromTheme("applications-other"), "关于包(&P)", [ this ]{
         KWindowInfo kwin(this->currActiveWinId, NET::WMName|NET::WMDesktop|NET::WMPid, NET::WM2DesktopFileName|NET::WM2ClientMachine|NET::WM2WindowClass);
         if(kwin.valid())
         {
@@ -208,23 +212,23 @@ void ActiveWindowControlWidget::initMenuBar()
         }
     });
 
-    this->appMenu->addAction(QIcon(), "关于(&A)", [ = ]{
+    appMenu->addAction(QIcon(), "关于(&A)", [ this ]{
         if(QAction *action = this->m_appMenuModel->getAction(QAction::AboutRole))
         {
             action->trigger();
         }
     });
 
-    this->appMenu->addAction(QIcon(), "偏好设置(&S)", [ = ]{
+    appMenu->addAction(QIcon(), "偏好设置(&S)", [ this ]{
         if(QAction *action = this->m_appMenuModel->getAction(QAction::PreferencesRole))
         {
             action->trigger();
         }
     });
 
-    QAction *keepTopAction = new QAction(/*QIcon::fromTheme("top"),*/ "置顶", this);
+    QAction *keepTopAction = appMenu->addAction(/*QIcon::fromTheme("top"),*/ "置顶");
     keepTopAction->setCheckable(true);
-    connect(keepTopAction, &QAction::triggered, [ = ](bool checked){
+    connect(keepTopAction, &QAction::triggered, [ this ](bool checked){
         KWindowInfo kwin(this->currActiveWinId, NET::WMState);
         if(kwin.valid() && checked != kwin.hasState(NET::KeepAbove))
         {
@@ -234,14 +238,9 @@ void ActiveWindowControlWidget::initMenuBar()
                 KWindowSystem::clearState(this->currActiveWinId, NET::KeepAbove);
         }
     });
-    this->appMenu->addAction(keepTopAction);
 
-    this->appMenu->addAction(/*QIcon::fromTheme("window-close-symbolic"),*/ "关闭(&C)", [ = ]{
-        this->menuBar->actions().at(0)->trigger();
-    });
-    // this->appMenu->addAction(closeAction);
-
-    this->appMenu->addAction(/*QIcon::fromTheme("application-exit"),*/ "退出(&Q)", [ = ]{
+    appMenu->addAction(/*QIcon::fromTheme("window-close-symbolic"),*/ "关闭(&C)", this->menuBar->actions().first(), &QAction::trigger);
+    appMenu->addAction(/*QIcon::fromTheme("application-exit"),*/ "退出(&Q)", [ this ]{
         if(QAction *action = this->m_appMenuModel->getAction(QAction::QuitRole))
         {
             action->trigger();
@@ -249,14 +248,13 @@ void ActiveWindowControlWidget::initMenuBar()
         else if (this->currActiveWinId > 0)
         {
             KWindowInfo info(this->currActiveWinId, NET::WMPid);
-            int pid = info.pid();
+            int pid = info.valid() ? info.pid() : 0;
             if(pid > 0)
                 QProcess::startDetached("/usr/bin/kill", {"-9", QString::number(pid)});
         }
     });
-    this->menuBar->addMenu(this->appMenu);
 
-    QMenu *searchMenu = new QMenu("搜索(&S)", menuBar);
+    QMenu *searchMenu = this->menuBar->addMenu("搜索(&S)");
     QLineEdit *searchEdit = new QLineEdit(searchMenu);
     searchEdit->setAttribute(Qt::WA_TranslucentBackground);
     searchEdit->setFixedWidth(240);
@@ -297,16 +295,12 @@ void ActiveWindowControlWidget::initMenuBar()
             }
         }
     });
-    connect(searchMenu, &QMenu::aboutToHide, [ searchEdit ]{ searchEdit->clear(); });
-    connect(searchMenu, &QMenu::aboutToShow, [ searchEdit ]{ searchEdit->setFocus(); });
-    connect(searchEdit, &QLineEdit::textChanged, [ = ](const QString &searchTxt){
-        searchTimer->start();
-    });
+    connect(searchMenu, &QMenu::aboutToHide, searchEdit, &QLineEdit::clear);
+    connect(searchMenu, &QMenu::aboutToShow, [searchEdit]{ searchEdit->setFocus(); });
+    connect(searchEdit, &QLineEdit::textChanged, [searchTimer] { searchTimer->start(); });
     QWidgetAction *searchAction = new QWidgetAction(searchMenu);
     searchAction->setDefaultWidget(searchEdit);
     searchMenu->addAction(searchAction);
-
-    this->menuBar->addMenu(searchMenu);
 
     for(auto item : this->menuBar->actions())
     {
@@ -366,14 +360,12 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
 
 
     QString activeWinTitle;
-    bool keepUp = false;
     QIcon appIcon;
     if(!isDesktop)
     {
         KWindowInfo kwin(activeWinId, NET::WMName | NET::WMPid | NET::WMState, NET::WM2WindowClass);
         if (kwin.valid())
         {
-            keepUp = kwin.hasState(NET::KeepAbove);
             if (kwin.windowClassName() == "dde-desktop")
             {
                 isDesktop = true;
@@ -411,7 +403,7 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
     }
 
 
-    this->appMenu->menuAction()->setText(isDesktop ? "桌面" : activeWinTitle);
+    this->menuBar->actions().at(4)->setText(isDesktop ? "桌面" : activeWinTitle);
 
     if (isDesktop)
     {
@@ -420,20 +412,14 @@ void ActiveWindowControlWidget::activeWindowInfoChanged() {
         this->activeIdStack.push(activeWinId);
         if(appIcon.isNull())
             appIcon.addPixmap(XUtils::getWindowIconNameX11(activeWinId));
-        this->appMenu->actions().at(3)->setChecked(keepUp);
     }
 
-    this->appMenu->actions().at(0)->setIcon(appIcon);
+    this->menuBar->actions()[4]->menu()->actions().at(0)->setIcon(appIcon);
 
     this->currActiveWinId = activeWinId;
     this->setButtonsVisible(!isDesktop && XUtils::checkIfWinMaximum(this->currActiveWinId));
 
     this->m_appMenuModel->setWinId(this->currActiveWinId, isDesktop, activeWinTitle);
-    int index = 3;
-    while(index < 6)
-    {
-        this->appMenu->actions().at(index++)->setDisabled(isDesktop);
-    }
 }
 
 void ActiveWindowControlWidget::setButtonsVisible(bool visible) {
@@ -442,7 +428,7 @@ void ActiveWindowControlWidget::setButtonsVisible(bool visible) {
         int i = 0;
         while (i < 3)
         {
-            QTimer::singleShot(50 * i, [ this, visible, i ] {
+            QTimer::singleShot(100 * i, [ this, visible, i ] {
                 this->menuBar->actions().at(i)->setVisible(visible);
             });
             i++;
@@ -494,15 +480,23 @@ void ActiveWindowControlWidget::updateMenu() {
 }
 
 void ActiveWindowControlWidget::windowChanged(WId wId, NET::Properties properties, NET::Properties2 properties2) {
-    if (wId != this->currActiveWinId)
-        return;
+        if (KWindowSystem::activeWindow() == wId && properties.testFlag(NET::WMGeometry) && QApplication::screens().size() > 1) {
+            int currScreenNum = QApplication::desktop()->screenNumber(qobject_cast<QWidget *>(this->parent()));
+            int activeWinScreenNum = XUtils::getWindowScreenNum(wId);
+            if (activeWinScreenNum >= 0 && activeWinScreenNum != currScreenNum) {
+                if (this->currActiveWinId == wId) {
+                    this->activeWindowInfoChanged();
+                }
+            } else if(wId != this->currActiveWinId){
+                this->activeWindowInfoChanged();
+            }
+        }
 
-    if (properties.testFlag(NET::WMState))
+    if (wId == this->currActiveWinId && properties.testFlag(NET::WMState))
     {
         KWindowInfo kwin(this->currActiveWinId, NET::WMState);
         if(kwin.valid())
         {
-            this->appMenu->actions().at(3)->setChecked(kwin.hasState(NET::KeepAbove));
             this->setButtonsVisible(kwin.hasState(NET::Max));
         }
     }
@@ -513,32 +507,6 @@ void ActiveWindowControlWidget::windowChanged(WId wId, NET::Properties propertie
 void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorType themeType){
     CustomSettings *settings = CustomSettings::instance();
 
-    QGSettings iconThemeSettings("com.deepin.dde.appearance");
-    QString color;
-    QString iconTheme;
-    // QString subfix;
-    switch (themeType)
-    {
-        case DGuiApplicationHelper::LightType:
-            color = "black";
-            iconTheme = "bloom";
-            // subfix = "";
-            break;
-        case DGuiApplicationHelper::DarkType:
-        default:
-            color = "white";
-            iconTheme = "bloom-dark";
-            // subfix = "-white";
-            break;
-    }
-
-    if(settings->isPanelCustom())
-        color = settings->getActiveFontColor().name();
-
-    // this->closeButton->setIcon(QIcon(QString(":/icons/close%1.svg").arg(subfix)));
-    // this->maxButton->setIcon(QIcon(QString(":/icons/maximum%1.svg").arg(subfix)));
-    // this->minButton->setIcon(QIcon(QString(":/icons/minimum%1.svg").arg(subfix)));
-
     if(settings->isButtonCustom())
     {
         this->menuBar->actions().at(0)->setIcon(QIcon(settings->getActiveCloseIconPath()));
@@ -547,6 +515,13 @@ void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorTyp
     }
     else
     {
+        QString iconTheme = themeType == DGuiApplicationHelper::LightType ? "bloom" : "bloom-dark";
+        // QString subfix = themeType == DGuiApplicationHelper::LightType ? "" : "-white";
+        // this->closeButton->setIcon(QIcon(QString(":/icons/close%1.svg").arg(subfix)));
+        // this->maxButton->setIcon(QIcon(QString(":/icons/maximum%1.svg").arg(subfix)));
+        // this->minButton->setIcon(QIcon(QString(":/icons/minimum%1.svg").arg(subfix)));
+
+        QGSettings iconThemeSettings("com.deepin.dde.appearance");
         if(iconThemeSettings.get("theme-auto").toBool())
             iconThemeSettings.set("icon-theme", iconTheme);
 
@@ -589,10 +564,14 @@ void ActiveWindowControlWidget::themeTypeChanged(DGuiApplicationHelper::ColorTyp
         this->menuBar->actions().at(2)->setIcon(findIcon(QStyle::SP_TitleBarMinButton));
     }
 
+    QString color;
+
+    if(settings->isPanelCustom())
+        color = settings->getActiveFontColor().name();
+    else
+        color = themeType == DGuiApplicationHelper::LightType ? "black" : "white";
     this->menuBar->setStyleSheet(QString("QMenuBar { font-size: 15px; color: %1; background-color: rgba(0, 0, 0, 0); margin: 0 0 0 0; }\
         QMenuBar::item { padding-top: 3px; padding-right: 4px; padding-left: 3px;}").arg(color));
-
-    qDebug()<<"QmenuBar size: "<<this->menuBar->size();
 }
 
 void ActiveWindowControlWidget::mousePressEvent(QMouseEvent *event) {

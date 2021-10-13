@@ -70,7 +70,15 @@ bool MenuImporter::connectToBus()
 void MenuImporter::RegisterWindow(WId id, const QDBusObjectPath& path)
 {
     KWindowInfo info(id, NET::WMWindowType, NET::WM2WindowClass);
+    if(!info.valid())
+        return;
+        
     NET::WindowTypes mask = NET::AllTypesMask;
+
+    // Menu can try to register, right click in gimp for example
+    if (info.windowType(mask) & (NET::Menu|NET::DropdownMenu|NET::PopupMenu)) {
+        return;
+    }
 
     if (info.windowType(mask) != NET::Normal) {
         qDebug() << "Ignoring window class name: "<<info.windowClassName()<<", id: " << id << ", type: " << info.windowType(mask);

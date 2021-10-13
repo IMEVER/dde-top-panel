@@ -13,8 +13,8 @@ MainSettingWidget::MainSettingWidget(QWidget *parent) :
     ui(new Ui::MainSettingWidget)
 {
     ui->setupUi(this);
-    ui->panelColorToolButton->setStyleSheet(QString("QToolButton {background: %1;}").arg(CustomSettings::instance()->getPanelBgColor().name()));
-    ui->fontColorToolButton->setStyleSheet(QString("QToolButton {background: %1;}").arg(CustomSettings::instance()->getActiveFontColor().name()));
+    ui->panelColorToolButton->setStyleSheet(QString("QToolButton {background: %1; border: none;}").arg(CustomSettings::instance()->getPanelBgColor().name()));
+    ui->fontColorToolButton->setStyleSheet(QString("QToolButton {background: %1; border: none;}").arg(CustomSettings::instance()->getActiveFontColor().name()));
 
 
     ui->opacitySpinBox->setValue(CustomSettings::instance()->getPanelOpacity());
@@ -61,7 +61,7 @@ void MainSettingWidget::panelColorButtonClicked() {
     dialog.setOptions(QColorDialog::ShowAlphaChannel | QColorDialog::NoButtons);
 
     connect(&dialog, &QColorDialog::currentColorChanged, [ this ](const QColor &color){
-        ui->panelColorToolButton->setStyleSheet(QString("QToolButton {background: %1;}").arg(color.name()));
+        ui->panelColorToolButton->setStyleSheet(QString("QToolButton {background: %1; border: none;}").arg(color.name()));
         CustomSettings::instance()->setPanelBgColor(color);
      });
 
@@ -76,7 +76,7 @@ void MainSettingWidget::fontColorButtonClicked() {
     dialog.setOptions(QColorDialog::ShowAlphaChannel | QColorDialog::NoButtons);
 
     connect(&dialog, &QColorDialog::currentColorChanged, [ this ](const QColor &color){
-        ui->fontColorToolButton->setStyleSheet(QString("QToolButton {background: %1;}").arg(color.name()));
+        ui->fontColorToolButton->setStyleSheet(QString("QToolButton {background: %1; border: none;}").arg(color.name()));
         CustomSettings::instance()->setActiveFontColor(color);
      });
 
@@ -148,7 +148,7 @@ void MainSettingWidget::copyIcon(const QString filePath, FileType type)
 
     QFileInfo fileInfo(filePath);
     QFile destFile(dir.absoluteFilePath("icons/") + fileInfo.fileName());
-    
+
     if(destFile.exists())
         destFile.remove();
 

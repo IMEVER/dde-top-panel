@@ -44,6 +44,7 @@
 #include <QFileSystemWatcher>
 #include <QXmlStreamReader>
 #include <QDesktopServices>
+#include <QUrl>
 
 #include "../frame/util/XUtils.h"
 
@@ -62,29 +63,12 @@ public:
     }
     KDBusMenuImporter(const QString &service, const QString &path, const QString title, DBusMenuImporterType type, QObject *parent)
         : DBusMenuImporter(service, path, title, type, parent) {
-            // this->_service = service;
-            // this->_path = path;
     }
-/*
-    QString serviceName()
-    {
-        return _service;
-    }
-    QString pathName()
-    {
-        return _path;
-    }
-*/
+
 protected:
     QIcon iconForName(const QString &name) override {
         return QIcon::fromTheme(name);
     }
-
-
-// private:
-    // QString _service;
-    // QString _path;
-
 };
 
 AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent)//, m_serviceWatcher(new QDBusServiceWatcher(this))
@@ -93,76 +77,11 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent)//, m_serviceWatche
         return;
     }
 
-    // m_serviceWatcher->setConnection(QDBusConnection::sessionBus());
-    //if our current DBus connection gets lost, close the menu
-    //we'll select the new menu when the focus changes
-/*
-    connect(m_serviceWatcher, &QDBusServiceWatcher::serviceUnregistered, this, [this](const QString & serviceName) {
-        QTimer::singleShot(100, [ this, serviceName ]{
-            QList<WId> delWIdList;
-            QMap<WId, KDBusMenuImporter *>::iterator iter = this->cachedImporter.begin();
-            while (iter != this->cachedImporter.end())
-            {
-                if(iter.value()->serviceName() == serviceName)
-                {
-                    delWIdList.append(iter.key());
-                }
-                iter ++;
-            }
-            KDBusMenuImporter *delImporter;
-            for(auto wId : delWIdList)
-            {
-                delImporter = this->cachedImporter.value(wId);
-                this->cachedImporter.remove(wId);
-                if(delImporter == this->m_importer)
-                    this->clearMenuImporter();
-                delImporter->deleteLater();
-            }
-            m_serviceWatcher->removeWatchedService(serviceName);
-        });
-    });
-*/
-    // connect(KWindowSystem::self(), qOverload<WId, NET::Properties, NET::Properties2>(&KWindowSystem::windowChanged),
-    //         this, [this](WId id, NET::Properties properties, NET::Properties2 properties2) {
-    //     if (KWindowSystem::activeWindow() != id)
-    //         return;
-
-    //     if (properties.testFlag(NET::WMGeometry)) {
-    //         int currScreenNum = QApplication::desktop()->screenNumber(qobject_cast<QWidget *>(this->parent()));
-    //         int activeWinScreenNum = XUtils::getWindowScreenNum(id);
-    //         if (activeWinScreenNum >= 0 && activeWinScreenNum != currScreenNum) {
-    //             if (XUtils::checkIfBadWindow(this->m_winId) || this->m_winId == id) {
-    //                 this->m_winId = -1;
-    //                 emit modelNeedsUpdate();
-    //             }
-    //         } else {
-    //             KWindowInfo info(id, NET::WMState | NET::WMGeometry);
-    //             if (XUtils::checkIfWinMinimun(this->m_winId)) {
-    //                 this->m_winId = -1;
-    //                 emit modelNeedsUpdate();
-    //             }
-    //         }
-    //     }
-    // });
-
     m_importer = nullptr;
     // registrarProxy = new RegistrarProxy(this);
     // registrarProxy->Reference();
     dbusRegistrar = new DBusRegistrar(this);
 
-/*
-    connect(KWindowSystem::self(), &KWindowSystem::windowRemoved, [ this ](WId wId){
-        QTimer::singleShot(5000, [ this, wId ]{
-            if(this->cachedImporter.contains(wId))
-            {
-                KDBusMenuImporter *importer = this->cachedImporter.take(wId);
-                if(importer == m_importer)
-                    clearMenuImporter();
-                importer->deleteLater();
-            }
-        });
-    });
-*/
     connect(dbusRegistrar, &DBusRegistrar::WindowUnregistered, [ this ](WId wId){
         QTimer::singleShot(0, [ this, wId ]{
             if(this->cachedImporter.contains(wId))
@@ -176,16 +95,20 @@ AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent)//, m_serviceWatche
     });
 
     connect(dbusRegistrar, &DBusRegistrar::WindowRegistered, [ this ](uint wId, const QString &service, const QDBusObjectPath &path){
-        QTimer::singleShot(1000, [this, wId, service, path]{
-            // qInfo()<<"windowRegistered ... wid: "<<wId<<", has importer: "<<(this->m_importer ? "true" : "false");
+        // QTimer::singleShot(1000, [this, wId]{
             if (this->m_winId == wId && this->m_importer == nullptr)
             {
-                KDBusMenuImporter *importer = new KDBusMenuImporter(service, path.path(), QString(), this);
-                this->cachedImporter.insert(wId, importer);
-                // m_serviceWatcher->addWatchedService(service);
-                this->updateApplicationMenu(importer);
+                // QDBusObjectPath tmpPath;
+                // QString serviceName = this->dbusRegistrar->GetMenuForWindow(wId, tmpPath);
+                // QString menuObjectPath = tmpPath.path();
+
+                // if(!serviceName.isEmpty() && !menuObjectPath.isEmpty()) {
+                    KDBusMenuImporter *importer = new KDBusMenuImporter(service, path.path(), QString(), this);
+                    this->cachedImporter.insert(wId, importer);
+                    this->updateApplicationMenu(importer);
+                // }
             }
-        });
+        // });
     });
 
     initDesktopMenu();
@@ -280,7 +203,7 @@ void AppMenuModel::initDesktopMenu()
                         QStringRef filePath = xmlReader->attributes().value("href");
                         if(filePath.startsWith("file:///") && !filePath.startsWith("file:///run/user"))
                         {
-                            QFileInfo item(filePath.toString().remove("file://"));
+                            QFileInfo item(QUrl::fromPercentEncoding(filePath.toLocal8Bit()).remove("file://"));
                             if(item.exists() && item.isFile())
                             {
                                 recentMenu->addAction(QFileIconProvider().icon(item), item.fileName(), [item]{
@@ -293,8 +216,9 @@ void AppMenuModel::initDesktopMenu()
 
             //close reader and flush file
             xmlReader->clear();delete xmlReader;
-            xmlFile->close();xmlFile->deleteLater();
+            xmlFile->close();
         }
+        xmlFile->deleteLater();
 
         if(recentMenu->isEmpty())
             recentMenu->addAction("没有最近使用的文件");
@@ -405,7 +329,9 @@ void AppMenuModel::switchApplicationMenu(const QString title)
             return updateApplicationMenu(this->cachedImporter[m_winId]);
         }
 
-        KWindowInfo info(m_winId, NET::WMState | NET::WMWindowType | NET::WMGeometry, NET::WM2TransientFor);
+        KWindowInfo info(m_winId, NET::WMState | NET::WMWindowType, NET::WM2TransientFor);
+        if(!info.valid())
+            return;
 
         if (info.hasState(NET::SkipTaskbar) || info.windowType(NET::UtilityMask) == NET::Utility || info.windowType(NET::DesktopMask) == NET::Desktop) {
             return;
@@ -427,7 +353,6 @@ void AppMenuModel::switchApplicationMenu(const QString title)
                 KDBusMenuImporter *importer = new KDBusMenuImporter(serviceName, menuObjectPath, title, this);
                 this->m_winId = id;
                 this->cachedImporter.insert(id, importer);
-                // m_serviceWatcher->addWatchedService(importer->serviceName());
                 updateApplicationMenu(importer);
                 return true;
             }
@@ -435,13 +360,11 @@ void AppMenuModel::switchApplicationMenu(const QString title)
             return false;
         };
 
-        KWindowInfo transientInfo = KWindowInfo(info.transientFor(), NET::WMState | NET::WMWindowType | NET::WMGeometry, NET::WM2TransientFor);
-        while (transientInfo.win()) {
-            if (updateMenuFromWindowIfHasMenu(transientInfo.win())) {
+        while (info.valid() && info.transientFor()) {
+            if (updateMenuFromWindowIfHasMenu(info.transientFor())) {
                 return;
             }
-
-            transientInfo = KWindowInfo(transientInfo.transientFor(), NET::WMState | NET::WMWindowType | NET::WMGeometry, NET::WM2TransientFor);
+            info = KWindowInfo(info.transientFor(), NET::WMState, NET::WM2TransientFor);
         }
 
         updateMenuFromWindowIfHasMenu(m_winId);

@@ -13,7 +13,6 @@
 #include <QMenuBar>
 #include <QWidgetAction>
 #include "../../appmenu/appmenumodel.h"
-#include "QClickableLabel.h"
 #include <com_deepin_wm.h>
 #include "../util/CustomSettings.h"
 #include "../util/CustomizeMenubar.h"
@@ -26,7 +25,6 @@ class ActiveWindowControlWidget : public QWidget {
 
 public:
     explicit ActiveWindowControlWidget(QWidget *parent = 0);
-    // bool eventFilter(QObject *watched, QEvent *event) override;
 
 public slots:
     void activeWindowInfoChanged();
@@ -48,12 +46,9 @@ private slots:
     void updateMenu();
     void windowChanged(WId, NET::Properties, NET::Properties2);
     void themeTypeChanged(DGuiApplicationHelper::ColorType themeType);
-    // void clearAboutWindow();
 
 private:
     // QQmlApplicationEngine *engine = nullptr;
-    QMenu *appMenu;
-
     QStack<WId> activeIdStack;
     WId currActiveWinId;
 

@@ -44,12 +44,10 @@ QString XUtils::getWindowNameX11(int winId) {
     int nameType;
     unsigned char *windowName;
     int ret = xdo_get_window_name(m_xdo, winId, &windowName, &nameLen, &nameType);
-    if (ret != XDO_SUCCESS || nameLen < 0 || nameLen > 256) {
+    if (ret != XDO_SUCCESS || nameLen < 0 || nameLen > 256 || windowName == nullptr) {
         return "";
     }
 
-    if (windowName == nullptr)
-        return "";
     QString result;
     char name[nameLen + 1];
     for (int i = 0; i < nameLen; ++i) {
@@ -94,7 +92,7 @@ bool XUtils::checkIfWinMaximum(int winId) {
     long n;
 
     int ret = xdo_get_window_property(m_xdo, winId, "_NET_WM_STATE", &value, &n, NULL, NULL);
-    if (ret != XDO_SUCCESS) {
+    if (ret != XDO_SUCCESS || value == NULL) {
         return false;
     }
 
@@ -223,6 +221,11 @@ QPixmap XUtils::getWindowIconNameX11(int winId) {
     XFree(data);
 
     XGetWindowProperty(m_xdo->xdpy, winId, prop, 2, width * height, False, XA_CARDINAL, &actualType, &actualFormat, &nitem, &bytes, &data);
+    if(data == NULL)
+    {
+        return QPixmap(":/icons/linux.svg");
+    }
+
     unsigned int* imgData = new unsigned int[width * height];
     unsigned long* ul = (unsigned long*) data;
     for (int i=0; i < nitem; ++i)

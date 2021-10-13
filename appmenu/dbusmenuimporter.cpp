@@ -502,6 +502,9 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
     watcher->deleteLater();
 
     QMenu *menu = d->menuForId(parentId);
+    if (!menu) {
+        return;
+    }
 
     QDBusPendingReply<uint, DBusMenuLayoutItem> reply = *watcher;
 
@@ -511,9 +514,6 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
 
     DBusMenuLayoutItem rootItem = reply.argumentAt<1>();
 
-    if (!menu) {
-        return;
-    }
 
     if(!menu->actions().isEmpty())
     {

@@ -34,6 +34,17 @@ DCORE_USE_NAMESPACE
 
 static DesktopEntryStat *instancePtr;
 
+    auto getExecName = [](QStringList execs) {
+        for(auto exec : execs)
+        {
+            exec = exec.remove("\"").trimmed();
+            if(exec == "/bin/bash" || exec == "bash" || exec == "sh" || exec == "python" || exec == "gksu" || exec == "pkexec" || exec == "env" || exec.contains("="))
+                continue;
+            return QFileInfo(exec).baseName();
+        }
+        return QString();
+    };
+
 DesktopEntryStat *DesktopEntryStat::instance()
 {
     if (!instancePtr)
@@ -71,17 +82,6 @@ void DesktopEntryStat::createDesktopEntry(const QString desktopFile)
 
     auto tryExec = entry.stringValue("TryExec");
     auto exec = entry.stringValue("Exec");
-
-    auto getExecName = [](QStringList execs) {
-        for(auto exec : execs)
-        {
-            exec = exec.remove("\"").trimmed();
-            if(exec == "bash" || exec == "sh" || exec == "python" || exec == "gksu" || exec == "pkexec" || exec == "env" || exec.contains("="))
-                continue;
-            return QFileInfo(exec).baseName();
-        }
-        return QString();
-    };
 
     if (!tryExec.isEmpty() && !tryExec.contains("AppRun")) {
         re->exec = tryExec.split(' ');
@@ -217,7 +217,7 @@ DesktopEntry DesktopEntryStat::getDesktopEntryByPid(int pid)
     if(cmdFile.isReadable())
     {
         QString cmd = cmdFile.readAll();
-        cmd = cmd.split(" ")[0];
+        cmd = getExecName(cmd.split(" "));
 
         QString name = QFileInfo(cmd).baseName();
         entry = cache[name];
