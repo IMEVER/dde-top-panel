@@ -20,30 +20,24 @@
  */
 
 #include "dockitem.h"
-#include "pluginsitem.h"
+// #include "pluginsitem.h"
 
 #include <QMouseEvent>
 #include <QJsonObject>
 #include <QCursor>
 
-#define PLUGIN_MARGIN  10
-
 QPointer<DockPopupWindow> DockItem::PopupWindow(nullptr);
 
 DockItem::DockItem(QWidget *parent)
     : QWidget(parent)
-    , m_hover(false)
     , m_popupShown(false)
-    , m_draging(false)
-    // , m_hoverEffect(new HoverHighlightEffect(this))
     , m_popupTipsDelayTimer(new QTimer(this))
     , m_popupAdjustDelayTimer(new QTimer(this))
-
 {
     if (PopupWindow.isNull()) {
         DockPopupWindow *arrowRectangle = new DockPopupWindow(nullptr);
         arrowRectangle->setShadowBlurRadius(20);
-        arrowRectangle->setRadius(18);
+        arrowRectangle->setRadius(6);
         arrowRectangle->setShadowYOffset(2);
         arrowRectangle->setShadowXOffset(0);
         arrowRectangle->setArrowWidth(18);
@@ -51,13 +45,11 @@ DockItem::DockItem(QWidget *parent)
         PopupWindow = arrowRectangle;
     }
 
-    m_popupTipsDelayTimer->setInterval(500);
+    m_popupTipsDelayTimer->setInterval(100);
     m_popupTipsDelayTimer->setSingleShot(true);
 
     m_popupAdjustDelayTimer->setInterval(10);
     m_popupAdjustDelayTimer->setSingleShot(true);
-
-    // setGraphicsEffect(m_hoverEffect);
 
     connect(m_popupTipsDelayTimer, &QTimer::timeout, this, &DockItem::showHoverTips);
     connect(m_popupAdjustDelayTimer, &QTimer::timeout, this, &DockItem::updatePopupPosition, Qt::QueuedConnection);
@@ -81,12 +73,12 @@ QString DockItem::accessibleName()
 DockItem::~DockItem()
 {
     if (m_popupShown)
-        popupWindowAccept();
+        hidePopup();
 }
 
 bool DockItem::event(QEvent *event)
 {
-    if (m_popupShown) {
+    if (m_popupShown && PopupWindow->model() && popupApplet() == PopupWindow->getContent()) {
         switch (event->type()) {
         case QEvent::Paint:
             if (!m_popupAdjustDelayTimer->isActive())
@@ -105,9 +97,6 @@ void DockItem::updatePopupPosition()
 
     if (!m_popupShown || !PopupWindow->model())
         return;
-
-    if (PopupWindow->getContent() != m_lastPopupWidget.data())
-        return popupWindowAccept();
 
     const QPoint p = popupMarkPoint();
     PopupWindow->show(p, PopupWindow->model());
@@ -135,11 +124,7 @@ void DockItem::enterEvent(QEvent *e)
         return;
     }
 
-    m_hover = true;
-    // m_hoverEffect->setHighlighting(true);
     m_popupTipsDelayTimer->start();
-
-    update();
 
     return QWidget::enterEvent(e);
 }
@@ -148,15 +133,11 @@ void DockItem::leaveEvent(QEvent *e)
 {
     QWidget::leaveEvent(e);
 
-    m_hover = false;
-    // m_hoverEffect->setHighlighting(false);
     m_popupTipsDelayTimer->stop();
 
     // auto hide if popup is not model window
     if (m_popupShown && !PopupWindow->model())
         hidePopup();
-
-    update();
 }
 
 const QRect DockItem::perfectIconRect() const
@@ -228,18 +209,23 @@ void DockItem::showHoverTips()
 {
     // another model popup window already exists
     if (PopupWindow->model())
-        return;
+    {
+        if(QWidget *widget = popupApplet())
+        {
+            if(widget != PopupWindow->getContent())
+                showPopupApplet(widget);
+        }
+    }
+    else if (QRect(topleftPoint(), size()).contains(QCursor::pos()))
+    {
+        if (QWidget *const content = popupTips())
+            showPopupWindow(content);
+    }
+}
 
-    // if not in geometry area
-    const QRect r(topleftPoint(), size());
-    if (!r.contains(QCursor::pos()))
-        return;
-
-    QWidget *const content = popupTips();
-    if (!content)
-        return;
-
-    showPopupWindow(content);
+void DockItem::showPopupApplet(QWidget *const applet)
+{
+    showPopupWindow(applet, true);
 }
 
 void DockItem::showPopupWindow(QWidget *const content, const bool model)
@@ -247,50 +233,21 @@ void DockItem::showPopupWindow(QWidget *const content, const bool model)
     if(model)
         emit requestWindowAutoHide(false);
 
-    if(itemType() == App){
-        PopupWindow->setRadius(18);
-    }else {
-        PopupWindow->setRadius(6);
-    }
-
     m_popupShown = true;
-    m_lastPopupWidget = content;
 
-    DockPopupWindow *popup = PopupWindow.data();
-    QWidget *lastContent = popup->getContent();
-    if (lastContent)
-        lastContent->setVisible(false);
+    PopupWindow->resize(content->sizeHint());
+    PopupWindow->setContent(content);
 
-    popup->setArrowDirection(DockPopupWindow::ArrowTop);
-    popup->resize(content->sizeHint());
-    popup->setContent(content);
+    QVariant canFocus = content->property("canFocus");
+    PopupWindow->setWindowFlag(Qt::WindowDoesNotAcceptFocus, !(canFocus.isValid() && canFocus.toBool()));
 
     const QPoint p = popupMarkPoint();
-    if (!popup->isVisible())
-        QMetaObject::invokeMethod(popup, "show", Qt::QueuedConnection, Q_ARG(QPoint, p), Q_ARG(bool, model));
+    if (PopupWindow->isVisible())
+        PopupWindow->show(p, model);
     else
-        popup->show(p, model);
+        QMetaObject::invokeMethod(PopupWindow, "show", Qt::QueuedConnection, Q_ARG(QPoint, p), Q_ARG(bool, model));
 
-    connect(popup, &DockPopupWindow::accept, this, &DockItem::popupWindowAccept, Qt::UniqueConnection);
-}
-
-void DockItem::popupWindowAccept()
-{
-    if (!PopupWindow->isVisible())
-        return;
-
-    disconnect(PopupWindow.data(), &DockPopupWindow::accept, this, &DockItem::popupWindowAccept);
-
-    hidePopup();
-}
-
-void DockItem::showPopupApplet(QWidget *const applet)
-{
-    // another model popup window already exists
-    if (PopupWindow->model())
-        return;
-
-    showPopupWindow(applet, true);
+    connect(PopupWindow, &DockPopupWindow::accept, this, &DockItem::hidePopup, Qt::UniqueConnection);
 }
 
 void DockItem::invokedMenuItem(const QString &itemId, const bool checked)
@@ -309,24 +266,17 @@ QWidget *DockItem::popupTips()
     return nullptr;
 }
 
+QWidget *DockItem::popupApplet()
+{
+    return nullptr;
+}
+
 const QPoint DockItem::popupMarkPoint()
 {
     QPoint p(topleftPoint());
-    int margin = PLUGIN_MARGIN;
-    if (itemType() == Plugins){
-        PluginsItem *pluginItem = dynamic_cast<PluginsItem*>(this);
-        if (nullptr != pluginItem){
-            if (pluginItem->pluginName() == "datetime")
-                margin = 0;
-        }
-    }
     const QRect r = rect();
 
-        if (itemType() == Plugins) {
-            p += QPoint(r.width() / 2, r.height() + margin);
-        } else {
-            p += QPoint(r.width() / 2, r.height());
-        }
+    p += QPoint(r.width() / 2, r.height() + 10);
 
     return p;
 }
@@ -345,20 +295,18 @@ const QPoint DockItem::topleftPoint() const
 
 void DockItem::hidePopup()
 {
-    if(m_popupShown && PopupWindow->model())
-        emit requestWindowAutoHide(true);
+    if (m_popupShown)
+    {
+        disconnect(PopupWindow.data(), &DockPopupWindow::accept, this, &DockItem::hidePopup);
 
-    m_popupTipsDelayTimer->stop();
-    m_popupAdjustDelayTimer->stop();
-    m_popupShown = false;
-    PopupWindow->hide();
+        if(m_popupShown && PopupWindow->model())
+            emit requestWindowAutoHide(true);
 
-    emit PopupWindow->accept();
-}
-
-void DockItem::setDraging(bool bDrag)
-{
-    m_draging = bDrag;
+        m_popupTipsDelayTimer->stop();
+        m_popupAdjustDelayTimer->stop();
+        m_popupShown = false;
+        PopupWindow->hide();
+    }
 }
 
 void DockItem::hideNonModel()
@@ -367,9 +315,3 @@ void DockItem::hideNonModel()
     if (m_popupShown && !PopupWindow->model())
         hidePopup();
 }
-
-bool DockItem::isDragging()
-{
-    return m_draging;
-}
-

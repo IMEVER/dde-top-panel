@@ -50,28 +50,24 @@ public:
 
     QWidget *centralWidget() const;
 
-    virtual void setDraging(bool bDrag) override;
+    void setDraging(bool bDrag) override;
 
 public slots:
     void refershIcon() override;
 
 protected:
     void mousePressEvent(QMouseEvent *e) override;
-    void mouseMoveEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e) override;
-    void enterEvent(QEvent *event) Q_DECL_OVERRIDE;
-    void leaveEvent(QEvent *event) Q_DECL_OVERRIDE;
-    bool eventFilter(QObject *watched, QEvent *event) Q_DECL_OVERRIDE;
 
     void invokedMenuItem(const QString &itemId, const bool checked) override;
-    void showPopupWindow(QWidget *const content, const bool model = false) override;
     const QString contextMenu() const override;
     QWidget *popupTips() override;
+    QWidget *popupApplet() override;
     void resizeEvent(QResizeEvent *event) override;
 
 private:
-    void startDrag();
     void mouseClicked();
+    int comparePluginApi(QString pluginApi1, QString pluginApi2) const;
 
 private:
     PluginsItemInterface *const m_pluginInter;
@@ -79,7 +75,6 @@ private:
 
     const QString m_itemKey;
     const QString m_api;
-    bool m_dragging;
 
     static QPoint MousePressPoint;
 };

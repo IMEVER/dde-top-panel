@@ -24,7 +24,6 @@
 
 #include "constants.h"
 #include "util/dockpopupwindow.h"
-// #include "hoverhighlighteffect.h"
 
 #include <QFrame>
 #include <QPointer>
@@ -61,12 +60,9 @@ public slots:
 
     void showPopupApplet(QWidget *const applet);
     void hidePopup();
-    virtual void setDraging(bool bDrag);
+    virtual void setDraging(bool bDrag) {Q_UNUSED(bDrag)};
 
-    bool isDragging();
 signals:
-    void dragStarted() const;
-    void itemDropped(QObject *destination, const QPoint &dropPoint) const;
     void requestWindowAutoHide(const bool autoHide) const;
     void requestRefreshWindowVisible() const;
 
@@ -81,12 +77,12 @@ protected:
     const QPoint topleftPoint() const;
 
     void hideNonModel();
-    void popupWindowAccept();
     virtual void showPopupWindow(QWidget *const content, const bool model = false);
     virtual void showHoverTips();
     virtual void invokedMenuItem(const QString &itemId, const bool checked);
     virtual const QString contextMenu() const;
     virtual QWidget *popupTips();
+    virtual QWidget *popupApplet();
 
 protected slots:
     void showContextMenu();
@@ -97,13 +93,8 @@ private:
     void menuActionClicked(QAction *action);
 
 protected:
-    bool m_hover;
     bool m_popupShown;
-    bool m_draging;
     QMenu m_contextMenu;
-
-    QPointer<QWidget> m_lastPopupWidget;
-    // QPointer<HoverHighlightEffect> m_hoverEffect;
 
     QTimer *m_popupTipsDelayTimer;
     QTimer *m_popupAdjustDelayTimer;

@@ -30,16 +30,10 @@
 DWIDGET_USE_NAMESPACE
 
 DockPopupWindow::DockPopupWindow(QWidget *parent)
-    : DArrowRectangle(ArrowBottom, parent),
+    : DArrowRectangle(ArrowTop, parent),
       m_model(false),
-
-      m_acceptDelayTimer(new QTimer(this)),
-
       m_regionInter(new DRegionMonitor(this))
 {
-    m_acceptDelayTimer->setSingleShot(true);
-    m_acceptDelayTimer->setInterval(100);
-
     setAccessibleName("popup");
 
     m_wmHelper = DWindowManagerHelper::instance();
@@ -49,7 +43,6 @@ DockPopupWindow::DockPopupWindow(QWidget *parent)
     setWindowFlags(Qt::X11BypassWindowManagerHint | Qt::WindowStaysOnTopHint | Qt::WindowDoesNotAcceptFocus);
     setAttribute(Qt::WA_InputMethodEnabled, false);
 
-    connect(m_acceptDelayTimer, &QTimer::timeout, this, &DockPopupWindow::accept);
     connect(m_wmHelper, &DWindowManagerHelper::hasCompositeChanged, this, &DockPopupWindow::compositeChanged);
     connect(m_regionInter, &DRegionMonitor::buttonPress, this, &DockPopupWindow::onGlobMouseRelease);
 }
@@ -67,7 +60,10 @@ void DockPopupWindow::setContent(QWidget *content)
 {
     QWidget *lastWidget = getContent();
     if (lastWidget)
+    {
+        lastWidget->setVisible(false);
         lastWidget->removeEventFilter(this);
+    }
     content->installEventFilter(this);
 
     QAccessibleEvent event(this, QAccessible::NameChanged);
@@ -85,12 +81,12 @@ void DockPopupWindow::show(const QPoint &pos, const bool model)
 
     show(pos.x(), pos.y());
 
-    if (m_regionInter->registered()) {
-        m_regionInter->unregisterRegion();
-    }
-
-    if (m_model) {
+    bool preRegistered = m_regionInter->registered();
+    if (m_model && !preRegistered) {
         m_regionInter->registerRegion();
+    }
+    else if (!m_model && preRegistered) {
+        m_regionInter->unregisterRegion();
     }
 }
 
@@ -103,7 +99,7 @@ void DockPopupWindow::show(const int x, const int y)
 
 void DockPopupWindow::hide()
 {
-    if (m_regionInter->registered())
+    if (m_model)
         m_regionInter->unregisterRegion();
 
     DArrowRectangle::hide();
@@ -134,7 +130,7 @@ bool DockPopupWindow::eventFilter(QObject *o, QEvent *e)
         QTimer::singleShot(10, this, [ this ] {
             // NOTE(sbw): double check is necessary, in this time, the popup maybe already hided.
             if (isVisible())
-                show(m_lastPoint, m_model);
+                show(m_lastPoint.x(), m_lastPoint.y());
         });
     }
 
@@ -155,8 +151,6 @@ void DockPopupWindow::onGlobMouseRelease(const QPoint &mousePos, const int flag)
         return;
 
     emit accept();
-
-    m_regionInter->unregisterRegion();
 }
 
 void DockPopupWindow::compositeChanged()

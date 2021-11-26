@@ -59,7 +59,6 @@ private:
 private:
     QTimer *m_updatePluginsOrderTimer;
     DockPluginsController *m_pluginsInter;
-    static DockItemManager *INSTANCE;
     QList<QPointer<DockItem>> m_itemList;
 };
 

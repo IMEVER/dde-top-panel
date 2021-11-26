@@ -23,7 +23,6 @@
 #include "item/pluginsitem.h"
 #include "item/traypluginitem.h"
 
-DockItemManager *DockItemManager::INSTANCE = nullptr;
 
 DockItemManager::DockItemManager(QObject *parent)
     : QObject(parent)
@@ -46,6 +45,7 @@ DockItemManager::DockItemManager(QObject *parent)
 
 DockItemManager *DockItemManager::instance(QObject *parent)
 {
+    static DockItemManager *INSTANCE = nullptr;
     if (!INSTANCE)
         INSTANCE = new DockItemManager(parent);
 

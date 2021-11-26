@@ -49,11 +49,12 @@ link_directories(../globalmenu)
 link_libraries(globalmenu)
 
 # driver-manager
-add_executable(${BIN_NAME} ${SRCS} ${INTERFACES} item/item.qrc frame.qrc)
+add_executable(${BIN_NAME} ${SRCS} ${INTERFACES} frame.qrc)
 target_include_directories(${BIN_NAME} PUBLIC ${DtkWidget_INCLUDE_DIRS}
         ${XCB_EWMH_INCLUDE_DIRS}
         ${DFrameworkDBus_INCLUDE_DIRS}
         ${Qt5Gui_PRIVATE_INCLUDE_DIRS}
+        ${Qt5Widgets_PRIVATE_INCLUDE_DIRS}
         ${PROJECT_BINARY_DIR}
         ${QGSettings_INCLUDE_DIRS}
         ${DtkGUI_INCLUDE_DIRS}

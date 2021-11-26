@@ -15,28 +15,28 @@ class CustomSettings : public QObject {
 public:
     static CustomSettings* instance();
 
-    qreal getPanelOpacity() const;
+    bool getPopupHover();
+    void setPopupHover(bool popupHover);
 
+    qreal getPanelOpacity() const;
     void setPanelOpacity(qreal panelOpacity);
 
     const QColor &getPanelBgColor() const;
-
     void setPanelBgColor(const QColor &panelBgColor);
 
-    const QColor &getActiveFontColor() const;
+    QString getPanelBgImg();
+    QString getLogoImg();
 
+    const QColor &getActiveFontColor() const;
     void setActiveFontColor(const QColor &activeFontColor);
 
     const QString getActiveCloseIconPath() const;
-
     void setActiveCloseIconPath(const QString &activeCloseIconPath);
 
     const QString getActiveUnmaximizedIconPath() const;
-
     void setActiveUnmaximizedIconPath(const QString &activeUnmaximizedIconPath);
 
     const QString getActiveMinimizedIconPath() const;
-
     void setActiveMinimizedIconPath(const QString &activeMinimizedIconPath);
 
     void saveSettings();
@@ -58,20 +58,28 @@ public:
     bool isButtonCustom() const;
     void setButtonCustom(bool buttonCustom);
 
+    bool isIconThemeFollowSystem();
+    void setIconThemeFollowSystem(bool follow);
 
 signals:
     void settingsChanged();
+    void popupHoverChanged(bool popupHover);
+    void panelChanged();
 
 private:
     CustomSettings();
 
 private:
+    bool m_popupHover;
     // panel
     quint8 panelOpacity;
     QColor panelBgColor;
+    QString m_panelBgImg;
+    QString m_logo;
 
     bool m_panelCustom;
     bool m_buttonCustom;
+    bool m_iconThemeFollowSystem;
 
     // active window control
     QColor activeFontColor;

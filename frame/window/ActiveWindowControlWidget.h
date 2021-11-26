@@ -27,7 +27,7 @@ public:
     explicit ActiveWindowControlWidget(QWidget *parent = 0);
 
 public slots:
-    void activeWindowInfoChanged();
+    void activeWindowInfoChanged(WId wId);
     void maximizeWindow();
     void toggleMenu(int id);
 

@@ -10,6 +10,7 @@
 
 #include <QScreen>
 #include <QApplication>
+#include <QFile>
 
 #define SNI_WATCHER_SERVICE "org.kde.StatusNotifierWatcher"
 #define SNI_WATCHER_PATH "/StatusNotifierWatcher"
@@ -30,8 +31,9 @@ MainWindow::MainWindow(QScreen *screen, bool disablePlugin, QWidget *parent)
 {
     // setWindowFlag(Qt::WindowDoesNotAcceptFocus);
     setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowDoesNotAcceptFocus);
-    setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_AlwaysShowToolTips);
+
+    m_mainPanel->setObjectName("mainWindow");
 
     QVBoxLayout *layout(new QVBoxLayout(this));
     layout->addWidget(m_mainPanel);
@@ -86,8 +88,11 @@ MainWindow::MainWindow(QScreen *screen, bool disablePlugin, QWidget *parent)
     });
 
     // platformwindowhandle only works when the widget is visible...
-    DPlatformWindowHandle::enableDXcbForWindow(this, true);
-    m_platformWindowHandle.setEnableBlurWindow(true);
+    if(DWindowManagerHelper::instance()->hasComposite())
+    {
+        DPlatformWindowHandle::enableDXcbForWindow(this, true);
+        m_platformWindowHandle.setEnableBlurWindow(true);
+    }
     // m_platformWindowHandle.setTranslucentBackground(true);
     m_platformWindowHandle.setWindowRadius(0);  // have no idea why it doesn't work :(
     m_platformWindowHandle.setShadowOffset(QPoint(0, 5));
@@ -198,38 +203,49 @@ void MainWindow::initConnections() {
         });
 
     connect(DWindowManagerHelper::instance(), &DWindowManagerHelper::hasCompositeChanged, this, [this]{
-        QTimer::singleShot(10000, this, [ this ]{
-            DPlatformWindowHandle::enableDXcbForWindow(this, true);
-            m_platformWindowHandle.setEnableBlurWindow(true);
-            m_platformWindowHandle.setTranslucentBackground(true);
+        QTimer::singleShot(1000, this, [ this ]{
+            const bool composite = DWindowManagerHelper::instance()->hasComposite();
+            DPlatformWindowHandle::enableDXcbForWindow(this, composite);
+            m_platformWindowHandle.setEnableBlurWindow(composite);
+            m_platformWindowHandle.setTranslucentBackground(composite);
         });
 
     }, Qt::QueuedConnection);
 
     connect(m_settings, &TopPanelSettings::settingActionClicked, this, &MainWindow::settingActionClicked);
-    connect(CustomSettings::instance(), &CustomSettings::settingsChanged, this, &MainWindow::applyCustomSettings);
+    connect(CustomSettings::instance(), &CustomSettings::panelChanged, this, &MainWindow::applyCustomSettings);
 
     // connect(windowHandle(), &QWindow::visibleChanged, this, &MainWindow::updateRegionMonitorWatch);
 
     connect(KWindowSystem::self(), &KWindowSystem::windowRemoved, [ this ](WId wId){
-        if(fullscreenIds.remove(wId) && fullscreenIds.isEmpty())
+        if(fullscreenIds.remove(wId))
         {
             updateRegionMonitorWatch();
         }
     });
 
     connect(KWindowSystem::self(), qOverload<WId, NET::Properties, NET::Properties2>(&KWindowSystem::windowChanged), [this](WId wId, NET::Properties properties, NET::Properties2 properties2){
-        if(QApplication::desktop()->screenNumber(this) != XUtils::getWindowScreenNum(wId))
-            return;
+        if(QApplication::screens().count() > 1)
+        {
+            int index = XUtils::getWindowScreenNum(wId);
 
-        if(properties.testFlag(NET::WMState))
+            if(index > -1 && QApplication::desktop()->screenNumber(this) != index)
+                return;
+        }
+
+        if(properties.testFlag(NET::WMDesktop))
+        {
+            if(fullscreenIds.contains(wId))
+                updateRegionMonitorWatch();
+        }
+        else if(properties.testFlag(NET::WMState))
         {
             KWindowInfo kwin(wId, NET::WMState);
             if(kwin.valid())
             {
                 if(kwin.hasState(NET::Hidden))
                 {
-                    if(fullscreenIds.remove(wId) && fullscreenIds.isEmpty())
+                    if(fullscreenIds.remove(wId))
                         updateRegionMonitorWatch();
                 }
                 else if(kwin.hasState(NET::FullScreen))
@@ -237,17 +253,17 @@ void MainWindow::initConnections() {
                     if(!fullscreenIds.contains(wId))
                     {
                         fullscreenIds.insert(wId);
-                        if(fullscreenIds.count() == 1)
                             updateRegionMonitorWatch();
                     }
                 }
-                else if(fullscreenIds.remove(wId) && fullscreenIds.isEmpty())
+                else if(fullscreenIds.remove(wId))
                 {
-                        updateRegionMonitorWatch();
+                    updateRegionMonitorWatch();
                 }
             }
         }
     });
+    connect(KWindowSystem::self(), &KWindowSystem::currentDesktopChanged, this, &MainWindow::updateRegionMonitorWatch);
 }
 
 void MainWindow::mousePressEvent(QMouseEvent *e)
@@ -270,13 +286,22 @@ void MainWindow::moveToScreen(QScreen *screen) {
 }
 
 void MainWindow::applyCustomSettings() {
-    const CustomSettings *customSettings = CustomSettings::instance();
+    CustomSettings *customSettings = CustomSettings::instance();
     disconnect(m_dockInter, &DBusDock::OpacityChanged, this, 0);
 
     if(customSettings->isPanelCustom())
     {
         this->setMaskAlpha(customSettings->getPanelOpacity());
         this->setMaskColor(customSettings->getPanelBgColor());
+        QString bgImg = customSettings->getPanelBgImg();
+        if(!bgImg.isNull() && QFile::exists(bgImg))
+        {
+        //     DPlatformWindowHandle::enableDXcbForWindow(this, false);
+        //     setBlurEnabled(false);
+        //     m_platformWindowHandle.setEnableBlurWindow(false);
+        //     m_platformWindowHandle.setTranslucentBackground(false);
+            this->setStyleSheet(QString(" MainPanelControl { background-image: url(%1); }").arg(bgImg));
+        }
     }
     else
     {
@@ -294,29 +319,49 @@ void MainWindow::updateRegionMonitorWatch()
 {
     unRegisterRegion();
 
-    if (fullscreenIds.isEmpty())
+    if(m_showAnimation->state() == QVariantAnimation::Running)
+        m_showAnimation->stop();
+
+    if(windowFlags() & Qt::X11BypassWindowManagerHint)
     {
-        if(m_showAnimation->state() == QVariantAnimation::Running)
-            m_showAnimation->stop();
+        if(m_leaveTimer->isActive())
+            m_leaveTimer->stop();
+        if(m_hideAnimation->state() == QVariantAnimation::Running)
+            m_hideAnimation->stop();
 
-        if((windowFlags() & Qt::X11BypassWindowManagerHint) && !m_leaveTimer->isActive() && m_hideAnimation->state() != QVariantAnimation::Running)
-            m_hideAnimation->start();
-
-        return;
+        hide();
+        setWindowFlag(Qt::X11BypassWindowManagerHint, false);
+        setWindowFlag(Qt::Tool, false);
+        // setWindowFlag(Qt::WindowDoesNotAcceptFocus);
+        move(m_settings->windowRect().topLeft());
+        m_xcbMisc->set_window_type(winId(), XcbMisc::Dock);
+        setStrutPartial();
+        show();
     }
 
-    const int flags = Motion | Button | Key;
-    const QRect windowRect = m_settings->windowRect();
-    const qreal scale = devicePixelRatioF();
-    int x, y, w;
+    if(!fullscreenIds.isEmpty())
+    {
+        for(auto winId : fullscreenIds)
+        {
+            KWindowInfo kwin(winId, NET::WMDesktop);
+            if(kwin.valid() && kwin.isOnCurrentDesktop())
+            {
+                const int flags = Motion | Button | Key;
+                const QRect windowRect = m_settings->windowRect();
+                const qreal scale = devicePixelRatioF();
+                int x, y, w;
 
-    x = windowRect.x();
-    y = windowRect.y();
-    w = windowRect.right();
+                x = windowRect.x();
+                y = windowRect.y();
+                w = windowRect.right();
 
-    m_registerKey = m_eventInter->RegisterArea(x * scale, y * scale, w * scale, y * scale + 1, flags);
+                m_registerKey = m_eventInter->RegisterArea(x * scale, y * scale, w * scale, y * scale + 1, flags);
 
-    connect(m_eventInter, &XEventMonitor::CursorInto, this, &MainWindow::onRegionMonitorChanged);
+                connect(m_eventInter, &XEventMonitor::CursorInto, this, &MainWindow::onRegionMonitorChanged);
+                break;
+            }
+        }
+    }
 }
 
 void MainWindow::unRegisterRegion()
@@ -342,16 +387,10 @@ void MainWindow::ActivateWindow()
 {
     if (!fullscreenIds.isEmpty() && !(windowFlags() & Qt::X11BypassWindowManagerHint))
     {
-        // int wId = XUtils::getFocusWindowId();
-        // if(XUtils::getWindowScreenNum(wId) == QApplication::desktop()->screenNumber(this) && XUtils::checkIfWinFullscreen(wId))
-        // {
            setWindowFlag(Qt::X11BypassWindowManagerHint);
            setWindowFlag(Qt::Tool);
-        //    setWindowFlag(Qt::WindowDoesNotAcceptFocus, false);
            m_showAnimation->start();
            show();
-        //    activateWindow();
-        // }
     }
 }
 
@@ -412,9 +451,10 @@ void TopPanelLauncher::rearrange() {
 
     for (auto screen : mwMap.keys()) {
         if (!qApp->screens().contains(screen)) {
-            mwMap[screen]->close();
             qDebug() << "===========> close top panel";
-            mwMap.remove(screen);
+            MainWindow *window = mwMap.take(screen);
+            window->close();
+            window->deleteLater();
         }
     }
 }

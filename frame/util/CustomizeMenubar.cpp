@@ -4,7 +4,9 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QDebug>
+#include <QtWidgets/private/qmenubar_p.h>
 
+QT_FORWARD_DECLARE_CLASS(QMenuBarPrivate)
 CustomizeMenubar::CustomizeMenubar(QWidget *parent) : QMenuBar(parent)
 {
     // setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
@@ -22,14 +24,17 @@ CustomizeMenubar::~CustomizeMenubar()
 {}
 
 void CustomizeMenubar::paintEvent(QPaintEvent *e)
-{//return QMenuBar::paintEvent(e);
+{
+    QMenuBarPrivate *d = reinterpret_cast<QMenuBarPrivate *>(QMenuBar::d_ptr.data());
+    static int firstWidth = -1;
+
     QPainter p(this);
     QRegion emptyArea(rect());
 
-    int hmargin = style()->pixelMetric(QStyle::PM_MenuBarPanelWidth, 0, this);
-    QRect result = rect();
-    result.adjust(hmargin, 0, -hmargin, 0);
-    
+    // int hmargin = style()->pixelMetric(QStyle::PM_MenuBarPanelWidth, 0, this);
+    // QRect result = rect();
+    // result.adjust(hmargin, 0, -hmargin, 0);
+
     // if (extVisible) {
     //     if (isRightToLeft())
     //         result.setLeft(result.left() + extension->sizeHint().width());
@@ -38,14 +43,34 @@ void CustomizeMenubar::paintEvent(QPaintEvent *e)
     // }
 
     //draw the items
-    for (int i = 0; i < actions().count(); ++i) {
-        QAction *action = actions().at(i);
-        QRect adjustedActionRect = actionGeometry(action);
+    bool needFix = false;// d->actionRect(d->actions.at(0));
+    for (int i = 0; i < d->actions.count(); ++i) {
+        QAction *action = d->actions.at(i);
+        QRect &adjustedActionRect = d->actionRects[i]; // actionGeometry(action);
 
-        if (adjustedActionRect.isEmpty())
+        if (adjustedActionRect.isEmpty() || !action->isVisible())
             continue;
-        if (adjustedActionRect.isValid() && !result.contains(adjustedActionRect))
-            continue;
+
+        if(i == 0)
+        {
+            if(firstWidth != adjustedActionRect.width())
+            {
+                if(firstWidth == -1)
+                    firstWidth = adjustedActionRect.width() + 12;
+
+                adjustedActionRect.setWidth(firstWidth);
+                needFix = true;
+            }
+        }
+        else if(needFix)
+        {
+            adjustedActionRect.setWidth(adjustedActionRect.width() - 1);
+            adjustedActionRect.moveLeft(adjustedActionRect.x() + 12 - (i - 1));
+        }
+
+        // if (adjustedActionRect.isValid() && !result.contains(adjustedActionRect))
+        //     continue;
+
         if(!e->rect().intersects(adjustedActionRect))
             continue;
 
@@ -55,12 +80,24 @@ void CustomizeMenubar::paintEvent(QPaintEvent *e)
         opt.rect = adjustedActionRect;
         p.setClipRect(adjustedActionRect);
 
-        QFont font = p.font();
-        opt.palette.setColor(QPalette::ButtonText, Qt::black);
-        font.setBold(action->objectName() == "appMenu");
-        p.setFont(font);
+        QFont font;
+
+        if(action->objectName() == "appMenu")
+        {
+            font = p.font();
+            // opt.palette.setColor(QPalette::ButtonText, Qt::black);
+            font.setBold(true);
+            p.setFont(font);
+        }
         style()->drawControl(QStyle::CE_MenuBarItem, &opt, &p, this);
+
+        if(action->objectName() == "appMenu")
+        {
+            font.setBold(false);
+            p.setFont(font);
+        }
     }
+
      //draw border
     if(int fw = style()->pixelMetric(QStyle::PM_MenuBarPanelWidth, 0, this)) {
         QRegion borderReg;

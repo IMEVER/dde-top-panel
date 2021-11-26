@@ -3,9 +3,14 @@
 //
 
 #include "MainPanelControl.h"
+
 #include <QApplication>
 #include <QDrag>
+#include <QStyle>
+#include <QStyleOption>
+
 #include "ShowDesktopWidget.h"
+
 
 MainPanelControl::MainPanelControl(QWidget *parent)
     : QWidget(parent)
@@ -24,9 +29,9 @@ MainPanelControl::MainPanelControl(QWidget *parent)
 
     this->init();
 
-    QPalette palette = this->palette();
-    palette.setColor(QPalette::Background, Qt::transparent);
-    this->setPalette(palette);
+    // QPalette palette = this->palette();
+    // palette.setColor(QPalette::Background, Qt::transparent);
+    // this->setPalette(palette);
 }
 
 void MainPanelControl::init()
@@ -54,7 +59,7 @@ void MainPanelControl::init()
     m_pluginLayout->setMargin(0);
     m_pluginLayout->setSpacing(5);
 
-    activeWindowControlWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    // activeWindowControlWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     m_pluginAreaWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     m_trayAreaWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
@@ -62,8 +67,6 @@ void MainPanelControl::init()
     m_fixedPluginLayout->setMargin(0);
     m_fixedPluginLayout->setSpacing(5);
     m_fixedPluginWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-
-    // this->activeWindowControlWidget->activeWindowInfoChanged();
 }
 
 void MainPanelControl::insertItem(int index, DockItem *item)
@@ -287,6 +290,10 @@ void MainPanelControl::dragEnterEvent(QDragEnterEvent *e) {
         e->accept();
 }
 
-void MainPanelControl::dragLeaveEvent(QDragLeaveEvent *event) {
-    QWidget::dragLeaveEvent(event);
+void MainPanelControl::paintEvent(QPaintEvent *event)
+{
+    QStyleOption opt;
+    opt.init(this);
+    QPainter p(this);
+    style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
 }

@@ -73,10 +73,6 @@ protected:
 
 AppMenuModel::AppMenuModel(QObject *parent) : QObject(parent)//, m_serviceWatcher(new QDBusServiceWatcher(this))
 {
-    if (!KWindowSystem::isPlatformX11()) {
-        return;
-    }
-
     m_importer = nullptr;
     // registrarProxy = new RegistrarProxy(this);
     // registrarProxy->Reference();
@@ -188,6 +184,7 @@ void AppMenuModel::initDesktopMenu()
     fileMenu->addMenu(createMenu);
 
     QMenu *recentMenu = new QMenu("最近使用");
+    recentMenu->setToolTipsVisible(true);
     auto createRecentItem = [ recentMenu ] {
         recentMenu->clear();
         QFile *xmlFile = new QFile(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation).append(QDir::separator()).append("recently-used.xbel"));
@@ -206,9 +203,11 @@ void AppMenuModel::initDesktopMenu()
                             QFileInfo item(QUrl::fromPercentEncoding(filePath.toLocal8Bit()).remove("file://"));
                             if(item.exists() && item.isFile())
                             {
-                                recentMenu->addAction(QFileIconProvider().icon(item), item.fileName(), [item]{
+                                QAction *action = recentMenu->addAction(QFileIconProvider().icon(item), item.fileName(), [item]{
                                     QDesktopServices::openUrl(QUrl::fromLocalFile(item.absoluteFilePath()));
                                 });
+
+                                action->setToolTip(item.absolutePath());
                             }
                         }
                 }
@@ -323,7 +322,6 @@ void AppMenuModel::setWinId(const WId &id, bool isDesktop, const QString title)
 
 void AppMenuModel::switchApplicationMenu(const QString title)
 {
-    if (KWindowSystem::isPlatformX11()) {
         if (this->cachedImporter.contains(m_winId))
         {
             return updateApplicationMenu(this->cachedImporter[m_winId]);
@@ -340,7 +338,6 @@ void AppMenuModel::switchApplicationMenu(const QString title)
         auto updateMenuFromWindowIfHasMenu = [this, title](WId id) {
             if(this->cachedImporter.contains(id))
             {
-                this->m_winId = id;
                 updateApplicationMenu(this->cachedImporter.value(id));
                 return true;
             }
@@ -351,7 +348,6 @@ void AppMenuModel::switchApplicationMenu(const QString title)
 
             if (!serviceName.isEmpty() && !menuObjectPath.isEmpty()) {
                 KDBusMenuImporter *importer = new KDBusMenuImporter(serviceName, menuObjectPath, title, this);
-                this->m_winId = id;
                 this->cachedImporter.insert(id, importer);
                 updateApplicationMenu(importer);
                 return true;
@@ -368,7 +364,6 @@ void AppMenuModel::switchApplicationMenu(const QString title)
         }
 
         updateMenuFromWindowIfHasMenu(m_winId);
-    }
 }
 
 QMenu *AppMenuModel::menu() const

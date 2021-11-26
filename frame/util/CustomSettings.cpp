@@ -20,6 +20,45 @@ CustomSettings *CustomSettings::instance() {
     return &customSettings;
 }
 
+bool CustomSettings::getPopupHover()
+{
+    return m_popupHover;
+}
+
+void CustomSettings::setPopupHover(bool popupHover)
+{
+    if(m_popupHover != popupHover)
+    {
+        m_popupHover = popupHover;
+        saveSettings();
+        emit popupHoverChanged(m_popupHover);
+    }
+}
+
+bool CustomSettings::isIconThemeFollowSystem()
+{
+    return m_iconThemeFollowSystem;
+}
+
+void CustomSettings::setIconThemeFollowSystem(bool follow)
+{
+    if(m_iconThemeFollowSystem != follow)
+    {
+        m_iconThemeFollowSystem = follow;
+        emit settingsChanged();
+    }
+}
+
+bool CustomSettings::isPanelCustom() const {
+    return m_panelCustom;
+}
+
+void CustomSettings::setPanelCustom(bool panelCustom) {
+    this->m_panelCustom = panelCustom;
+    emit settingsChanged();
+    emit panelChanged();
+}
+
 qreal CustomSettings::getPanelOpacity() const {
     return panelOpacity;
 }
@@ -27,6 +66,7 @@ qreal CustomSettings::getPanelOpacity() const {
 void CustomSettings::setPanelOpacity(qreal panelOpacity) {
     CustomSettings::panelOpacity = panelOpacity;
     emit settingsChanged();
+    emit panelChanged();
 }
 
 const QColor &CustomSettings::getPanelBgColor() const {
@@ -36,6 +76,17 @@ const QColor &CustomSettings::getPanelBgColor() const {
 void CustomSettings::setPanelBgColor(const QColor &panelBgColor) {
     CustomSettings::panelBgColor = panelBgColor;
     emit settingsChanged();
+    emit panelChanged();
+}
+
+QString CustomSettings::getPanelBgImg()
+{
+    return m_panelBgImg.isNull() ? m_panelBgImg : QString(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/icons/" + m_panelBgImg);
+}
+
+QString CustomSettings::getLogoImg()
+{
+    return m_logo.isNull() ? m_logo : QString(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/icons/" + m_logo);
 }
 
 const QColor &CustomSettings::getActiveFontColor() const {
@@ -105,18 +156,11 @@ void CustomSettings::resetMinIconPath() {
     emit settingsChanged();
 }
 
-bool CustomSettings::isPanelCustom() const {
-    return m_panelCustom;
-}
-
-void CustomSettings::setPanelCustom(bool panelCustom) {
-    this->m_panelCustom = panelCustom;
-    emit settingsChanged();
-}
-
 void CustomSettings::saveSettings() {
     QSettings settings(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/dde-top-panel.ini", QSettings::IniFormat);
 
+    settings.setValue("popupHover", m_popupHover);
+    settings.setValue("iconThemeFollowSystem", m_iconThemeFollowSystem);
     settings.setValue("panel/panelCustom", m_panelCustom);
     settings.setValue("panel/bgColor", this->panelBgColor);
     settings.setValue("panel/opacity", this->panelOpacity);
@@ -129,8 +173,12 @@ void CustomSettings::saveSettings() {
 
 void CustomSettings::readSettings() {
     QSettings settings(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/dde-top-panel.ini", QSettings::IniFormat);
+    this->m_popupHover = settings.value("popupHover", false).toBool();
+    this->m_iconThemeFollowSystem = settings.value("iconThemeFollowSystem", false).toBool();
     this->m_panelCustom = settings.value("panel/panelCustom", false).toBool();
     this->panelBgColor = settings.value("panel/bgColor", (QColor)Qt::white).value<QColor>();
+    this->m_panelBgImg = settings.value("panel/bgImg", QString()).toString();
+    this->m_logo = settings.value("logo", QString()).toString();
     this->panelOpacity = settings.value("panel/opacity", 50).toUInt();
     this->activeFontColor = settings.value("windowControl/fontColor", (QColor)Qt::black).value<QColor>();
     this->activeCloseIconPath = settings.value("windowControl/closeIcon", this->activeCloseIconPath).toString();

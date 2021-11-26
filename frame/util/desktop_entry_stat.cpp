@@ -32,26 +32,21 @@
 
 DCORE_USE_NAMESPACE
 
-static DesktopEntryStat *instancePtr;
-
-    auto getExecName = [](QStringList execs) {
-        for(auto exec : execs)
-        {
-            exec = exec.remove("\"").trimmed();
-            if(exec == "/bin/bash" || exec == "bash" || exec == "sh" || exec == "python" || exec == "gksu" || exec == "pkexec" || exec == "env" || exec.contains("="))
-                continue;
-            return QFileInfo(exec).baseName();
-        }
-        return QString();
-    };
+auto getExecName = [](QStringList execs) {
+    for(auto exec : execs)
+    {
+        exec = exec.remove("\"").trimmed();
+        if(exec == "/bin/bash" || exec == "bash" || exec == "sh" || exec == "python" || exec == "gksu" || exec == "pkexec" || exec == "env" || exec.contains("="))
+            continue;
+        return QFileInfo(exec).baseName();
+    }
+    return QString();
+};
 
 DesktopEntryStat *DesktopEntryStat::instance()
 {
-    if (!instancePtr)
-    {
-        instancePtr = new DesktopEntryStat();
-    }
-    return instancePtr;
+    static DesktopEntryStat instancePtr(nullptr);
+    return &instancePtr;
 }
 
 auto print_err_entry = [](decltype(errno) e, const QString &msg)
@@ -195,17 +190,13 @@ DesktopEntry DesktopEntryStat::searchByName(QString name)
 
 DesktopEntry DesktopEntryStat::getDesktopEntryByDesktopfile(const QString desktopFile)
 {
+    if (!deskToNameMap.contains(desktopFile))
+    {
+        createDesktopEntry(desktopFile);
+    }
     if (deskToNameMap.contains(desktopFile))
     {
         return cache[deskToNameMap.value(desktopFile)];
-    }
-    else
-    {
-        createDesktopEntry(desktopFile);
-        if (deskToNameMap.contains(desktopFile))
-        {
-            return cache[deskToNameMap.value(desktopFile)];
-        }
     }
     return nullptr;
 }

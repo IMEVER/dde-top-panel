@@ -13,9 +13,12 @@ MainSettingWidget::MainSettingWidget(QWidget *parent) :
     ui(new Ui::MainSettingWidget)
 {
     ui->setupUi(this);
+
+    ui->popupHoverCheckBox->setChecked(CustomSettings::instance()->getPopupHover());
+    ui->iconThemeCheckBox->setChecked(CustomSettings::instance()->isIconThemeFollowSystem());
+
     ui->panelColorToolButton->setStyleSheet(QString("QToolButton {background: %1; border: none;}").arg(CustomSettings::instance()->getPanelBgColor().name()));
     ui->fontColorToolButton->setStyleSheet(QString("QToolButton {background: %1; border: none;}").arg(CustomSettings::instance()->getActiveFontColor().name()));
-
 
     ui->opacitySpinBox->setValue(CustomSettings::instance()->getPanelOpacity());
 
@@ -38,6 +41,8 @@ MainSettingWidget::MainSettingWidget(QWidget *parent) :
     ui->closeButtonToolButton->setIcon(QIcon(":/icons/config.svg"));
     ui->closeResetToolButton->setIcon(QIcon(":/icons/reset.svg"));
 
+    connect(ui->popupHoverCheckBox, &QCheckBox::stateChanged, CustomSettings::instance(), &CustomSettings::setPopupHover);
+    connect(ui->iconThemeCheckBox, &QCheckBox::stateChanged, CustomSettings::instance(), &CustomSettings::setIconThemeFollowSystem);
     connect(ui->opacitySpinBox, qOverload<int>(&QSpinBox::valueChanged), CustomSettings::instance(), &CustomSettings::setPanelOpacity);
     connect(ui->panelColorToolButton, &QToolButton::clicked, this, &MainSettingWidget::panelColorButtonClicked);
     connect(ui->fontColorToolButton, &QToolButton::clicked, this, &MainSettingWidget::fontColorButtonClicked);

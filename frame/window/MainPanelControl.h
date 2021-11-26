@@ -42,8 +42,8 @@ signals:
 protected:
     void dragMoveEvent(QDragMoveEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
-    void dragLeaveEvent(QDragLeaveEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
 
 public:
     bool eventFilter(QObject *watched, QEvent *event) override;

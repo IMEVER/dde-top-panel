@@ -1,6 +1,0 @@
-<RCC>
-    <qresource prefix="/icons">
-        <file>resources/arrow-right.svg</file>
-        <file>resources/arrow-left.svg</file>
-    </qresource>
-</RCC>

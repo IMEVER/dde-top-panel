@@ -45,9 +45,7 @@ public:
     static xdo_t *m_xdo;
 
     static int getFocusWindowIdByX();
-    static Display *m_display;
-
-    static int comparePluginApi(const QString &pluginApi1, const QString &pluginApi2);
+    static Display *m_display;;
 private:
     static void openXdo();
     static void openDisplay();

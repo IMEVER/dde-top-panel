@@ -45,9 +45,7 @@ MenuImporter::MenuImporter(QObject* parent)
     m_serviceWatcher->setConnection(QDBusConnection::sessionBus());
     m_serviceWatcher->setWatchMode(QDBusServiceWatcher::WatchForUnregistration);
     connect(m_serviceWatcher, &QDBusServiceWatcher::serviceUnregistered, this, &MenuImporter::slotServiceUnregistered);
-    connect(KWindowSystem::self(), &KWindowSystem::windowRemoved, [ this ](WId id) {
-        QTimer::singleShot(100, [this, id]{ UnregisterWindow(id);});
-     });
+    connect(KWindowSystem::self(), &KWindowSystem::windowRemoved, this, &MenuImporter::UnregisterWindow);
 }
 
 MenuImporter::~MenuImporter()
@@ -70,9 +68,9 @@ bool MenuImporter::connectToBus()
 void MenuImporter::RegisterWindow(WId id, const QDBusObjectPath& path)
 {
     KWindowInfo info(id, NET::WMWindowType, NET::WM2WindowClass);
-    if(!info.valid())
-        return;
-        
+    // if(!info.valid())
+        // return;
+
     NET::WindowTypes mask = NET::AllTypesMask;
 
     // Menu can try to register, right click in gimp for example

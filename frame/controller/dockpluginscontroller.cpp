@@ -42,9 +42,13 @@ void DockPluginsController::itemAdded(PluginsItemInterface *const itemInter, con
             return;
 
     // 取 plugin api
-    QPluginLoader *pluginLoader = qobject_cast<QPluginLoader*>(mPluginsMap[itemInter].value("pluginloader"));
-    const QJsonObject &meta = pluginLoader->metaData().value("MetaData").toObject();
-    const QString &pluginApi = meta.value("api").toString();
+    QString pluginApi = "1.1.1";
+    if(mPluginsMap[itemInter].contains("pluginloader"))
+    {
+        QPluginLoader *pluginLoader = qobject_cast<QPluginLoader*>(mPluginsMap[itemInter].value("pluginloader"));
+        const QJsonObject &meta = pluginLoader->metaData().value("MetaData").toObject();
+        pluginApi = meta.value("api").toString();
+    }
 
     PluginsItem *item = nullptr;
     if (itemInter->pluginName() == "tray") {
@@ -85,10 +89,6 @@ void DockPluginsController::itemRemoved(PluginsItemInterface *const itemInter, c
 
     QMap<PluginsItemInterface *, QMap<QString, QObject *>> &mPluginsMap = pluginsMap();
     mPluginsMap[itemInter].remove(itemKey);
-
-    if (item->isDragging()) {
-        QDrag::cancel();
-    }
 
     // just delete our wrapper object(PluginsItem)
     item->deleteLater();

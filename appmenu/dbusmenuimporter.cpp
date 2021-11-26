@@ -123,37 +123,41 @@ public:
 
         if (type == QLatin1String("separator")) {
             action->setSeparator(true);
+            if(map.contains(QLatin1String("visible")))
+                updateActionVisible(action, map.value(QLatin1String("visible")));
         }
-
-        if (map.take(QStringLiteral("children-display")).toString() == QLatin1String("submenu")) {
-            QMenu *menu = createMenu(parent);
-            action->setMenu(menu);
-        }
-
-        QString toggleType = map.take(QStringLiteral("toggle-type")).toString();
-
-        if (!toggleType.isEmpty()) {
-            action->setCheckable(true);
-
-            if (toggleType == QLatin1String("radio")) {
-                QActionGroup *group = new QActionGroup(action);
-                group->addAction(action);
+        else
+        {
+            if (map.take(QStringLiteral("children-display")).toString() == QLatin1String("submenu")) {
+                QMenu *menu = createMenu(parent);
+                action->setMenu(menu);
             }
+            else
+            {
+                QString toggleType = map.take(QStringLiteral("toggle-type")).toString();
+
+                if (!toggleType.isEmpty()) {
+                    action->setCheckable(true);
+
+                    if (toggleType == QLatin1String("radio")) {
+                        QActionGroup *group = new QActionGroup(action);
+                        group->addAction(action);
+                    }
+                }
+            }
+            bool isKdeTitle = map.take(QStringLiteral("x-kde-title")).toBool();
+            updateAction(action, map, map.keys());
+
+            if (isKdeTitle) {
+                action = createKdeTitle(action, parent);
+            }
+
+            QObject::connect(action, SIGNAL(triggered()), &m_mapper, SLOT(map()));
+            m_mapper.setMapping(action, id);
+
+            QObject::connect(action, SIGNAL(hovered()), &m_hoverMap, SLOT(map()));
+            m_hoverMap.setMapping(action, id);
         }
-
-        bool isKdeTitle = map.take(QStringLiteral("x-kde-title")).toBool();
-        updateAction(action, map, map.keys());
-
-        if (isKdeTitle) {
-            action = createKdeTitle(action, parent);
-        }
-
-        QObject::connect(action, SIGNAL(triggered()), &m_mapper, SLOT(map()));
-        m_mapper.setMapping(action, id);
-
-        QObject::connect(action, SIGNAL(hovered()), &m_hoverMap, SLOT(map()));
-        m_hoverMap.setMapping(action, id);
-
         return action;
     }
 
@@ -501,11 +505,6 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
     int parentId = watcher->property(DBUSMENU_PROPERTY_ID).toInt();
     watcher->deleteLater();
 
-    QMenu *menu = d->menuForId(parentId);
-    if (!menu) {
-        return;
-    }
-
     QDBusPendingReply<uint, DBusMenuLayoutItem> reply = *watcher;
 
     if (!reply.isValid()) {
@@ -514,6 +513,10 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
 
     DBusMenuLayoutItem rootItem = reply.argumentAt<1>();
 
+    QMenu *menu = d->menuForId(parentId);
+    if (!menu) {
+        return;
+    }
 
     if(!menu->actions().isEmpty())
     {
@@ -566,6 +569,12 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
             d->updateAction(action, dbusMenuItem.properties, filteredKeys);
             menu->removeAction(action);
             menu->addAction(action);
+            if(QMenu *subMenu = action->menu())
+            {
+                for(auto *subAction : subMenu->actions())
+                    d->delAction(subMenu, subAction);
+                d->refresh(action->property(DBUSMENU_PROPERTY_ID).toInt());
+            }
         }
     }
     // qInfo()<<"GetLayout finish with menu id: " << parentId;

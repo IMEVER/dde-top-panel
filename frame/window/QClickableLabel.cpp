@@ -14,24 +14,18 @@ QClickableLabel::QClickableLabel(QWidget *parent)
     // this->setPalette(palette);
     this->setMouseTracking(true);
     this->setAutoFillBackground(true);
-
-    this->hoverHighlightEffect = new HoverHighlightEffect(this);
-    this->setGraphicsEffect(this->hoverHighlightEffect);
 }
 
 QClickableLabel::~QClickableLabel()
 {
-    delete hoverHighlightEffect;
 }
 
 void QClickableLabel::enterEvent(QEvent *event)
 {
-    this->hoverHighlightEffect->setHighlighting(true);
 }
 
 void QClickableLabel::leaveEvent(QEvent *event)
 {
-    this->hoverHighlightEffect->setHighlighting(false);
 }
 
 void QClickableLabel::mousePressEvent(QMouseEvent *ev) {

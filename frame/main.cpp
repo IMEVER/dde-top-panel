@@ -46,6 +46,7 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 
 int main(int argc, char *argv[]) {
     // qputenv("QT_LOGGING_TO_CONSOLE", QByteArray("0"));
+    QGuiApplication::setAttribute(Qt::AA_UseStyleSheetPropagationInWidgetStyles);
     DApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
     DGuiApplicationHelper::setUseInactiveColorGroup(false);
     DApplication app(argc, argv);
