@@ -17,3 +17,6 @@
 [submodule "plugins/switch_graphics_card"]
 	path = plugins/switch_graphics_card
 	url = https://github.com/zty199/dde-dock-switch_graphics_card.git
+[submodule "plugins/note"]
+	path = plugins/note
+	url = git@gitlab.com:IMEVER/dde-note.git

@@ -9,7 +9,6 @@
 #include <QObject>
 #include <QWidget>
 #include <QMenu>
-#include <controller/dockitemmanager.h>
 
 class TopPanelSettings : public QObject
 {
@@ -28,13 +27,11 @@ public:
 
 signals:
     void settingActionClicked();
+    void aboutActionClicked();
     void autoHideChanged(bool autoHide);
 
 public slots:
     void setAutoHide(bool autoHide);
-
-private slots:
-    void menuActionClicked(QAction *action);
 
 private:
     TopPanelSettings(TopPanelSettings const &) = delete;

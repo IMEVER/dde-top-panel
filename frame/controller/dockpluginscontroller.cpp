@@ -96,7 +96,7 @@ void DockPluginsController::itemRemoved(PluginsItemInterface *const itemInter, c
     if(mPluginsMap[itemInter].isEmpty() && !itemInter->pluginIsAllowDisable())
         mPluginsMap.remove(itemInter);
 }
-
+/*
 void DockPluginsController::requestSetAppletVisible(PluginsItemInterface *const itemInter, const QString &itemKey, const bool visible)
 {
     PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey));
@@ -109,7 +109,7 @@ void DockPluginsController::requestSetAppletVisible(PluginsItemInterface *const 
         item->hidePopup();
     }
 }
-
+*/
 void DockPluginsController::requestWindowAutoHide(PluginsItemInterface *const itemInter, const QString &itemKey, const bool autoHide)
 {
     PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey));
@@ -118,7 +118,7 @@ void DockPluginsController::requestWindowAutoHide(PluginsItemInterface *const it
 
     Q_EMIT item->requestWindowAutoHide(autoHide);
 }
-
+/*
 void DockPluginsController::requestRefreshWindowVisible(PluginsItemInterface *const itemInter, const QString &itemKey)
 {
     PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey));
@@ -127,7 +127,7 @@ void DockPluginsController::requestRefreshWindowVisible(PluginsItemInterface *co
 
     Q_EMIT item->requestRefreshWindowVisible();
 }
-
+*/
 
 void DockPluginsController::startLoader()
 {

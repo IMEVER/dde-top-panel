@@ -171,7 +171,7 @@ void DockItemManager::pluginItemInserted(PluginsItem *item)
 
     emit itemInserted(insertIndex - firstPluginPosition, item);
     connect(item, &DockItem::requestWindowAutoHide, this, &DockItemManager::requestWindowAutoHide);
-    connect(item, &DockItem::requestRefreshWindowVisible, this, &DockItemManager::requestRefershWindowVisible, Qt::UniqueConnection);
+    // connect(item, &DockItem::requestRefreshWindowVisible, this, &DockItemManager::requestRefershWindowVisible, Qt::UniqueConnection);
 }
 
 void DockItemManager::pluginItemRemoved(PluginsItem *item)

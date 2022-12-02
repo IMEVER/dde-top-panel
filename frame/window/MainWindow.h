@@ -26,6 +26,8 @@ using org::kde::StatusNotifierWatcher;
 using namespace Dock;
 using DBusDock = com::deepin::dde::daemon::Dock;
 
+class DockItemManager;
+
 class MainWindow : public DBlurEffectWidget
 {
     Q_OBJECT
@@ -45,7 +47,7 @@ public:
 
 signals:
     void panelGeometryChanged();
-    void settingActionClicked();
+    void pluginVisibleChanged(QString pluginName, bool visible);
 
 private slots:
     void onDbusNameOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner);
@@ -58,6 +60,10 @@ public Q_SLOTS:
     void ToggleMenu(int id);
     void ActivateWindow();
     void DeactivateWindow();
+    QStringList GetLoadedPlugins();
+    QString getPluginKey(QString pluginName);
+    bool getPluginVisible(QString pluginName);
+    void setPluginVisible(QString pluginName, bool visible);
 
 protected:
     void mousePressEvent(QMouseEvent *e) override;

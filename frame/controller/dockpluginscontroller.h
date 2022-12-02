@@ -49,8 +49,8 @@ public:
     void itemUpdate(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
     void itemRemoved(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
     void requestWindowAutoHide(PluginsItemInterface *const itemInter, const QString &itemKey, const bool autoHide) Q_DECL_OVERRIDE;
-    void requestRefreshWindowVisible(PluginsItemInterface *const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
-    void requestSetAppletVisible(PluginsItemInterface * const itemInter, const QString &itemKey, const bool visible) Q_DECL_OVERRIDE;
+    // void requestRefreshWindowVisible(PluginsItemInterface *const itemInter, const QString &itemKey) Q_DECL_OVERRIDE;
+    // void requestSetAppletVisible(PluginsItemInterface * const itemInter, const QString &itemKey, const bool visible) Q_DECL_OVERRIDE;
 
     void startLoader();
 

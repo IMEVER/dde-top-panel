@@ -45,7 +45,7 @@ auto getExecName = [](QStringList execs) {
 
 DesktopEntryStat *DesktopEntryStat::instance()
 {
-    static DesktopEntryStat instancePtr(nullptr);
+    static DesktopEntryStat instancePtr;
     return &instancePtr;
 }
 

@@ -9,9 +9,6 @@
 #include <QStyle>
 #include <QStyleOption>
 
-#include "ShowDesktopWidget.h"
-
-
 MainPanelControl::MainPanelControl(QWidget *parent)
     : QWidget(parent)
     , m_mainPanelLayout(new QBoxLayout(QBoxLayout::LeftToRight, this))
@@ -22,6 +19,7 @@ MainPanelControl::MainPanelControl(QWidget *parent)
     , m_fixedPluginWidget(new QWidget(this))
     , m_fixedPluginLayout(new QHBoxLayout())
     , activeWindowControlWidget(new ActiveWindowControlWidget(this))
+    , m_showDesktopWidget(nullptr)
 {
     this->setFixedHeight(DEFAULT_HEIGHT);
     this->setMouseTracking(true);
@@ -43,10 +41,29 @@ void MainPanelControl::init()
     this->m_mainPanelLayout->addWidget(this->m_trayAreaWidget);
     this->m_mainPanelLayout->addWidget(this->m_pluginAreaWidget);
     this->m_mainPanelLayout->addWidget(this->m_fixedPluginWidget);
-    this->m_mainPanelLayout->addWidget(new ShowDesktopWidget(this));
+
+    if(CustomSettings::instance()->isShowDesktop())
+    {
+        this->m_showDesktopWidget = new ShowDesktopWidget(this);
+        this->m_mainPanelLayout->addWidget(this->m_showDesktopWidget);
+    }
+
+    connect(CustomSettings::instance(), &CustomSettings::showDesktopChanged, [this](bool show){
+        if(show && !this->m_showDesktopWidget)
+        {
+            this->m_showDesktopWidget = new ShowDesktopWidget(this);
+            this->m_mainPanelLayout->addWidget(this->m_showDesktopWidget);
+        }
+        else if(this->m_showDesktopWidget)
+        {
+            this->m_mainPanelLayout->removeWidget(this->m_showDesktopWidget);
+            this->m_showDesktopWidget->deleteLater();
+            this->m_showDesktopWidget = nullptr;
+        }
+     });
 
     m_mainPanelLayout->setMargin(0);
-    m_mainPanelLayout->setSpacing(5);
+    m_mainPanelLayout->setSpacing(6);
 
     // 托盘
     m_trayAreaWidget->setLayout(m_trayAreaLayout);
@@ -57,7 +74,7 @@ void MainPanelControl::init()
     m_pluginAreaWidget->setLayout(m_pluginLayout);
     m_pluginAreaWidget->setAcceptDrops(true);
     m_pluginLayout->setMargin(0);
-    m_pluginLayout->setSpacing(5);
+    m_pluginLayout->setSpacing(6);
 
     // activeWindowControlWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     m_pluginAreaWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
@@ -65,7 +82,7 @@ void MainPanelControl::init()
 
     m_fixedPluginWidget->setLayout(m_fixedPluginLayout);
     m_fixedPluginLayout->setMargin(0);
-    m_fixedPluginLayout->setSpacing(5);
+    m_fixedPluginLayout->setSpacing(6);
     m_fixedPluginWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 }
 

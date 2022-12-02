@@ -44,7 +44,7 @@ signals:
     void itemRemoved(DockItem *item) const;
     void itemUpdated(DockItem *item) const;
     void requestWindowAutoHide(const bool autoHide) const;
-    void requestRefershWindowVisible() const;
+    // void requestRefershWindowVisible() const;
 
 public slots:
     void refershItemsIcon();

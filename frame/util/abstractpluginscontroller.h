@@ -45,6 +45,7 @@ public:
     void removeValue(PluginsItemInterface * const itemInter, const QStringList &keyList) override;
     void requestWindowAutoHide(PluginsItemInterface * const itemInter, const QString &itemKey, const bool autoHide) Q_DECL_OVERRIDE {}
     void requestRefreshWindowVisible(PluginsItemInterface * const itemInter, const QString &itemKey) Q_DECL_OVERRIDE {}
+    void requestSetAppletVisible(PluginsItemInterface * const itemInter, const QString &itemKey, const bool visible) Q_DECL_OVERRIDE {}
 
 protected:
     QMap<PluginsItemInterface *, QMap<QString, QObject *>> &pluginsMap();

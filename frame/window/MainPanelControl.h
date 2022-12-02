@@ -11,6 +11,8 @@
 #include "ActiveWindowControlWidget.h"
 #include "util/CustomSettings.h"
 
+#include "ShowDesktopWidget.h"
+
 // using DockEntryInter = com::deepin::dde::daemon::dock::Entry;
 
 class MainPanelControl : public QWidget
@@ -66,6 +68,7 @@ private:
 
     TrayPluginItem *m_tray = nullptr;
     ActiveWindowControlWidget *activeWindowControlWidget;
+    ShowDesktopWidget *m_showDesktopWidget;
     QPoint m_mousePressPos;
 };
 

@@ -184,43 +184,66 @@ void AppMenuModel::initDesktopMenu()
     fileMenu->addMenu(createMenu);
 
     QMenu *recentMenu = new QMenu("最近使用");
+    recentMenu->setIcon(QIcon::fromTheme("document-open-recent"));
     recentMenu->setToolTipsVisible(true);
+    recentMenu->addSeparator();
+    recentMenu->addAction(QIcon::fromTheme("edit-clear"), "清除记录", []{
+        const static QString xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+            <xbel version=\"1.0\"\n\
+                xmlns:bookmark=\"http://www.freedesktop.org/standards/desktop-bookmarks\"\n\
+                xmlns:mime=\"http://www.freedesktop.org/standards/shared-mime-info\"\n\
+            ></xbel>\n";
+
+        QFile file(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation).append(QDir::separator()).append("recently-used.xbel"));
+        if(file.open(QIODevice::ExistingOnly | QIODevice::Truncate | QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream stream(&file);
+            stream << xml;
+            file.close();
+        }
+    });
     auto createRecentItem = [ recentMenu ] {
-        recentMenu->clear();
+        while(recentMenu->actions().count() > 2) {
+            QAction *action = recentMenu->actions().first();
+            recentMenu->removeAction(action);
+            action->deleteLater();
+        }
+
+        bool has = false;
         QFile *xmlFile = new QFile(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation).append(QDir::separator()).append("recently-used.xbel"));
 
-        if (xmlFile->open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (xmlFile->open(QIODevice::ExistingOnly | QIODevice::ReadOnly | QIODevice::Text)) {
             QXmlStreamReader *xmlReader = new QXmlStreamReader(xmlFile);
-
+            QList<QAction*> actions;
             //Parse the XML until we reach end of it
             while(!xmlReader->atEnd() && !xmlReader->hasError()) {
                 // Read next element
                 if(xmlReader->readNextStartElement() && xmlReader->name() == "bookmark")
                 {
-                        QStringRef filePath = xmlReader->attributes().value("href");
-                        if(filePath.startsWith("file:///") && !filePath.startsWith("file:///run/user"))
+                    QStringRef filePath = xmlReader->attributes().value("href");
+                    if(filePath.startsWith("file:///") && !filePath.startsWith("file:///run/user"))
+                    {
+                        QFileInfo item(QUrl::fromPercentEncoding(filePath.toLocal8Bit()).remove("file://"));
+                        if(item.exists() && item.isFile())
                         {
-                            QFileInfo item(QUrl::fromPercentEncoding(filePath.toLocal8Bit()).remove("file://"));
-                            if(item.exists() && item.isFile())
-                            {
-                                QAction *action = recentMenu->addAction(QFileIconProvider().icon(item), item.fileName(), [item]{
-                                    QDesktopServices::openUrl(QUrl::fromLocalFile(item.absoluteFilePath()));
-                                });
-
-                                action->setToolTip(item.absolutePath());
-                            }
+                            QUrl path(QUrl::fromLocalFile(item.absoluteFilePath()));
+                            QAction *action = new QAction(QFileIconProvider().icon(item), item.fileName(), recentMenu);
+                            action->setToolTip(item.absolutePath());
+                            connect(action, &QAction::triggered, [path]{ QDesktopServices::openUrl(path); });
+                            actions.append(action);
                         }
+                    }
                 }
             }
-
+            if(!actions.isEmpty()) {
+                recentMenu->insertActions(recentMenu->actions().first(), actions);
+                has = true;
+            }
             //close reader and flush file
             xmlReader->clear();delete xmlReader;
             xmlFile->close();
         }
         xmlFile->deleteLater();
-
-        if(recentMenu->isEmpty())
-            recentMenu->addAction("没有最近使用的文件");
+        recentMenu->actions().last()->setEnabled(has);
     };
     fileMenu->addMenu(recentMenu);
     QFileSystemWatcher *watcher = new QFileSystemWatcher({ QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation).append(QDir::separator()).append("recently-used.xbel") }, this);
@@ -229,7 +252,6 @@ void AppMenuModel::initDesktopMenu()
     });
     createRecentItem();
     this->desktopMenu->addMenu(fileMenu);
-
 
     QMenu *editMenu = new QMenu("编辑");
     editMenu->addAction("刷新", [ = ](){

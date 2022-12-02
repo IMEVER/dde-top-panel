@@ -46,7 +46,6 @@ class DesktopEntryStat : public QObject
     Q_OBJECT
 public:
     static DesktopEntryStat *instance();
-    ~DesktopEntryStat();
     DesktopEntry getDesktopEntryByName(const QString name);
     DesktopEntry getDesktopEntryByDesktopfile(const QString desktopFile);
     DesktopEntry getDesktopEntryByPid(int pid);
@@ -54,6 +53,7 @@ public:
 
 private:
     explicit DesktopEntryStat(QObject *parent = nullptr);
+    ~DesktopEntryStat();
     void createDesktopEntry(const QString desktopFile);
     void refresh();
     void parseDir(QString path);

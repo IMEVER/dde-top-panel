@@ -20,6 +20,11 @@ class MainSettingWidget : public QWidget
 public:
     explicit MainSettingWidget(QWidget *parent = nullptr);
     ~MainSettingWidget();
+    void showSetting();
+    void showAbout();
+
+signals:
+    void pluginVisibleChanged(QString pluginName, bool visible);
 
 private:
     Ui::MainSettingWidget *ui;

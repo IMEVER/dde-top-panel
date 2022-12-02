@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
     // qputenv("QT_LOGGING_TO_CONSOLE", QByteArray("0"));
     QGuiApplication::setAttribute(Qt::AA_UseStyleSheetPropagationInWidgetStyles);
     DApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
-    DGuiApplicationHelper::setUseInactiveColorGroup(false);
+    DGuiApplicationHelper::setAttribute(DGuiApplicationHelper::UseInactiveColorGroup, false);
     DApplication app(argc, argv);
     qInstallMessageHandler(myMessageOutput);
 
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
         app.setOrganizationDomain("imever.me");
         app.setApplicationName("dde-top-panel");
         // app.setApplicationDisplayName("全局顶栏");
-        app.setApplicationVersion("1.0.1");
+        app.setApplicationVersion("1.1.1");
         // app.loadTranslator();
 
         QLocale locale = QLocale::system();

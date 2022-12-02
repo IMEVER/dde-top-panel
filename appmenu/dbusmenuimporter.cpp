@@ -47,24 +47,6 @@ static const char *DBUSMENU_PROPERTY_ID = "_dbusmenu_id";
 static const char *DBUSMENU_PROPERTY_ICON_NAME = "_dbusmenu_icon_name";
 static const char *DBUSMENU_PROPERTY_ICON_DATA_HASH = "_dbusmenu_icon_data_hash";
 
-static QAction *createKdeTitle(QAction *action, QWidget *parent)
-{
-    QToolButton *titleWidget = new QToolButton(nullptr);
-    QFont font = titleWidget->font();
-    font.setBold(true);
-    titleWidget->setFont(font);
-    titleWidget->setIcon(action->icon());
-    titleWidget->setText(action->text());
-    titleWidget->setDown(true);
-    titleWidget->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-    action->deleteLater();
-
-    QWidgetAction *titleAction = new QWidgetAction(parent);
-    titleAction->setDefaultWidget(titleWidget);
-    return titleAction;
-}
-
 class DBusMenuImporterPrivate
 {
 public:
@@ -72,6 +54,7 @@ public:
 
     ComCanonicalDbusmenuInterface *m_interface;
     QMenu *m_menu;
+    QActionGroup *group;
     QString title;
     using ActionForId = QMap<int, QAction *>;
     QMap<QAction::MenuRole, QAction *> m_appMenus;
@@ -95,6 +78,9 @@ public:
         QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, q);
         watcher->setProperty(DBUSMENU_PROPERTY_ID, id);
         QObject::connect(watcher, &QDBusPendingCallWatcher::finished, q, &DBusMenuImporter::slotGetLayoutFinished);
+        // QObject::connect(watcher, &QDBusPendingCallWatcher::finished, q, [q](QDBusPendingCallWatcher *watcher){
+        //     QTimer::singleShot(10, [watcher, q]{ q->slotGetLayoutFinished(watcher); });
+        // });
 
         return watcher;
     }
@@ -115,6 +101,7 @@ public:
      * updateAction()
      */
     QAction *createAction(int id, const QVariantMap &_map, QWidget *parent) {
+        bool isRadio = false;
         QVariantMap map = _map;
         QAction *action = new QAction(parent);
         action->setProperty(DBUSMENU_PROPERTY_ID, id);
@@ -140,17 +127,14 @@ public:
                     action->setCheckable(true);
 
                     if (toggleType == QLatin1String("radio")) {
-                        QActionGroup *group = new QActionGroup(action);
+                        if(group == nullptr) group = new QActionGroup(action);
                         group->addAction(action);
+                        isRadio = true;
                     }
                 }
             }
-            bool isKdeTitle = map.take(QStringLiteral("x-kde-title")).toBool();
-            updateAction(action, map, map.keys());
 
-            if (isKdeTitle) {
-                action = createKdeTitle(action, parent);
-            }
+            updateAction(action, map, map.keys());
 
             QObject::connect(action, SIGNAL(triggered()), &m_mapper, SLOT(map()));
             m_mapper.setMapping(action, id);
@@ -158,6 +142,8 @@ public:
             QObject::connect(action, SIGNAL(hovered()), &m_hoverMap, SLOT(map()));
             m_hoverMap.setMapping(action, id);
         }
+
+        if(isRadio == false) group = nullptr;
         return action;
     }
 
@@ -197,39 +183,43 @@ public:
     }
 
     void updateActionLabel(QAction *action, const QVariant &value) {
+        static const QList<QAction::MenuRole> appRoles = {QAction::QuitRole, QAction::AboutRole, QAction::PreferencesRole};
         QString text = swapMnemonicChar(value.toString(), '_', '&');
         action->setText(text);
 
-        QAction::MenuRole role = QAction::NoRole;
         if(!action->menu())
         {
-            const QString txt = text.remove(QRegExp("\\(.*\\)|\\[.*\\]")).toLower().remove(title.toLower()).remove(QChar('.')).remove(QChar('&')).trimmed();
-            //if(text.toLower().contains("about")) qInfo()<<"About : "<<txt<<", origin: "<<text;
-            if(txt.length() < 12)
+            QAction::MenuRole role = action->menuRole();
+            if(role == QAction::TextHeuristicRole)
             {
-                if(txt.startsWith("退出") || txt.startsWith("quit") || txt.startsWith("exit"))
+                const QString txt = text.remove(QRegExp("\\(.*\\)|\\[.*\\]")).toLower().remove(title.toLower()).remove(QChar('.')).remove(QChar('&')).trimmed();
+                //if(text.toLower().contains("about")) qInfo()<<"About : "<<txt<<", origin: "<<text;
+                if(txt.length() < 12)
                 {
-                    if(!txt.contains("playlist") && !txt.contains("列表") && !txt.contains("登录") && !txt.contains("login") && !txt.contains("account"))
+                    if(txt.startsWith("退出") || txt.startsWith("quit") || txt.startsWith("exit"))
                     {
-                        role = QAction::QuitRole;
+                        if(!txt.contains("playlist") && !txt.contains("列表") && !txt.contains("登录") && !txt.contains("login") && !txt.contains("account"))
+                        {
+                            role = QAction::QuitRole;
+                        }
+                    }
+                    else if(txt == "关于" || txt == "about")
+                    {
+                        role = QAction::AboutRole;
+                    }
+                    else if(txt == "设置" || txt.startsWith("偏好设置") || txt.startsWith("常规设置") || txt.startsWith("首选项") || txt.startsWith("选项") || txt.startsWith("preferences") || txt.startsWith("options") || txt.startsWith("settings") || txt.startsWith("config") || txt.startsWith("setup"))
+                    {
+                        role = QAction::PreferencesRole;
                     }
                 }
-                else if(txt == "关于" || txt == "about")
-                {
-                    role = QAction::AboutRole;
-                }
-                else if(txt == "设置" || txt.startsWith("偏好设置") || txt.startsWith("常规设置") || txt.startsWith("首选项") || txt.startsWith("选项") || txt.startsWith("preferences") || txt.startsWith("options") || txt.startsWith("settings") || txt.startsWith("config") || txt.startsWith("setup"))
-                {
-                    role = QAction::PreferencesRole;
-                }
             }
-        }
-        action->setMenuRole(role);
-        if(QList<QAction::MenuRole>({QAction::QuitRole, QAction::AboutRole, QAction::PreferencesRole}).contains(role))
-        {
-            if(m_appMenus.contains(role))
-                m_appMenus.remove(role);
-            m_appMenus.insert(role, action);
+            if(appRoles.contains(role))
+            {
+                action->setMenuRole(role);
+                if(m_appMenus.contains(role))
+                    m_appMenus.remove(role);
+                m_appMenus.insert(role, action);
+            }
         }
     }
 
@@ -394,6 +384,7 @@ DBusMenuImporter::DBusMenuImporter(const QString &service, const QString &path, 
     d->q = this;
     d->m_interface = new ComCanonicalDbusmenuInterface(service, path, QDBusConnection::sessionBus(), this);
     d->m_menu = nullptr;
+    d->group = nullptr;
     d->title = title;
     d->m_pendingLayoutUpdateTimer = new QTimer(this);
     d->m_pendingLayoutUpdateTimer->setSingleShot(true);
@@ -543,6 +534,7 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
     }
 
     //insert or update new actions into our menu
+    d->group = nullptr;
     for (const DBusMenuLayoutItem &dbusMenuItem : rootItem.children) {
         QAction *action = nullptr;
 
@@ -577,6 +569,7 @@ void DBusMenuImporter::slotGetLayoutFinished(QDBusPendingCallWatcher *watcher)
             }
         }
     }
+    d->group = nullptr;
     // qInfo()<<"GetLayout finish with menu id: " << parentId;
     // if(parentId == 0 && d->m_pendingLayoutUpdates.contains(0)) {
     if(d->m_needAboutToShow.contains(parentId)) {

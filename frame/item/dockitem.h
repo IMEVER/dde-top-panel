@@ -64,7 +64,7 @@ public slots:
 
 signals:
     void requestWindowAutoHide(const bool autoHide) const;
-    void requestRefreshWindowVisible() const;
+    // void requestRefreshWindowVisible() const;
 
 protected:
     bool event(QEvent *event) override;

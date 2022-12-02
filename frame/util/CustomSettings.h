@@ -25,6 +25,7 @@ public:
     void setPanelBgColor(const QColor &panelBgColor);
 
     QString getPanelBgImg();
+    bool isPanelBgImgRepeat();
     QString getLogoImg();
 
     const QColor &getActiveFontColor() const;
@@ -61,10 +62,26 @@ public:
     bool isIconThemeFollowSystem();
     void setIconThemeFollowSystem(bool follow);
 
+    void setShowDesktop(bool showDesktop);
+    bool isShowDesktop();
+
+    void setMenuLaunch(bool show);
+    bool isShowMenuLaunch();
+    void setMenuFileManager(bool show);
+    bool isShowMenuFileManager();
+    void setMenuTheme(bool show);
+    bool isShowMenuTheme();
+    void setMenuAboutPackage(bool show);
+    bool isShowMenuAboutPackage();
+    void setMenuSearch(bool show);
+    bool isShowMenuSearch();
+
 signals:
     void settingsChanged();
     void popupHoverChanged(bool popupHover);
     void panelChanged();
+    void showDesktopChanged(bool show);
+    void menuChanged(const QString menu, const bool show);
 
 private:
     CustomSettings();
@@ -75,17 +92,26 @@ private:
     quint8 panelOpacity;
     QColor panelBgColor;
     QString m_panelBgImg;
+    bool m_panelBgImgRepeat;
     QString m_logo;
 
     bool m_panelCustom;
     bool m_buttonCustom;
     bool m_iconThemeFollowSystem;
+    bool m_showDesktop;
 
     // active window control
     QColor activeFontColor;
     QString activeCloseIconPath;
     QString activeUnmaximizedIconPath;
     QString activeMinimizedIconPath;
+
+    // custom menu
+    bool m_menuLaunch;
+    bool m_menuFileManager;
+    bool m_menuTheme;
+    bool m_menuAboutPackage;
+    bool m_menuSearch;
 };
 
 

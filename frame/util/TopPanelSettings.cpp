@@ -26,56 +26,12 @@ void TopPanelSettings::showDockSettingsMenu()
     setAutoHide(false);
 
     QMenu *m_settingsMenu = new QMenu;
-    QMenu *m_hideSubMenu = new QMenu("插件", m_settingsMenu);
-    m_settingsMenu->addMenu(m_hideSubMenu);
     m_settingsMenu->addAction("设置", this, &TopPanelSettings::settingActionClicked);
-
-    connect(m_settingsMenu, &QMenu::triggered, this, &TopPanelSettings::menuActionClicked);
-
-    // create actions
-    QList<QAction *> actions;
-    for (auto *p : DockItemManager::instance()->pluginList())
-    {
-        if (!p->pluginIsAllowDisable())
-            continue;
-
-        const bool enable = !p->pluginIsDisable();
-        const QString &name = p->pluginName();
-        const QString &display = p->pluginDisplayName();
-
-        QAction *act = new QAction(display, m_hideSubMenu);
-        act->setCheckable(true);
-        act->setChecked(enable);
-        act->setData(name);
-
-        actions << act;
-    }
-
-    // sort by name
-    std::sort(actions.begin(), actions.end(), [](QAction * a, QAction * b) -> bool {
-        return a->data().toString() > b->data().toString();
-    });
-
-    // add actions
-    m_hideSubMenu->addActions(actions);
+    m_settingsMenu->addAction("关于", this, &TopPanelSettings::aboutActionClicked);
 
     m_settingsMenu->exec(QCursor::pos());
     m_settingsMenu->deleteLater();
     setAutoHide(true);
-}
-
-void TopPanelSettings::menuActionClicked(QAction *action)
-{
-    Q_ASSERT(action);
-
-    // check plugin hide menu.
-    const QString &data = action->data().toString();
-    if (data.isEmpty())
-        return;
-    for (auto *p : DockItemManager::instance()->pluginList()) {
-        if (p->pluginName() == data)
-            return p->pluginStateSwitched();
-    }
 }
 
 QSize TopPanelSettings::windowSize()

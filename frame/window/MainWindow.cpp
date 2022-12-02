@@ -15,6 +15,8 @@
 #define SNI_WATCHER_SERVICE "org.kde.StatusNotifierWatcher"
 #define SNI_WATCHER_PATH "/StatusNotifierWatcher"
 
+static MainSettingWidget *m_settingWidget=nullptr;
+
 MainWindow::MainWindow(QScreen *screen, bool disablePlugin, QWidget *parent)
     : DBlurEffectWidget(parent)
     , m_itemManager(disablePlugin ? nullptr : DockItemManager::instance(this))
@@ -212,7 +214,25 @@ void MainWindow::initConnections() {
 
     }, Qt::QueuedConnection);
 
-    connect(m_settings, &TopPanelSettings::settingActionClicked, this, &MainWindow::settingActionClicked);
+    auto createSettingWindow = [this]{
+        int screenNum = QApplication::desktop()->screenNumber(this);
+        if(m_settingWidget == nullptr) {
+            m_settingWidget = new MainSettingWidget();
+            connect(m_settingWidget, &MainSettingWidget::pluginVisibleChanged, this, &MainWindow::pluginVisibleChanged);
+            connect(m_settingWidget, &QWidget::destroyed, []{ m_settingWidget = nullptr; });
+        }
+        m_settingWidget->move(qApp->screens().at(screenNum)->availableGeometry().center() - m_settingWidget->rect().center());
+    };
+
+    connect(m_settings, &TopPanelSettings::settingActionClicked, this, [createSettingWindow]{
+        createSettingWindow();
+        m_settingWidget->showSetting();
+    });
+    connect(m_settings, &TopPanelSettings::aboutActionClicked, this, [createSettingWindow]{
+        createSettingWindow();
+        m_settingWidget->showAbout();
+    });
+
     connect(CustomSettings::instance(), &CustomSettings::panelChanged, this, &MainWindow::applyCustomSettings);
 
     // connect(windowHandle(), &QWindow::visibleChanged, this, &MainWindow::updateRegionMonitorWatch);
@@ -293,14 +313,15 @@ void MainWindow::applyCustomSettings() {
     {
         this->setMaskAlpha(customSettings->getPanelOpacity());
         this->setMaskColor(customSettings->getPanelBgColor());
-        QString bgImg = customSettings->getPanelBgImg();
+        const QString bgImg = customSettings->getPanelBgImg();
+        const bool repeat = customSettings->isPanelBgImgRepeat();
         if(!bgImg.isNull() && QFile::exists(bgImg))
         {
         //     DPlatformWindowHandle::enableDXcbForWindow(this, false);
         //     setBlurEnabled(false);
         //     m_platformWindowHandle.setEnableBlurWindow(false);
         //     m_platformWindowHandle.setTranslucentBackground(false);
-            this->setStyleSheet(QString(" MainPanelControl { background-image: url(%1); }").arg(bgImg));
+            this->setStyleSheet(QString(" MainPanelControl { background-image: url(%1); %2 }").arg(bgImg).arg(repeat ? "" : "background-repeat: no-repeat; background-position: center center;"));
         }
     }
     else
@@ -407,6 +428,46 @@ void MainWindow::ToggleMenu(int id)
     this->m_mainPanel->toggleMenu(id);
 }
 
+QStringList MainWindow::GetLoadedPlugins() {
+    QStringList names;
+    if(m_itemManager) {
+        for (auto *p : m_itemManager->pluginList())
+        {
+            if (p->pluginIsAllowDisable() && !p->pluginDisplayName().isEmpty())
+                names.append(p->pluginDisplayName());
+        }
+    }
+    return names;
+}
+
+QString MainWindow::getPluginKey(QString pluginName) {
+    if(m_itemManager) {
+        for(auto *p : m_itemManager->pluginList())
+            if(p->pluginDisplayName() == pluginName)
+                return p->pluginName();
+    }
+    return QString();
+}
+
+bool MainWindow::getPluginVisible(QString pluginName) {
+    if(m_itemManager) {
+        for(auto *p : m_itemManager->pluginList())
+            if(p->pluginDisplayName() == pluginName)
+                return !p->pluginIsDisable();
+    }
+    return false;
+}
+
+void MainWindow::setPluginVisible(QString pluginName, bool visible) {
+    if(m_itemManager) {
+        for(auto *p : m_itemManager->pluginList())
+            if(p->pluginDisplayName() == pluginName) {
+                p->pluginStateSwitched();
+                break;
+            }
+    }
+}
+
 void MainWindow::leaveEvent(QEvent *event)
 {
     if(fullscreenIds.count() > 0 && windowFlags() & Qt::X11BypassWindowManagerHint && m_settings->autoHide() && !m_leaveTimer->isActive() && m_hideAnimation->state() != QVariantAnimation::Running)
@@ -434,12 +495,6 @@ void TopPanelLauncher::rearrange() {
 
         qDebug() << "===========> create top panel on" << p_screen->name();
         MainWindow *mw = new MainWindow(p_screen, p_screen != qApp->primaryScreen());
-        connect(mw, &MainWindow::settingActionClicked, this, [this]{
-            int screenNum = QApplication::desktop()->screenNumber(dynamic_cast<MainWindow*>(sender()));
-            MainSettingWidget *m_settingWidget = new MainSettingWidget();
-            m_settingWidget->move(qApp->screens().at(screenNum)->availableGeometry().center() - m_settingWidget->rect().center());
-            m_settingWidget->show();
-        });
         mwMap.insert(p_screen, mw);
 
         if(p_screen == qApp->primaryScreen())

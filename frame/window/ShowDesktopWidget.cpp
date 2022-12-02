@@ -11,7 +11,7 @@ ShowDesktopWidget::ShowDesktopWidget(QWidget *parent) : QWidget(parent)
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     timer->setSingleShot(true);
-    timer->setInterval(2000);
+    timer->setInterval(1500);
     connect(timer, &QTimer::timeout, [ this ]{
         toggleDesktop();
      });

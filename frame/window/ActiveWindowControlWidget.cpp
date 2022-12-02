@@ -11,7 +11,8 @@
 #include <QProcess>
 #include "../util/desktop_entry_stat.h"
 #include "AboutWindow.h"
-#include "util/TopPanelSettings.h"
+// #include "util/TopPanelSettings.h"
+#include "controller/dockitemmanager.h"
 
 #include <QApplication>
 #include <QDesktopWidget>
@@ -97,7 +98,10 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
 
     connect(CustomSettings::instance(), &CustomSettings::popupHoverChanged, this, [ this ](bool popupHover){
         if(popupHover)
-            connect(this->menuBar, &CustomizeMenubar::hovered, this, [ this ](QAction *action){ if(action->menu() && this->menuBar->actions().contains(action)) this->menuBar->setActiveAction(action); });
+            connect(this->menuBar, &CustomizeMenubar::hovered, this, [ this ](QAction *action){
+                if(action->menu() && this->menuBar->actions().contains(action))
+                    this->menuBar->setActiveAction(action);
+            });
         else
             disconnect(this->menuBar, &CustomizeMenubar::hovered, this, 0);
      });
@@ -117,6 +121,12 @@ void ActiveWindowControlWidget::initMenuBar()
             // QProcess::startDetached("/usr/bin/dbus-send --session --print-reply --dest=com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand string:\"/usr/bin/dde-file-manager\" array:string:\"-p\",\"computer:///\"");
             // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.RunCommand", "dde-file-manager", "(", "-p", "computer:///", ")"});
         });
+
+        startMenu->addAction(QIcon::fromTheme("preferences-system"), "设    置", []{
+            // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/dde-control-center.desktop", "0", "[]"});
+            QProcess::startDetached("/usr/bin/dde-control-center", {"--show"});
+        });
+
         startMenu->addAction(QIcon::fromTheme("app-launcher"), "启动器", this, []{
             QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.Launcher", "/com/deepin/dde/Launcher", "com.deepin.dde.Launcher.Toggle"});
         });
@@ -126,18 +136,18 @@ void ActiveWindowControlWidget::initMenuBar()
             QProcess::startDetached("/usr/bin/deepin-home-appstore-client", {});
         });
 
-        startMenu->addAction(QIcon::fromTheme("preferences-system"), "设    置", []{
-            // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/dde-control-center.desktop", "0", "[]"});
-            QProcess::startDetached("/usr/bin/dde-control-center", {"--show"});
+        startMenu->addAction(QIcon::fromTheme("folder"), "文件管理器", []{
+            QProcess::startDetached("/usr/bin/dde-file-manager", {"-O"});
         });
 
-        startMenu->addAction(QIcon::fromTheme("deepin-system-monitor"), "资源管理器", []{
+        startMenu->addAction(QIcon::fromTheme("deepin-system-monitor"), "系统监视器", []{
             // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/deepin-system-monitor.desktop", "0", "[]"});
             QProcess::startDetached("/usr/bin/deepin-system-monitor", {});
         });
 
-        startMenu->addAction(QIcon::fromTheme("folder"), "文件管理器", []{
-            QProcess::startDetached("/usr/bin/dde-file-manager", {"-O"});
+        startMenu->addAction(QIcon::fromTheme("deepin-devicemanager"), "设备管理器", []{
+            // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/deepin-system-monitor.desktop", "0", "[]"});
+            QProcess::startDetached("/usr/bin/deepin-devicemanager", {});
         });
 
         startMenu->addAction(QIcon::fromTheme("gnome-panel-force-quit"), "强制关闭窗口", []{
@@ -163,7 +173,7 @@ void ActiveWindowControlWidget::initMenuBar()
             iconThemeSettings.set("gtk-theme", action->data().toString());
          });
 
-        connect(DGuiApplicationHelper::instance(), &DGuiApplicationHelper::themeTypeChanged, this, [group]{
+        auto checkTheme = [group]{
             QGSettings iconThemeSettings("com.deepin.dde.appearance");
             QString theme = iconThemeSettings.get("gtk-theme").toString();
             for(auto action : group->actions())
@@ -174,7 +184,10 @@ void ActiveWindowControlWidget::initMenuBar()
                     break;
                 }
             }
-        });
+        };
+
+        connect(DGuiApplicationHelper::instance(), &DGuiApplicationHelper::themeTypeChanged, this, checkTheme);
+        QTimer::singleShot(100, checkTheme);
 
         QMenu *shutdownMenu = startMenu->addMenu(QIcon::fromTheme("system-shutdown-symbolic"), "关机");
         shutdownMenu->addAction(QIcon::fromTheme("system-log-out-symbolic"), "注销", []{
@@ -356,6 +369,31 @@ void ActiveWindowControlWidget::initMenuBar()
 
     if(CustomSettings::instance()->getPopupHover())
         connect(this->menuBar, &CustomizeMenubar::hovered, this, [ this ](QAction *action){ if(action->menu() && this->menuBar->actions().contains(action)) this->menuBar->setActiveAction(action); });
+
+    // menu settings
+    if(!CustomSettings::instance()->isShowMenuLaunch())
+        startMenu->actions().at(2)->setVisible(false);
+    if(!CustomSettings::instance()->isShowMenuFileManager())
+        startMenu->actions().at(4)->setVisible(false);
+    if(!CustomSettings::instance()->isShowMenuTheme())
+        startMenu->actions().at(8)->setVisible(false);
+    if(!CustomSettings::instance()->isShowMenuAboutPackage())
+        appMenu->actions().first()->setVisible(false);
+    if(!CustomSettings::instance()->isShowMenuSearch())
+        searchMenu->menuAction()->setVisible(false);
+
+    connect(CustomSettings::instance(), &CustomSettings::menuChanged, [startMenu, appMenu, searchMenu](const QString menu, const bool show){
+        if(menu == "launch")
+            startMenu->actions().at(2)->setVisible(show);
+        else if(menu == "fileManager")
+            startMenu->actions().at(4)->setVisible(show);
+        else if(menu == "theme")
+            startMenu->actions().at(8)->setVisible(show);
+        else if(menu == "aboutPackage")
+            appMenu->actions().at(0)->setVisible(show);
+        else if(menu == "search")
+            searchMenu->menuAction()->setVisible(show);
+    });
 }
 
 void ActiveWindowControlWidget::activeWindowInfoChanged(WId activeWinId) {

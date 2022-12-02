@@ -3,4 +3,23 @@
     <method name="ToggleMenu">
         <arg name="id" type="i" direction="in"></arg>
     </method>
+    <method name="GetLoadedPlugins">
+        <arg name="list" type="as" direction="out"/>
+    </method>
+    <method name="getPluginKey">
+        <arg name="pluginName" type="s" direction="in"/>
+        <arg name="key" type="s" direction="out"/>
+    </method>
+    <method name="getPluginVisible">
+        <arg name="pluginName" type="s" direction="in"/>
+        <arg name="visible" type="b" direction="out"/>
+    </method>
+    <method name="setPluginVisible">
+        <arg name="pluginName" type="s" direction="in"/>
+        <arg name="visible" type="b" direction="in"/>
+    </method>
+    <signal name="pluginVisibleChanged">
+        <arg type="s"/>
+        <arg type="b"/>
+    </signal>
 </interface>

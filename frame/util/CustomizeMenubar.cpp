@@ -9,7 +9,7 @@
 QT_FORWARD_DECLARE_CLASS(QMenuBarPrivate)
 CustomizeMenubar::CustomizeMenubar(QWidget *parent) : QMenuBar(parent)
 {
-    // setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
+    setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
     // setContentsMargins(0, 0, 0, 0);
     // setFixedHeight(24);
 
@@ -22,6 +22,31 @@ CustomizeMenubar::CustomizeMenubar(QWidget *parent) : QMenuBar(parent)
 
 CustomizeMenubar::~CustomizeMenubar()
 {}
+
+/*!
+  Appends a new QMenu with \a title to the menu bar. The menu bar
+  takes ownership of the menu. Returns the new menu.
+  \sa QWidget::addAction(), QMenu::menuAction()
+*/
+QMenu *CustomizeMenubar::addMenu(const QString &title)
+{
+    QMenu *menu = new QMenu(title);
+    addAction(menu->menuAction());
+    return menu;
+}
+/*!
+  Appends a new QMenu with \a icon and \a title to the menu bar. The menu bar
+  takes ownership of the menu. Returns the new menu.
+  \sa QWidget::addAction(), QMenu::menuAction()
+*/
+QMenu *CustomizeMenubar::addMenu(const QIcon &icon, const QString &title)
+{
+    QMenu *menu = new QMenu(title);
+    menu->setIcon(icon);
+    addAction(menu->menuAction());
+    return menu;
+}
+
 
 void CustomizeMenubar::paintEvent(QPaintEvent *e)
 {
