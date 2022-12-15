@@ -31,7 +31,7 @@
 #include <QAction>
 
 class QDBusServiceWatcher;
-class KDBusMenuImporter;
+class DBusMenuImporter;
 // class RegistrarProxy;
 class DBusRegistrar;
 
@@ -47,14 +47,13 @@ public:
 
     QMenu *menu() const;
     QAction * getAction(QAction::MenuRole role);
-    void updateApplicationMenu(KDBusMenuImporter *importer);
-    void setWinId(const WId &id, bool isDesktop, const QString title);
+    void updateApplicationMenu(DBusMenuImporter *importer);
+    void setWinId(const WId &id, const QString title);
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     void clearMenuImporter();
     void initDesktopMenu();
-    void switchApplicationMenu(const QString title);
 
 signals:
     void requestActivateIndex(int index);
@@ -65,11 +64,12 @@ signals:
 
 private:
     WId m_winId = 0;
+    QString m_title;
     QPointer<QMenu> desktopMenu;
     // QDBusServiceWatcher *m_serviceWatcher;
-    KDBusMenuImporter *m_importer;
+    DBusMenuImporter *m_importer;
 
-    QMap<WId, KDBusMenuImporter *> cachedImporter;
+    QMap<WId, DBusMenuImporter *> cachedImporter;
 
     // RegistrarProxy *registrarProxy;
     DBusRegistrar *dbusRegistrar;

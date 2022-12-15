@@ -43,7 +43,6 @@ private:
     void mouseMoveEvent(QMouseEvent *event) override;
 
 private slots:
-    void updateMenu();
     void windowChanged(WId, NET::Properties, NET::Properties2);
     void themeTypeChanged(DGuiApplicationHelper::ColorType themeType);
 

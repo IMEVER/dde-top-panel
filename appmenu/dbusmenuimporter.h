@@ -50,25 +50,22 @@ public:
     /**
      * Creates a DBusMenuImporter listening over DBus on service, path
      */
-    DBusMenuImporter(const QString &service, const QString &path, const QString title, QObject *parent = nullptr);
+    DBusMenuImporter(const QString &service, const QString &path, QObject *parent = nullptr);
 
     /**
      * Creates a DBusMenuImporter listening over DBus on service, path, with either async
      * or sync DBus calls
      */
-    DBusMenuImporter(const QString &service, const QString &path, const QString title, DBusMenuImporterType type, QObject *parent = 0);
-
+    DBusMenuImporter(const QString &service, const QString &path, DBusMenuImporterType type, QObject *parent = 0);
     ~DBusMenuImporter() override;
 
-
+    void setTitle(QString title);
     /**
      * The menu created from listening to the DBusMenuExporter over DBus
      */
     QMenu *menu() const;
 
     QAction *getAction(QAction::MenuRole role);
-
-    bool isFirstShow();
 
 public Q_SLOTS:
     /**
@@ -93,22 +90,7 @@ Q_SIGNALS:
      */
     void actionActivationRequested(QAction *);
 
-protected:
-    /**
-     * Must create a menu, may be customized to fit host appearance.
-     * Default implementation creates a simple QMenu.
-     */
-    virtual QMenu *createMenu(QWidget *parent);
-
-    /**
-     * Must convert a name into an icon.
-     * Default implementation returns a null icon.
-     */
-    virtual QIcon iconForName(const QString &);
-
 private Q_SLOTS:
-    void sendClickedEvent(int);
-    void sendHoveredEvent(int);
     void slotMenuAboutToShow(QMenu *menu = nullptr);
     void slotMenuAboutToHide();
     void slotAboutToShowDBusCallFinished(QDBusPendingCallWatcher *);

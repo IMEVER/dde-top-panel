@@ -25,4 +25,4 @@ ComCanonicalDbusmenuInterface::~ComCanonicalDbusmenuInterface()
 }
 
 
-#include "dbusmenu_interface.moc"
+// #include "dbusmenu_interface.moc"

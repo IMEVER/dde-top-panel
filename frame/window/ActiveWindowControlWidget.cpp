@@ -11,7 +11,6 @@
 #include <QProcess>
 #include "../util/desktop_entry_stat.h"
 #include "AboutWindow.h"
-// #include "util/TopPanelSettings.h"
 #include "controller/dockitemmanager.h"
 
 #include <QApplication>
@@ -59,7 +58,24 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
         }
         this->menuBar->actions().last()->setVisible(false);
     });
-    connect(this->m_appMenuModel, &AppMenuModel::modelNeedsUpdate, this, &ActiveWindowControlWidget::updateMenu);
+    connect(this->m_appMenuModel, &AppMenuModel::modelNeedsUpdate, this, [this] {
+        if (QMenu *menu = m_appMenuModel->menu())
+        {
+            if(menu->actions().isEmpty()) return;
+
+            this->menuBar->insertActions(this->menuBar->actions().last(), menu->actions());
+            this->menuBar->actions().last()->setVisible(true);
+            this->menuBar->adjustSize();
+            for(auto item : menu->actions())
+            {
+                if(item->menu())
+                {
+                    connect(item->menu(), &QMenu::aboutToShow, this, []{ DockItemManager::instance()->requestWindowAutoHide(false); });
+                    connect(item->menu(), &QMenu::aboutToHide, this, []{ DockItemManager::instance()->requestWindowAutoHide(true); });
+                }
+            }
+        }
+    });
     connect(this->m_appMenuModel, &AppMenuModel::requestActivateIndex, this, [ this ](int index){
         if(this->menuBar->actions().size() - 6 > index && index >= 0){
             this->toggleMenu(index + 5);
@@ -67,16 +83,18 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
     });
     connect(this->m_appMenuModel, &AppMenuModel::actionRemoved, [ this ](QAction *action){
         this->menuBar->removeAction(action);
-            if(action->menu())
-            {
-               disconnect(action->menu(), &QMenu::aboutToShow, this, 0);
-               disconnect(action->menu(), &QMenu::aboutToHide, this, 0);
-            }
+        this->menuBar->actions().last()->setVisible(this->menuBar->actions().count() > 6);
+        if(action->menu())
+        {
+            disconnect(action->menu(), &QMenu::aboutToShow, this, 0);
+            disconnect(action->menu(), &QMenu::aboutToHide, this, 0);
+        }
     });
     connect(this->m_appMenuModel, &AppMenuModel::actionAdded, [ this ](QAction *action, QAction *before){
-        if(!this->menuBar->actions().contains(before))
+        if(!before || !this->menuBar->actions().contains(before))
             before = this->menuBar->actions().last();
         this->menuBar->insertAction(before, action);
+        this->menuBar->actions().last()->setVisible(this->menuBar->actions().count() > 6);
         if(action->menu())
         {
             connect(action->menu(), &QMenu::aboutToShow, []{ DockItemManager::instance()->requestWindowAutoHide(false); });
@@ -397,41 +415,39 @@ void ActiveWindowControlWidget::initMenuBar()
 }
 
 void ActiveWindowControlWidget::activeWindowInfoChanged(WId activeWinId) {
-    bool isDesktop = false;
-    if (activeWinId == 0 || activeWinId == this->winId() || activeWinId == this->currActiveWinId) {
+    if (activeWinId == this->winId() || activeWinId == this->currActiveWinId)
         return;
+
+    KWindowInfo kwindow(activeWinId, NET::WMPid | NET::WMState, NET::WM2WindowClass);
+    if (kwindow.valid() && (kwindow.pid() == QCoreApplication::applicationPid() || kwindow.hasState(NET::SkipTaskbar) || kwindow.windowClassName() == "dde-osd"))
+        return;
+
+    const int currScreenNum = QApplication::desktop()->screenNumber(this);
+
+    if(activeWinId == 0) {
+        const bool moreScreen = QApplication::screens().size() > 1;
+        while (!this->activeIdStack.isEmpty()) {
+            const WId prevActiveId = this->activeIdStack.pop();
+            if (XUtils::checkIfBadWindow(prevActiveId) || XUtils::checkIfWinMinimun(prevActiveId) || (moreScreen && XUtils::getWindowScreenNum(prevActiveId) != currScreenNum))
+                continue;
+
+            activeWinId = prevActiveId;
+            break;
+        }
     }
-    KWindowInfo kwin(activeWinId, NET::WMPid | NET::WMState);
-    if (kwin.valid() && (kwin.pid() == QCoreApplication::applicationPid() || kwin.hasState(NET::SkipTaskbar)))
-        return;
 
     this->activeIdStack.removeAll(activeWinId);
-
-    int currScreenNum = QApplication::desktop()->screenNumber(this);
     int activeWinScreenNum = QApplication::screens().size() > 1 ? XUtils::getWindowScreenNum(activeWinId) : -1;
-    if (activeWinScreenNum >= 0 && activeWinScreenNum != currScreenNum) {
+    if (activeWinId > 0 && activeWinScreenNum >= 0 && activeWinScreenNum != currScreenNum) {
         if (XUtils::checkIfBadWindow(this->currActiveWinId) || this->currActiveWinId == activeWinId || XUtils::checkIfWinMinimun(this->currActiveWinId)) {
-            WId newCurActiveWinId = -1;
+            activeWinId = 0;
             while (!this->activeIdStack.isEmpty()) {
-                WId prevActiveId = this->activeIdStack.pop();
-                if (XUtils::checkIfBadWindow(prevActiveId) || this->currActiveWinId == prevActiveId || XUtils::checkIfWinMinimun(prevActiveId)) {
+                const WId prevActiveId = this->activeIdStack.pop();
+                if (XUtils::checkIfBadWindow(prevActiveId) || this->currActiveWinId == prevActiveId || XUtils::checkIfWinMinimun(prevActiveId) || XUtils::getWindowScreenNum(prevActiveId) != currScreenNum)
                     continue;
-                }
 
-                int sNum = XUtils::getWindowScreenNum(prevActiveId);
-                if (sNum != currScreenNum) {
-                    continue;
-                }
-
-                newCurActiveWinId = prevActiveId;
+                activeWinId = prevActiveId;
                 break;
-            }
-
-            if (newCurActiveWinId < 0) {
-                isDesktop = true;
-                activeWinId = 0;
-            } else {
-                activeWinId = newCurActiveWinId;
             }
         }
         else
@@ -440,71 +456,66 @@ void ActiveWindowControlWidget::activeWindowInfoChanged(WId activeWinId) {
         }
     }
 
-
     QString activeWinTitle;
     QIcon appIcon;
-    if(!isDesktop)
+
+    KWindowInfo kwin(activeWinId, NET::WMName | NET::WMPid | NET::WMWindowType, NET::WM2WindowClass | NET::WM2TransientFor);
+    while(kwin.valid() && kwin.transientFor()) {
+        activeWinId = kwin.transientFor();
+        kwin = KWindowInfo(activeWinId, NET::WMName | NET::WMPid | NET::WMWindowType, NET::WM2WindowClass | NET::WM2TransientFor);
+    }
+
+    if(activeWinId == currActiveWinId) return;
+
+    if (kwin.valid())
     {
-        KWindowInfo kwin(activeWinId, NET::WMName | NET::WMPid, NET::WM2WindowClass);
-        if (kwin.valid())
+        if (kwin.windowType(NET::DesktopMask) == NET::Desktop /*kwin.windowClassName() == "dde-desktop"*/)
         {
-            if(kwin.windowClassName() == "dde-osd")
-            {
-                return ;
-            } else if (kwin.windowClassName() == "dde-desktop")
-            {
-                isDesktop = true;
-            }
-            else
-            {
-                DesktopEntry entry;
-                if(!kwin.windowClassName().isEmpty())
-                    entry = DesktopEntryStat::instance()->getDesktopEntryByName(kwin.windowClassName());
+            activeWinId = 0;
+        }
+        else
+        {
+            DesktopEntry entry;
+            if(!kwin.windowClassName().isEmpty())
+                entry = DesktopEntryStat::instance()->getDesktopEntryByName(kwin.windowClassName());
 
-                if (!entry && kwin.pid() > 0)
-                    entry = DesktopEntryStat::instance()->getDesktopEntryByPid(kwin.pid());
+            if (!entry && kwin.pid() > 0)
+                entry = DesktopEntryStat::instance()->getDesktopEntryByPid(kwin.pid());
 
-                if (entry)
+            if (entry)
+            {
+                activeWinTitle = entry->displayName;
+                if(!entry->icon.isNull())
                 {
-                    activeWinTitle = entry->displayName;
-                    if(!entry->icon.isNull())
-                    {
-                        if(entry->icon.startsWith("/"))
-                            appIcon = QIcon(entry->icon);
-                        else
-                            appIcon = QIcon::fromTheme(entry->icon);
-                    }
+                    if(entry->icon.startsWith("/"))
+                        appIcon = QIcon(entry->icon);
+                    else
+                        appIcon = QIcon::fromTheme(entry->icon);
                 }
+            }
 
-                if (activeWinTitle.isEmpty())
-                {
-                    activeWinTitle = kwin.name();
-                    if (activeWinTitle.contains(QRegExp("[–—-]"))) {
-                        activeWinTitle = activeWinTitle.split(QRegExp("[–—-]")).last().trimmed();
-                    }
+            if (activeWinTitle.isEmpty())
+            {
+                activeWinTitle = kwin.name();
+                if (activeWinTitle.contains(QRegExp("[–—-]"))) {
+                    activeWinTitle = activeWinTitle.split(QRegExp("[–—-]")).last().trimmed();
                 }
             }
         }
-    }
+    } else
+        activeWinId = 0;
 
+    this->menuBar->actions().at(4)->setText(activeWinId == 0 ? "桌面" : activeWinTitle);
 
-    this->menuBar->actions().at(4)->setText(isDesktop ? "桌面" : activeWinTitle);
-
-    if (isDesktop)
-    {
+    if (activeWinId == 0)
         appIcon = QIcon::fromTheme("dde-file-manager");
-    } else {
-        // if(appIcon.isNull())
-            // appIcon.addPixmap(XUtils::getWindowIconNameX11(activeWinId));
-    }
+    else
+        this->activeIdStack.push(activeWinId);
 
-    this->activeIdStack.push(activeWinId);
     this->menuBar->actions()[4]->menu()->actions().at(0)->setIcon(appIcon);
-
     this->currActiveWinId = activeWinId;
-    this->setButtonsVisible(!isDesktop && XUtils::checkIfWinMaximum(this->currActiveWinId));
-
-    this->m_appMenuModel->setWinId(this->currActiveWinId, isDesktop, activeWinTitle);
+    this->setButtonsVisible(activeWinId != 0 && XUtils::checkIfWinMaximum(this->currActiveWinId));
+    this->m_appMenuModel->setWinId(this->currActiveWinId, activeWinTitle);
 }
 
 void ActiveWindowControlWidget::setButtonsVisible(bool visible) {
@@ -545,23 +556,6 @@ void ActiveWindowControlWidget::mouseDoubleClickEvent(QMouseEvent *event) {
         this->maximizeWindow();
     }
     QWidget::mouseDoubleClickEvent(event);
-}
-
-void ActiveWindowControlWidget::updateMenu() {
-    if (QMenu *menu = m_appMenuModel->menu())
-    {
-        this->menuBar->insertActions(this->menuBar->actions().at(5), menu->actions());
-        this->menuBar->actions().last()->setVisible(true);
-        this->menuBar->adjustSize();
-        for(auto item : menu->actions())
-        {
-            if(item->menu())
-            {
-                connect(item->menu(), &QMenu::aboutToShow, this, []{ DockItemManager::instance()->requestWindowAutoHide(false); });
-                connect(item->menu(), &QMenu::aboutToHide, this, []{ DockItemManager::instance()->requestWindowAutoHide(true); });
-            }
-        }
-    }
 }
 
 void ActiveWindowControlWidget::windowChanged(WId wId, NET::Properties properties, NET::Properties2 properties2) {
@@ -679,6 +673,7 @@ void ActiveWindowControlWidget::mouseMoveEvent(QMouseEvent *event) {
     if (this->mouseClicked) {
         this->mouseClicked = false;
         if (XUtils::checkIfWinMaximum(this->currActiveWinId)) {
+            // maximizeWindow();
             NETRootInfo ri(QX11Info::connection(), NET::WMMoveResize);
             ri.moveResizeRequest(
                     this->currActiveWinId,

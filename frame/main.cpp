@@ -4,6 +4,7 @@
 
 #include <DApplication>
 #include <DGuiApplicationHelper>
+#include <QThread>
 #include <unistd.h>
 #include "window/MainWindow.h"
 
@@ -77,10 +78,21 @@ int main(int argc, char *argv[]) {
         app.setAttribute(Qt::AA_DontUseNativeMenuBar, true);
 
         TopPanelLauncher launcher;
-        MenuProxy menuPrxy;
+
+        QThread thread;
 
         auto *menuImporter = new MenuImporter();
-        menuImporter->connectToBus();
+        menuImporter->moveToThread(&thread);
+        // menuImporter->connectToBus();
+
+        QObject::connect(&thread, &QThread::started, menuImporter, &MenuImporter::connectToBus);
+        // QObject::connect(&thread, &QThread::started, menuPrxy, &MenuProxy::start);
+
+        MenuProxy *menuPrxy = new MenuProxy;
+        // menuPrxy->moveToThread(&thread);
+        menuPrxy->start();
+
+        thread.start();
 
         return app.exec();
     }
