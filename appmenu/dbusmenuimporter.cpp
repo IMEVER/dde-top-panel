@@ -185,8 +185,6 @@ public:
             updateActionVisible(action, value);
         } else if (key == QLatin1String("shortcut")) {
             updateActionShortcut(action, value);
-        } else {
-//            qDebug() << "Unhandled property update" << key;
         }
     }
 
@@ -194,7 +192,7 @@ public:
         QString text = swapMnemonicChar(value.toString(), '_', '&');
         action->setText(text);
 
-        if(!action->menu())
+        if(!action->menu() && action->parent()->parent() == m_menu)
         {
             QAction::MenuRole role = action->menuRole();
             if(role == QAction::TextHeuristicRole)

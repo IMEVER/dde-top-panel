@@ -204,10 +204,14 @@ void AppMenuModel::initDesktopMenu()
                         QFileInfo item(QUrl::fromPercentEncoding(filePath.toLocal8Bit()).remove("file://"));
                         if(item.exists() && item.isFile())
                         {
-                            QUrl path(QUrl::fromLocalFile(item.absoluteFilePath()));
                             QAction *action = new QAction(QFileIconProvider().icon(item), item.fileName(), recentMenu);
                             action->setToolTip(item.absolutePath());
-                            connect(action, &QAction::triggered, [path]{ QDesktopServices::openUrl(path); });
+                            connect(action, &QAction::triggered, [action]{
+                                if(Qt::ControlModifier == QApplication::keyboardModifiers())
+                                    QDesktopServices::openUrl(action->toolTip());
+                                else
+                                    QDesktopServices::openUrl(QUrl::fromLocalFile(action->toolTip() + "/" + action->text()));
+                            });
                             actions.append(action);
                         }
                     }
@@ -307,9 +311,7 @@ void AppMenuModel::clearMenuImporter()
 void AppMenuModel::setWinId(const WId &id, const QString title)
 {
     if (m_winId == id)
-    {
         return;
-    }
 
     clearMenuImporter();
     m_winId = id;
@@ -317,10 +319,8 @@ void AppMenuModel::setWinId(const WId &id, const QString title)
 
     KWindowInfo info(m_winId, NET::WMState | NET::WMWindowType);
 
-    if(!info.valid() || info.windowType(NET::DesktopMask) == NET::Desktop) {
+    if(!info.valid() || info.windowType(NET::DesktopMask) == NET::Desktop)
         emit modelNeedsUpdate();
-        return;
-    }
     else if (this->cachedImporter.contains(m_winId))
         updateApplicationMenu(this->cachedImporter.value(m_winId));
 }
@@ -340,9 +340,9 @@ QAction * AppMenuModel::getAction(QAction::MenuRole role)
 
 void AppMenuModel::updateApplicationMenu(DBusMenuImporter *importer)
 {
+    m_importer = importer;
     connect(importer, &DBusMenuImporter::menuUpdated, this, [ = ] {
-        if(m_importer != nullptr) clearMenuImporter();
-        m_importer = importer;
+        // if(m_importer != nullptr) clearMenuImporter();
         m_importer->menu()->installEventFilter(this);
         connect(m_importer, &DBusMenuImporter::actionActivationRequested, this, [this](QAction * action) {
             if (QMenu *m_menu = m_importer->menu()) {
@@ -357,7 +357,7 @@ void AppMenuModel::updateApplicationMenu(DBusMenuImporter *importer)
         emit modelNeedsUpdate();
     });
 
-    QTimer::singleShot(10, importer, [ importer ] { QMetaObject::invokeMethod(importer, "updateMenu", Qt::QueuedConnection); });
+    QTimer::singleShot(10, importer, [this, importer ] { if(m_importer == importer) QMetaObject::invokeMethod(importer, "updateMenu", Qt::QueuedConnection); });
 }
 
 bool AppMenuModel::eventFilter(QObject *watched, QEvent *event)

@@ -102,8 +102,6 @@ ActiveWindowControlWidget::ActiveWindowControlWidget(QWidget *parent)
         }
     });
 
-    // layout->addStretch();
-
     // detect whether active window maximized signal
     connect(KWindowSystem::self(), qOverload<WId, NET::Properties, NET::Properties2>(&KWindowSystem::windowChanged), this, &ActiveWindowControlWidget::windowChanged);
 
@@ -244,31 +242,23 @@ void ActiveWindowControlWidget::initMenuBar()
 
     QMenu *appMenu = this->menuBar->addMenu("桌面");
     appMenu->menuAction()->setObjectName("appMenu");
-    connect(appMenu, &QMenu::aboutToShow, [ this, appMenu ]{
-        KWindowInfo kwin(this->currActiveWinId, NET::WMState, NET::WM2WindowClass);
-        if(kwin.valid())
+    connect(appMenu, &QMenu::aboutToShow, [this, appMenu]{
+        int index=1;
+
+        KWindowInfo kwin(this->currActiveWinId, NET::WMState | NET::WMWindowType);
+        if(kwin.valid() && kwin.windowType(NET::DesktopMask) != NET::Desktop)
         {
-            int index = 1;
-            if(kwin.windowClassName() == "dde-desktop")
-            {
-                while(index < 6)
-                {
-                    appMenu->actions().at(index++)->setDisabled(true);
-                }
-                appMenu->actions().at(3)->setChecked(false);
-            }
-            else
-            {
-                for(auto role : {QAction::AboutRole, QAction::PreferencesRole})
-                {
-                    appMenu->actions().at(index++)->setEnabled(this->m_appMenuModel->getAction(role));
-                }
-                while(index < 6)
-                {
-                    appMenu->actions().at(index++)->setEnabled(true);
-                }
-                appMenu->actions().at(3)->setChecked(kwin.hasState(NET::KeepAbove));
-            }
+            for(auto role : {QAction::AboutRole, QAction::PreferencesRole})
+                appMenu->actions().at(index++)->setEnabled(this->m_appMenuModel->getAction(role));
+
+            while(index < 6)
+                appMenu->actions().at(index++)->setEnabled(true);
+
+            appMenu->actions().at(3)->setChecked(kwin.hasState(NET::KeepAbove));
+        } else {
+            while(index < 6)
+                appMenu->actions().at(index++)->setDisabled(true);
+            appMenu->actions().at(3)->setChecked(false);
         }
     });
 
