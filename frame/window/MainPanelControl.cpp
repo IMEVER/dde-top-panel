@@ -10,16 +10,7 @@
 #include <QStyleOption>
 
 MainPanelControl::MainPanelControl(QWidget *parent)
-    : QWidget(parent)
-    , m_mainPanelLayout(new QBoxLayout(QBoxLayout::LeftToRight, this))
-    , m_trayAreaWidget(new QWidget(this))
-    , m_trayAreaLayout(new QBoxLayout(QBoxLayout::LeftToRight))
-    , m_pluginAreaWidget(new QWidget(this))
-    , m_pluginLayout(new QHBoxLayout())
-    , m_fixedPluginWidget(new QWidget(this))
-    , m_fixedPluginLayout(new QHBoxLayout())
-    , activeWindowControlWidget(new ActiveWindowControlWidget(this))
-    , m_showDesktopWidget(nullptr)
+    : QWidget(parent), m_mainPanelLayout(new QBoxLayout(QBoxLayout::LeftToRight, this)), m_trayAreaWidget(new QWidget(this)), m_trayAreaLayout(new QBoxLayout(QBoxLayout::LeftToRight)), m_pluginAreaWidget(new QWidget(this)), m_pluginLayout(new QHBoxLayout()), m_fixedPluginWidget(new QWidget(this)), m_fixedPluginLayout(new QHBoxLayout()), activeWindowControlWidget(new ActiveWindowControlWidget(this)), m_showDesktopWidget(nullptr)
 {
     this->setFixedHeight(DEFAULT_HEIGHT);
     this->setMouseTracking(true);
@@ -42,13 +33,14 @@ void MainPanelControl::init()
     this->m_mainPanelLayout->addWidget(this->m_pluginAreaWidget);
     this->m_mainPanelLayout->addWidget(this->m_fixedPluginWidget);
 
-    if(CustomSettings::instance()->isShowDesktop())
+    if (CustomSettings::instance()->isShowDesktop())
     {
         this->m_showDesktopWidget = new ShowDesktopWidget(this);
         this->m_mainPanelLayout->addWidget(this->m_showDesktopWidget);
     }
 
-    connect(CustomSettings::instance(), &CustomSettings::showDesktopChanged, [this](bool show){
+    connect(CustomSettings::instance(), &CustomSettings::showDesktopChanged, [this](bool show)
+            {
         if(show && !this->m_showDesktopWidget)
         {
             this->m_showDesktopWidget = new ShowDesktopWidget(this);
@@ -59,8 +51,7 @@ void MainPanelControl::init()
             this->m_mainPanelLayout->removeWidget(this->m_showDesktopWidget);
             this->m_showDesktopWidget->deleteLater();
             this->m_showDesktopWidget = nullptr;
-        }
-     });
+        } });
 
     m_mainPanelLayout->setMargin(0);
     m_mainPanelLayout->setSpacing(6);
@@ -90,41 +81,44 @@ void MainPanelControl::insertItem(int index, DockItem *item)
 {
     item->installEventFilter(this);
 
-    switch (item->itemType()) {
-        case DockItem::TrayPlugin:
-            addTrayAreaItem(index, item);
-            break;
-        case DockItem::Plugins:
-            addPluginAreaItem(index, item);
-            break;
-        case DockItem::FixedPlugin:
-            // addPluginAreaItem(index, item);
-            addFixedPluginAreaItem(index, item);
-            break;
-        default:
-            break;
+    switch (item->itemType())
+    {
+    case DockItem::TrayPlugin:
+        addTrayAreaItem(index, item);
+        break;
+    case DockItem::Plugins:
+        addPluginAreaItem(index, item);
+        break;
+    case DockItem::FixedPlugin:
+        // addPluginAreaItem(index, item);
+        addFixedPluginAreaItem(index, item);
+        break;
+    default:
+        break;
     }
 }
 
 void MainPanelControl::removeItem(DockItem *item)
 {
-    switch (item->itemType()) {
-        case DockItem::TrayPlugin:
-            removeTrayAreaItem(item);
-            break;
-        case DockItem::Plugins:
-            removePluginAreaItem(item);
-            break;
-        case DockItem::FixedPlugin:
-            removeFixedPluginAreaItem(item);
-            break;
-        default:
-            break;
+    switch (item->itemType())
+    {
+    case DockItem::TrayPlugin:
+        removeTrayAreaItem(item);
+        break;
+    case DockItem::Plugins:
+        removePluginAreaItem(item);
+        break;
+    case DockItem::FixedPlugin:
+        removeFixedPluginAreaItem(item);
+        break;
+    default:
+        break;
     }
 }
-void MainPanelControl::addPluginAreaItem(int index, QWidget *wdg) {
+void MainPanelControl::addPluginAreaItem(int index, QWidget *wdg)
+{
     PluginsItem *item = qobject_cast<PluginsItem *>(wdg);
-    if(item->pluginSizePolicy() == PluginsItemInterface::Custom)
+    if (item->pluginSizePolicy() == PluginsItemInterface::Custom)
         wdg->setMaximumHeight(height());
     else
         wdg->setFixedSize(height() - 4, height() - 4);
@@ -156,7 +150,7 @@ void MainPanelControl::removeTrayAreaItem(QWidget *wdg)
 void MainPanelControl::addFixedPluginAreaItem(int index, QWidget *wdg)
 {
     PluginsItem *item = qobject_cast<PluginsItem *>(wdg);
-    if(item->pluginSizePolicy() == PluginsItemInterface::Custom)
+    if (item->pluginSizePolicy() == PluginsItemInterface::Custom)
         wdg->setMaximumHeight(height());
     else
         wdg->setFixedSize(height() - 4, height() - 4);
@@ -170,29 +164,35 @@ void MainPanelControl::removeFixedPluginAreaItem(QWidget *wdg)
     m_fixedPluginLayout->removeWidget(wdg);
 }
 
-void MainPanelControl::toggleMenu(int id) {
+void MainPanelControl::toggleMenu(int id)
+{
     this->activeWindowControlWidget->toggleMenu(id);
 }
 
-void MainPanelControl::dragMoveEvent(QDragMoveEvent *e) {
+void MainPanelControl::dragMoveEvent(QDragMoveEvent *e)
+{
     DockItem *sourceItem = qobject_cast<DockItem *>(e->source());
-    if (sourceItem) {
+    if (sourceItem)
+    {
         handleDragMove(e);
         return;
     }
 }
 
-void MainPanelControl::handleDragMove(QDragMoveEvent *e) {
+void MainPanelControl::handleDragMove(QDragMoveEvent *e)
+{
     DockItem *sourceItem = qobject_cast<DockItem *>(e->source());
 
-    if (!sourceItem) {
+    if (!sourceItem)
+    {
         e->ignore();
         return;
     }
 
     DockItem *targetItem = dropTargetItem(sourceItem, e->pos());
 
-    if (!targetItem) {
+    if (!targetItem)
+    {
         e->ignore();
         return;
     }
@@ -206,7 +206,8 @@ void MainPanelControl::handleDragMove(QDragMoveEvent *e) {
     emit itemMoved(sourceItem, targetItem);
 }
 
-DockItem *MainPanelControl::dropTargetItem(DockItem *sourceItem, QPoint point) {
+DockItem *MainPanelControl::dropTargetItem(DockItem *sourceItem, QPoint point)
+{
     QWidget *parentWidget = m_pluginAreaWidget;
 
     point = parentWidget->mapFromParent(point);
@@ -214,7 +215,8 @@ DockItem *MainPanelControl::dropTargetItem(DockItem *sourceItem, QPoint point) {
 
     DockItem *targetItem = nullptr;
 
-    for (int i = 0 ; i < parentLayout->count(); ++i) {
+    for (int i = 0; i < parentLayout->count(); ++i)
+    {
         QLayoutItem *layoutItem = parentLayout->itemAt(i);
         DockItem *dockItem = qobject_cast<DockItem *>(layoutItem->widget());
         if (!dockItem)
@@ -223,12 +225,16 @@ DockItem *MainPanelControl::dropTargetItem(DockItem *sourceItem, QPoint point) {
         QRect rect;
 
         rect.setTopLeft(dockItem->pos());
-        if (dockItem->itemType() == DockItem::Plugins) {
+        if (dockItem->itemType() == DockItem::Plugins)
+        {
             rect.setSize(QSize(DOCK_MAX_SIZE, height()));
-        } else {
+        }
+        else
+        {
             rect.setSize(dockItem->size());
         }
-        if (rect.contains(point)) {
+        if (rect.contains(point))
+        {
             targetItem = dockItem;
             break;
         }
@@ -237,7 +243,8 @@ DockItem *MainPanelControl::dropTargetItem(DockItem *sourceItem, QPoint point) {
     return targetItem;
 }
 
-void MainPanelControl::moveItem(DockItem *sourceItem, DockItem *targetItem) {
+void MainPanelControl::moveItem(DockItem *sourceItem, DockItem *targetItem)
+{
     // get target index
     int idx = -1;
     if (targetItem->itemType() == DockItem::Plugins)
@@ -252,7 +259,8 @@ void MainPanelControl::moveItem(DockItem *sourceItem, DockItem *targetItem) {
     insertItem(idx, sourceItem);
 }
 
-bool MainPanelControl::eventFilter(QObject *watched, QEvent *event) {
+bool MainPanelControl::eventFilter(QObject *watched, QEvent *event)
+{
     if (event->type() != QEvent::MouseMove)
         return false;
 
@@ -277,15 +285,18 @@ bool MainPanelControl::eventFilter(QObject *watched, QEvent *event) {
     return QWidget::eventFilter(watched, event);
 }
 
-void MainPanelControl::mousePressEvent(QMouseEvent *e) {
-    if (e->button() == Qt::LeftButton) {
+void MainPanelControl::mousePressEvent(QMouseEvent *e)
+{
+    if (e->button() == Qt::LeftButton)
+    {
         m_mousePressPos = e->globalPos();
     }
 
     QWidget::mousePressEvent(e);
 }
 
-void MainPanelControl::startDrag(DockItem *item) {
+void MainPanelControl::startDrag(DockItem *item)
+{
     const QPixmap pixmap = item->grab();
 
     item->setDraging(true);
@@ -301,7 +312,8 @@ void MainPanelControl::startDrag(DockItem *item) {
     item->update();
 }
 
-void MainPanelControl::dragEnterEvent(QDragEnterEvent *e) {
+void MainPanelControl::dragEnterEvent(QDragEnterEvent *e)
+{
     QRect rect = QRect();
     if (!rect.contains(e->pos()))
         e->accept();

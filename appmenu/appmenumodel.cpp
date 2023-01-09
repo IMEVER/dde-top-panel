@@ -240,6 +240,7 @@ void AppMenuModel::initDesktopMenu()
     editMenu->addAction("刷新", [ = ](){
         QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.desktop", "/com/deepin/dde/desktop", "com.deepin.dde.desktop.Refresh" });
     });
+    editMenu->addSeparator();
     editMenu->addAction("设置壁纸", [ = ](){
         QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.desktop", "/com/deepin/dde/desktop", "com.deepin.dde.desktop.ShowWallpaperChooser" });
     });
@@ -252,44 +253,48 @@ void AppMenuModel::initDesktopMenu()
     gotoMenu->addAction(QIcon::fromTheme("folder_home"), "家目录", [](){
         QProcess::startDetached("/usr/bin/dde-file-manager", {"-O"});
     });
-    gotoMenu->addAction(QIcon::fromTheme("folder-documents-symbolic"), "文档", [](){
+    gotoMenu->addAction(QIcon::fromTheme("folder-documents-symbolic"), "文档", []{
         QProcess::startDetached("/usr/bin/dde-file-manager", {"~/Documents"});
     });
-    gotoMenu->addAction(QIcon::fromTheme("folder-pictures-symbolic"), "图库", [](){
+    gotoMenu->addAction(QIcon::fromTheme("folder-pictures-symbolic"), "图库", []{
         QProcess::startDetached("/usr/bin/dde-file-manager", {"~/Pictures"});
     });
-    gotoMenu->addAction(QIcon::fromTheme("folder-music-symbolic"), "音乐", [](){
+    gotoMenu->addAction(QIcon::fromTheme("folder-music-symbolic"), "音乐", []{
         QProcess::startDetached("/usr/bin/dde-file-manager", {"~/Music"});
     });
-    gotoMenu->addAction(QIcon::fromTheme("folder-videos-symbolic"), "视频", [](){
+    gotoMenu->addAction(QIcon::fromTheme("folder-videos-symbolic"), "视频", []{
         QProcess::startDetached("/usr/bin/dde-file-manager", {"~/Videos"});
     });
-    gotoMenu->addAction(QIcon::fromTheme("folder-downloads-symbolic"), "下载", [](){
+    gotoMenu->addAction(QIcon::fromTheme("folder-downloads-symbolic"), "下载", []{
         QProcess::startDetached("/usr/bin/dde-file-manager", {"~/Downloads"});
     });
     gotoMenu->addSeparator();
-    gotoMenu->addAction(QIcon::fromTheme("user-trash-symbolic"), "垃圾桶", [](){
+    gotoMenu->addAction(QIcon::fromTheme("user-trash-symbolic"), "垃圾桶", []{
         QProcess::startDetached("/usr/bin/dde-file-manager", {"trash:///"});
     });
-    gotoMenu->addAction(QIcon::fromTheme("computer-symbolic"), "计算机", [](){
+    gotoMenu->addAction(QIcon::fromTheme("computer-symbolic"), "计算机", []{
         QProcess::startDetached("/usr/bin/dde-file-manager", {"computer:///"});
     });
-    gotoMenu->addAction(QIcon::fromTheme("network-server-symbolic"), "网上邻居", [](){
+    gotoMenu->addAction(QIcon::fromTheme("network-server-symbolic"), "网上邻居", []{
         QProcess::startDetached("/usr/bin/dde-file-manager", {"network:///"});
     });
+    if(QFile("/usr/lib/dde-file-manager/addons/libdde-appview-plugin.so").exists())
+        gotoMenu->addAction(QIcon::fromTheme("network-server-symbolic"), "应用", []{
+            QProcess::startDetached("/usr/bin/dde-file-manager", {"plugin://app"});
+        });
     this->desktopMenu->addMenu(gotoMenu);
 
     QMenu *helpMenu = new QMenu("帮助");
-    helpMenu->addAction("帮助手册", [](){
+    helpMenu->addAction("帮助手册", []{
         QProcess::startDetached("/usr/bin/dman", {});
-    });
-    helpMenu->addAction("官网", [](){
+    })->setEnabled(QFile("/usr/bin/dman").exists());
+    helpMenu->addAction("官网", []{
         QProcess::startDetached("/usr/bin/xdg-open", {"https://www.deepin.org"});
     });
-    helpMenu->addAction("论坛", [](){
+    helpMenu->addAction("论坛", []{
         QProcess::startDetached("/usr/bin/xdg-open", {"https://bbs.deepin.org"});
     });
-    helpMenu->addAction("维基百科", [](){
+    helpMenu->addAction("维基百科", []{
         QProcess::startDetached("/usr/bin/xdg-open", {"https://wiki.deepin.org/"});
     });
 
