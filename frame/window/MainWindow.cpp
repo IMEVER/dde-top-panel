@@ -6,11 +6,13 @@
 #include "MainWindow.h"
 #include "controller/dockitemmanager.h"
 #include "dbustoppaneladaptors.h"
-#include "util/XUtils.h"
 
 #include <QScreen>
 #include <QApplication>
 #include <QFile>
+#include <KWindowSystem>
+
+#include "util/XUtils.h"
 
 #define SNI_WATCHER_SERVICE "org.kde.StatusNotifierWatcher"
 #define SNI_WATCHER_PATH "/StatusNotifierWatcher"
@@ -249,6 +251,7 @@ void MainWindow::initConnections() {
         {
             int index = XUtils::getWindowScreenNum(wId);
 
+
             if(index > -1 && QApplication::desktop()->screenNumber(this) != index)
                 return;
         }
@@ -311,18 +314,8 @@ void MainWindow::applyCustomSettings() {
 
     if(customSettings->isPanelCustom())
     {
-        this->setMaskAlpha(customSettings->getPanelOpacity());
         this->setMaskColor(customSettings->getPanelBgColor());
-        const QString bgImg = customSettings->getPanelBgImg();
-        const bool repeat = customSettings->isPanelBgImgRepeat();
-        if(!bgImg.isNull() && QFile::exists(bgImg))
-        {
-        //     DPlatformWindowHandle::enableDXcbForWindow(this, false);
-        //     setBlurEnabled(false);
-        //     m_platformWindowHandle.setEnableBlurWindow(false);
-        //     m_platformWindowHandle.setTranslucentBackground(false);
-            this->setStyleSheet(QString(" MainPanelControl { background-image: url(%1); %2 }").arg(bgImg).arg(repeat ? "" : "background-repeat: no-repeat; background-position: center center;"));
-        }
+        this->setMaskAlpha(customSettings->getPanelOpacity());
     }
     else
     {
@@ -334,6 +327,10 @@ void MainWindow::applyCustomSettings() {
             this->m_platformWindowHandle.setShadowRadius(opacity < 0.2 ? 10 : 20);
         });
     }
+    const QString bgImg = customSettings->getPanelBgImg();
+    const bool repeat = customSettings->isPanelBgImgRepeat();
+    if(!bgImg.isNull() && QFile::exists(bgImg))
+        this->setStyleSheet(QString(" MainPanelControl { background-image: url(%1); %2 }").arg(bgImg).arg(repeat ? "" : "background-repeat: no-repeat; background-position: center center;"));
 }
 
 void MainWindow::updateRegionMonitorWatch()

@@ -46,8 +46,6 @@
 #include <QDesktopServices>
 #include <QUrl>
 
-#include "../frame/util/XUtils.h"
-
 #include "dbusmenuimporter.h"
 // #include <dbusmenu-qt5/dbusmenuimporter.h>
 
@@ -166,7 +164,9 @@ void AppMenuModel::initDesktopMenu()
     recentMenu->setIcon(QIcon::fromTheme("document-open-recent"));
     recentMenu->setToolTipsVisible(true);
     recentMenu->addSeparator();
-    recentMenu->addAction(QIcon::fromTheme("edit-clear"), "清除记录", []{
+    QFileSystemWatcher *watcher = new QFileSystemWatcher({ QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation).append(QDir::separator()).append("recently-used.xbel") }, this);
+    recentMenu->addAction(QIcon::fromTheme("edit-clear"), "清除记录", [watcher, recentMenu]{
+        watcher->blockSignals(true);
         const static QString xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
             <xbel version=\"1.0\"\n\
                 xmlns:bookmark=\"http://www.freedesktop.org/standards/desktop-bookmarks\"\n\
@@ -178,7 +178,14 @@ void AppMenuModel::initDesktopMenu()
             QTextStream stream(&file);
             stream << xml;
             file.close();
+
+            while(recentMenu->actions().count() > 2) {
+                QAction *action = recentMenu->actions().first();
+                recentMenu->removeAction(action);
+                action->deleteLater();
+            }
         }
+        watcher->blockSignals(false);
     });
     auto createRecentItem = [ recentMenu ] {
         while(recentMenu->actions().count() > 2) {
@@ -187,7 +194,6 @@ void AppMenuModel::initDesktopMenu()
             action->deleteLater();
         }
 
-        bool has = false;
         QFile *xmlFile = new QFile(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation).append(QDir::separator()).append("recently-used.xbel"));
 
         if (xmlFile->open(QIODevice::ExistingOnly | QIODevice::ReadOnly | QIODevice::Text)) {
@@ -202,7 +208,7 @@ void AppMenuModel::initDesktopMenu()
                     if(filePath.startsWith("file:///") && !filePath.startsWith("file:///run/user"))
                     {
                         QFileInfo item(QUrl::fromPercentEncoding(filePath.toLocal8Bit()).remove("file://"));
-                        if(item.exists() && item.isFile())
+                        if(item.exists())
                         {
                             QAction *action = new QAction(QFileIconProvider().icon(item), item.fileName(), recentMenu);
                             action->setToolTip(item.absolutePath());
@@ -217,40 +223,36 @@ void AppMenuModel::initDesktopMenu()
                     }
                 }
             }
-            if(!actions.isEmpty()) {
+            if(!actions.isEmpty())
                 recentMenu->insertActions(recentMenu->actions().first(), actions);
-                has = true;
-            }
+
             //close reader and flush file
             xmlReader->clear();delete xmlReader;
             xmlFile->close();
         }
         xmlFile->deleteLater();
-        recentMenu->actions().last()->setEnabled(has);
+        recentMenu->actions().last()->setEnabled(recentMenu->actions().count() > 2);
     };
     fileMenu->addMenu(recentMenu);
-    QFileSystemWatcher *watcher = new QFileSystemWatcher({ QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation).append(QDir::separator()).append("recently-used.xbel") }, this);
-    connect(watcher, &QFileSystemWatcher::fileChanged, [ createRecentItem ](const QString filePath){
-        createRecentItem();
-    });
+    connect(watcher, &QFileSystemWatcher::fileChanged, this, createRecentItem);
     createRecentItem();
     this->desktopMenu->addMenu(fileMenu);
 
     QMenu *editMenu = new QMenu("编辑");
-    editMenu->addAction("刷新", [ = ](){
+    editMenu->addAction("刷新", [ ]{
         QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.desktop", "/com/deepin/dde/desktop", "com.deepin.dde.desktop.Refresh" });
     });
     editMenu->addSeparator();
-    editMenu->addAction("设置壁纸", [ = ](){
+    editMenu->addAction("设置壁纸", [ ]{
         QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.desktop", "/com/deepin/dde/desktop", "com.deepin.dde.desktop.ShowWallpaperChooser" });
     });
-    editMenu->addAction("设置屏保", [=](){
+    editMenu->addAction("设置屏保", []{
         QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.desktop", "/com/deepin/dde/desktop", "com.deepin.dde.desktop.ShowScreensaverChooser" });
     });
     this->desktopMenu->addMenu(editMenu);
 
     QMenu *gotoMenu = new QMenu("转到");
-    gotoMenu->addAction(QIcon::fromTheme("folder_home"), "家目录", [](){
+    gotoMenu->addAction(QIcon::fromTheme("folder_home"), "家目录", []{
         QProcess::startDetached("/usr/bin/dde-file-manager", {"-O"});
     });
     gotoMenu->addAction(QIcon::fromTheme("folder-documents-symbolic"), "文档", []{
@@ -279,7 +281,7 @@ void AppMenuModel::initDesktopMenu()
         QProcess::startDetached("/usr/bin/dde-file-manager", {"network:///"});
     });
     if(QFile("/usr/lib/dde-file-manager/addons/libdde-appview-plugin.so").exists())
-        gotoMenu->addAction(QIcon::fromTheme("network-server-symbolic"), "应用", []{
+        gotoMenu->addAction(QIcon::fromTheme("app-launcher"), "应用", []{
             QProcess::startDetached("/usr/bin/dde-file-manager", {"plugin://app"});
         });
     this->desktopMenu->addMenu(gotoMenu);

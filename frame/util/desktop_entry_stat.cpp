@@ -64,9 +64,7 @@ void DesktopEntryStat::createDesktopEntry(const QString desktopFile)
     DDesktopEntry entry(desktopFile);
 
     if (entry.contains("NoDisplay") && entry.stringValue("NoDisplay") == "true")
-    {
         return;
-    }
 
     auto re = DesktopEntry(new desktop_entry {});
 
@@ -125,9 +123,7 @@ DesktopEntryStat::~DesktopEntryStat()
 void DesktopEntryStat::refresh()
 {
     for(QString appPath :  QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation))
-    {
         parseDir(appPath);
-    }
 }
 
 void DesktopEntryStat::parseDir(QString path)
@@ -171,7 +167,7 @@ void DesktopEntryStat::parseDir(QString path)
 
 DesktopEntry DesktopEntryStat::getDesktopEntryByName(const QString name)
 {
-    return cache[name];
+    return cache.value(name);
 }
 
 DesktopEntry DesktopEntryStat::searchByName(QString name)
@@ -191,13 +187,11 @@ DesktopEntry DesktopEntryStat::searchByName(QString name)
 DesktopEntry DesktopEntryStat::getDesktopEntryByDesktopfile(const QString desktopFile)
 {
     if (!deskToNameMap.contains(desktopFile))
-    {
         createDesktopEntry(desktopFile);
-    }
+
     if (deskToNameMap.contains(desktopFile))
-    {
         return cache[deskToNameMap.value(desktopFile)];
-    }
+
     return nullptr;
 }
 
@@ -207,12 +201,9 @@ DesktopEntry DesktopEntryStat::getDesktopEntryByPid(int pid)
     QFile cmdFile(QString("/proc/%1/cmdline").arg(pid));
     if(cmdFile.isReadable())
     {
-        QString cmd = cmdFile.readAll();
-        cmd = getExecName(cmd.split(" "));
+        QString name = getExecName(QString(cmdFile.readAll()).split(" "));
 
-        QString name = QFileInfo(cmd).baseName();
-        entry = cache[name];
-        if (!entry)
+        if (!cache.contains(name))
         {
             QFile environFile(QString("/proc/%1/environ").arg(pid));
             if (environFile.isReadable())
@@ -225,15 +216,14 @@ DesktopEntry DesktopEntryStat::getDesktopEntryByPid(int pid)
                     {
                         QString desktopFile = tmpList.last();
                         if (desktopFile.size() > 0)
-                        {
                             entry = getDesktopEntryByDesktopfile(desktopFile);
-                        }
                         break;
                     }
 
                 }
             }
-        }
+        } else
+            entry = cache[name];
     }
     return entry;
 }

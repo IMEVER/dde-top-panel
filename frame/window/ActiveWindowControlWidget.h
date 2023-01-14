@@ -9,52 +9,32 @@
 #include <QLabel>
 #include <QHBoxLayout>
 #include <DGuiApplicationHelper>
-// #include <QQmlApplicationEngine>
 #include <QMenuBar>
 #include <QWidgetAction>
-#include "../../appmenu/appmenumodel.h"
 #include <com_deepin_wm.h>
-#include "../util/CustomSettings.h"
-#include "../util/CustomizeMenubar.h"
+#include <NETWM>
 
-using Dtk::Gui::DGuiApplicationHelper;
-
+class ActiveWindowControlWidgetPrivate;
 class ActiveWindowControlWidget : public QWidget {
-
     Q_OBJECT
 
 public:
     explicit ActiveWindowControlWidget(QWidget *parent = 0);
 
 public slots:
-    void activeWindowInfoChanged(WId wId);
-    void maximizeWindow();
     void toggleMenu(int id);
 
 protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
-
-private:
-    void initMenuBar();
-    void setButtonsVisible(bool visible);
-
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
-
-private slots:
-    void windowChanged(WId, NET::Properties, NET::Properties2);
-    void themeTypeChanged(DGuiApplicationHelper::ColorType themeType);
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
-    // QQmlApplicationEngine *engine = nullptr;
-    QStack<WId> activeIdStack;
-    WId currActiveWinId;
 
-    CustomizeMenubar *menuBar;
-    AppMenuModel *m_appMenuModel;
-
-    bool mouseClicked;
+    ActiveWindowControlWidgetPrivate *d_ptr;
+    Q_DECLARE_PRIVATE(ActiveWindowControlWidget)
 };
 
 #endif //DDE_TOP_PANEL_ACTIVEWINDOWCONTROLWIDGET_H

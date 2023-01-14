@@ -34,13 +34,6 @@ public:
     {
         return 2;
     }
-    // QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override
-    // {
-    //     if (Qt::SizeHintRole == role && Qt::Vertical)
-    //     {
-    //         return 1;
-    //     }
-    // }
 
     QString formatByteSize(int size) const
     {
@@ -54,6 +47,7 @@ public:
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override
     {
+        static const QStringList keys{"Depends", "Pre-Depends", "Build-Depends", "Replaces", "Breaks" , "Conflicts", "Suggests", "Provides", "Recommends"};
         const int row = index.row();
         const int column = index.column();
         switch(role){
@@ -63,10 +57,13 @@ public:
                     QPair<QString, QString> pair = m_package.data.at(row);
                     if(column == 0)
                         return translate(pair.first);
-                    else if(pair.first == "Installed-Size")
-                        return formatByteSize(pair.second.toInt());
-                    else
-                        return QStringList({"Depends", "Pre-Depends", "Build-Depends", "Replaces", "Breaks" , "Conflicts", "Suggests", "Provides", "Recommends"}).contains(pair.first) ? pair.second.replace(",", "\n") : pair.second.trimmed();
+                    else if(pair.first == "Installed-Size") {
+                        if(pair.second.toInt())
+                            return formatByteSize(pair.second.toInt());
+                        else
+                            return pair.second;
+                    } else
+                        return keys.contains(pair.first) ? pair.second.replace(QRegExp(",\\s*"), "\n") : pair.second.trimmed();
                 }
                 break;
             case Qt::FontRole:
@@ -89,58 +86,35 @@ public:
 
     QVariant translate(QString field) const
     {
-        if(field == "Package")
-            return "包名";
-        else if(field == "Status")
-            return "状态";
-        else if(field == "Priority")
-            return "优先级";
-        else if(field == "Section")
-            return "分类";
-        else if(field == "Installed-Size")
-            return "安装大小";
-        else if(field == "Download-Size")
-            return "下载大小";
-        else if(field == "Maintainer")
-            return "维护者";
-        else if(field == "Architecture")
-            return "架构";
-        else if(field == "Version")
-            return "版本";
-        else if(field == "Depends")
-            return "依赖";
-        else if(field == "Description")
-            return "简介";
-        else if(field == "Homepage")
-            return "主页";
-        else if(field == "Replaces")
-            return "代替";
-        else if(field == "Provides")
-            return "提供";
-        else if(field == "Conflicts")
-            return "冲突";
-        else if(field == "Recommends")
-            return "推荐";
-        else if(field == "Breaks")
-            return "破坏";
-        else if(field == "Suggests")
-            return "建议";
-        else if(field == "Source")
-            return "源码";
-        else if(field == "Multi-Arch")
-            return "多架构";
-        else if(field == "License")
-            return "版权";
-        else if(field == "Vendor")
-            return "供应商";
-        else if(field == "Build-Depends")
-            return "构建依赖";
-        else if(field == "Standards-Version")
-            return "标准版本";
-        else if(field == "Pre-Depends")
-            return "预先依赖";
-        else
-            return field;
+        static const QMap<QString, QString> map{
+            {"Package", "包名"},
+            {"Status", "状态"},
+            {"Priority", "优先级"},
+            {"Section", "分类"},
+            {"Installed-Size", "安装大小"},
+            {"Download-Size", "下载大小"},
+            {"Maintainer", "维护者"},
+            {"Architecture", "架构"},
+            {"Version", "版本"},
+            {"Depends", "依赖"},
+            {"Description", "简介"},
+            {"Homepage", "主页"},
+            {"Replaces", "代替"},
+            {"Provides", "提供"},
+            {"Conflicts", "冲突"},
+            {"Conffiles", "配置文件"},
+            {"Recommends", "推荐"},
+            {"Breaks", "破坏"},
+            {"Suggests", "建议"},
+            {"Source", "源码"},
+            {"Multi-Arch", "多架构"},
+            {"License", "版权"},
+            {"Vendor", "供应商"},
+            {"Build-Depends", "构建依赖"},
+            {"Standards-Version", "标准版本"},
+            {"Pre-Depends", "预先依赖"}};
+
+        return map.value(field, field);
     }
 };
 
@@ -247,14 +221,10 @@ void AboutWindow::initData(KWindowInfo kwin)
     appInfo.m_pid = kwin.pid();
 
     if (appInfo.m_className == "dde-desktop")
-    {
         return;
-    }
 
     if (appInfo.m_title.contains(QRegExp("[–—-]")))
-    {
         appInfo.m_title = appInfo.m_title.split(QRegExp("[–—-]")).last().trimmed();
-    }
 
     auto getExecFile = [](QString cmdline){
         cmdline = cmdline.replace("\"", "");
@@ -271,26 +241,20 @@ void AboutWindow::initData(KWindowInfo kwin)
         return QString();
     };
 
-    DesktopEntry entry = DesktopEntryStat::instance()->getDesktopEntryByName(kwin.windowClassName());
-
-    if(!entry)
-    {
+    DesktopEntry entry = DesktopEntryStat::instance()->getDesktopEntryByName(appInfo.m_className);
+    if(entry.isNull())
         entry = DesktopEntryStat::instance()->getDesktopEntryByName(appInfo.m_title);
-    }
 
-    if (!entry)
-    {
+    if (entry.isNull())
         entry = DesktopEntryStat::instance()->getDesktopEntryByPid(kwin.pid());
-    }
 
-    if (entry)
+    if (entry.isNull() == false)
     {
         appInfo.m_title = entry->displayName;
         appInfo.m_cmdline = entry->exec.join(" ");
         if (kwin.desktopFileName().isEmpty())
-        {
             appInfo.m_desktopFile = entry->desktopFile;
-        }
+
         QString searchPath;
         if(!appInfo.m_desktopFile.isEmpty() && !appInfo.m_desktopFile.contains(".local/share/applications/"))
         {
@@ -311,11 +275,12 @@ void AboutWindow::initData(KWindowInfo kwin)
     else
     {
         QFile cmdFile(QString("/proc/%1/cmdline").arg(appInfo.m_pid));
-        if(cmdFile.isReadable())
+        if(cmdFile.open(QFile::ReadOnly | QFile::Text))
         {
             appInfo.m_cmdline = cmdFile.readAll();
             initPackageInfo(getExecFile(appInfo.m_cmdline));
         }
+        cmdFile.close();
     }
 }
 
@@ -325,48 +290,37 @@ void AboutWindow::initPackageInfo(QString cmdline)
         return;
 
     QProcess *process = new QProcess(this);
-        process->start("dpkg", QStringList()<<"-S"<<cmdline);
-        if(process->waitForStarted())
+    process->start("dpkg", QStringList()<<"-S"<<cmdline);
+    if(process->waitForStarted() && process->waitForFinished())
+    {
+        QByteArray reply = process->readLine();
+        if (reply.isEmpty() == false)
         {
-            if (process->waitForFinished())
+            QString packageName = QString(reply).split(":").first();
+            appInfo.m_packageName = packageName;
+            process->close();
+            process->start("dpkg", {"--status", packageName});
+            if (process->waitForStarted() && process->waitForFinished())
             {
-                QByteArray reply = process->readLine();
-                if (reply.isEmpty() == false)
-                {
-                    QString packageName = QString(reply).split(":").first();
-                    appInfo.m_packageName = packageName;
-                    process->close();
-                    process->start("dpkg", {"--status", packageName});
-                    if (process->waitForStarted())
-                    {
-                        if (process->waitForFinished())
-                        {
-                            reply = process->readAll();
-                            if (!reply.isEmpty())
-                            {
-                                appInfo.m_package = Package(reply);
-                            }
-                        }
-                    }
+                reply = process->readAll();
+                if (!reply.isEmpty())
+                    appInfo.m_package = Package(reply);
+            }
 
-                    process->close();
-                    process->start("dpkg", {"--listfiles", packageName});
-                    if (process->waitForStarted())
-                    {
-                        if (process->waitForFinished())
-                        {
-                            reply = process->readAll();
-                            if (!reply.isEmpty())
-                            {
-                                appInfo.m_fileList = QString(reply).split("\n");
-                            }
-                        }
-                    }
+            process->close();
+            process->start("dpkg", {"--listfiles", packageName});
+            if (process->waitForStarted() && process->waitForFinished())
+            {
+                reply = process->readAll();
+                if (!reply.isEmpty())
+                {
+                    appInfo.m_fileList = QString(reply).split("\n");
                 }
             }
         }
-        process->close();
-        process->deleteLater();
+    }
+    process->close();
+    process->deleteLater();
 }
 
 void AboutWindow::showEvent(QShowEvent *event)

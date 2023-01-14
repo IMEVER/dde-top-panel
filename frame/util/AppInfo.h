@@ -13,26 +13,38 @@ struct Package
     Package(QString str)
     {
         QStringList infos = str.split("\n");
+        QString name;
         QStringList desc;
         for(QString info : infos)
         {
-            if (info.contains(": "))
+            if (!info.at(0).isSpace() && info.contains(":"))
             {
-                QStringList items = info.split(": ");
-                if(items.at(0) == "Description")
-                    desc.append(items.at(1));
-                else if(items.at(0).startsWith(" "))
-                    desc.append(info);
+                int index = info.indexOf(":");
+                QString key = info.mid(0, index);
+                QString value = info.mid(index+1);
+                if(key == "Conffiles") {
+                    if(!name.isEmpty()) {
+                        data << QPair<QString, QString>(name, desc.join("\n"));
+                        desc.clear();
+                    }
+                    name = "Conffiles";
+                    desc.append(value.trimmed());
+                } else if(key == "Description") {
+                    if(!name.isEmpty()) {
+                        data << QPair<QString, QString>(name, desc.join("\n"));
+                        desc.clear();
+                    }
+                    name = "Description";
+                    desc.append(value.trimmed());
+                }
                 else
-                    data.append(QPair<QString, QString>(items.at(0), items.at(1)));
+                    data.append(QPair<QString, QString>(key, value.trimmed()));
             }
             else
-            {
-                desc.append(info);
-            }
+                desc.append(info.trimmed());
         }
         if(!desc.isEmpty())
-            data << QPair<QString, QString>("Description", desc.join("\n"));
+            data << QPair<QString, QString>(name, desc.join("\n"));
     }
 
     int count() const
@@ -42,8 +54,6 @@ struct Package
 
     QVector<QPair<QString, QString>> data;
 };
-
-// using Package = struct Package;
 
 struct AppInfo
 {
@@ -58,8 +68,5 @@ struct AppInfo
     struct Package m_package;
     QStringList m_fileList;
 };
-
-// Q_DECLARE_METATYPE(Package)
-// Q_DECLARE_METATYPE(AppInfo)
 
 #endif

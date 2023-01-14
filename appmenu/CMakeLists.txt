@@ -1,20 +1,13 @@
 cmake_minimum_required(VERSION 3.13)
-
 set(PROJECT appmenu)
-
 project(${PROJECT})
 
 remove_definitions(-DQT_NO_CAST_FROM_ASCII -DQT_STRICT_ITERATORS -DQT_NO_CAST_FROM_BYTEARRAY -DQT_NO_KEYWORDS)
 
 set(CMAKE_CXX_STANDARD 14)
-
-# 启用 qt moc 的支持
 set(CMAKE_AUTOMOC ON)
-# 启用 qrc 资源文件的支持
 set(CMAKE_AUTORCC ON)
-
 set(CMAKE_AUTOUIC ON)
-
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 find_package(Qt5Widgets REQUIRED)
@@ -50,7 +43,6 @@ target_include_directories(${PROJECT} PUBLIC
         ${Qt5Widgets_INCLUDE_DIRS}
         ${Qt5DBus_INCLUDE_DIRS}
         ${Qt5X11Extras_INCLUDE_DIRS}
-        # ${DFrameworkDBus_INCLUDE_DIRS}
         # ${dbusmenu-qt5_INCLUDE_DIRS}
         )
 
@@ -61,7 +53,6 @@ target_link_libraries(${PROJECT}
         KF5::WindowSystem
         xcb
         # ${Qt5DBus_LIBRARIES}
-        # ${DFrameworkDBus_LIBRARIES}
         # globalmenu
         # dbusmenu-qt5
         )

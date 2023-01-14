@@ -6,8 +6,7 @@
 #include <QDebug>
 #include <QApplication>
 #include <QScreen>
-#include "XUtils.h"
-#include "xdo.h"
+// #include "xdo.h"
 #include <X11/Xlib.h>
 #include <X11/Xw32defs.h>
 #include <iostream>
@@ -15,7 +14,9 @@
 #include <X11/Xatom.h>
 #include <KWindowInfo>
 #include <KWindowSystem>
-// #include "util/CustomSettings.h"
+// #include <QtX11Extras/QX11Info>
+
+#include "XUtils.h"
 
 xdo_t *XUtils::m_xdo = nullptr;
 Display *XUtils::m_display = nullptr;
@@ -173,11 +174,13 @@ void XUtils::unmaximizeWindow(int winId) {
     xev.xclient.window = winId;
     xev.xclient.message_type = wm_state;
     xev.xclient.format = 32;
-    xev.xclient.data.l[0] = 0; // _NET_WM_STATE_REMOVE
+    xev.xclient.data.l[0] = 0;  //_NET_WM_STATE_REMOVE
     xev.xclient.data.l[1] = max_horz;
     xev.xclient.data.l[2] = max_vert;
 
     XSendEvent(m_xdo->xdpy, DefaultRootWindow(m_xdo->xdpy), True, SubstructureNotifyMask, &xev);
+    // XFlush(QX11Info::display());
+    checkIfWinMaximum(winId);
 }
 
 void XUtils::maximizeWindow(int winId) {
@@ -198,6 +201,8 @@ void XUtils::maximizeWindow(int winId) {
     xev.xclient.data.l[2] = max_vert;
 
     XSendEvent(m_xdo->xdpy, DefaultRootWindow(m_xdo->xdpy), True, SubstructureNotifyMask, &xev);
+    // XFlush(QX11Info::display());
+    checkIfWinMaximum(winId);
 }
 
 QPixmap XUtils::getWindowIconNameX11(int winId) {

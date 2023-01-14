@@ -32,10 +32,6 @@ struct desktop_entry {
     QString       icon;
     QString     startup_wm_class;
     QString     desktopFile;
-    // QIcon getIcon() {
-    //     if(!icon.isEmpty())
-    //         return QIcon::fromTheme(icon);
-    // }
 };
 
 using DesktopEntry = QSharedPointer<struct desktop_entry>;
