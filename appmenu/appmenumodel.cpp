@@ -308,6 +308,7 @@ void AppMenuModel::clearMenuImporter()
     if (m_importer)
     {
         disconnect(m_importer, &DBusMenuImporter::menuUpdated, this, nullptr);
+        disconnect(m_importer, &DBusMenuImporter::actionActivationRequested, this, nullptr);
         m_importer->menu()->removeEventFilter(this);
         m_importer = nullptr;
     }

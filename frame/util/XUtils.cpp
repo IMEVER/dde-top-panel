@@ -161,6 +161,28 @@ bool XUtils::checkIfWinFullscreen(int winId) {
     return fullscreenFlag;
 }
 
+void XUtils::toggleWindow(quint64 winId) {
+    openXdo();
+
+    XEvent xev;
+    Atom wm_state  =  XInternAtom(m_xdo->xdpy, "_NET_WM_STATE", True);
+    Atom max_horz  =  XInternAtom(m_xdo->xdpy, "_NET_WM_STATE_MAXIMIZED_HORZ", True);
+    Atom max_vert  =  XInternAtom(m_xdo->xdpy, "_NET_WM_STATE_MAXIMIZED_VERT", True);
+
+    memset(&xev, 0, sizeof(xev));
+    xev.type = ClientMessage;
+    xev.xclient.window = winId;
+    xev.xclient.message_type = wm_state;
+    xev.xclient.format = 32;
+    xev.xclient.data.l[0] = 2;  //_NET_WM_STATE_TOGGLE
+    xev.xclient.data.l[1] = max_horz;
+    xev.xclient.data.l[2] = max_vert;
+
+    XSendEvent(m_xdo->xdpy, DefaultRootWindow(m_xdo->xdpy), True, SubstructureNotifyMask, &xev);
+    XFlush(m_xdo->xdpy);
+    // checkIfWinMaximum(winId);
+}
+
 void XUtils::unmaximizeWindow(int winId) {
     openXdo();
 
@@ -179,8 +201,8 @@ void XUtils::unmaximizeWindow(int winId) {
     xev.xclient.data.l[2] = max_vert;
 
     XSendEvent(m_xdo->xdpy, DefaultRootWindow(m_xdo->xdpy), True, SubstructureNotifyMask, &xev);
-    // XFlush(QX11Info::display());
-    checkIfWinMaximum(winId);
+    XFlush(m_xdo->xdpy);
+    // checkIfWinMaximum(winId);
 }
 
 void XUtils::maximizeWindow(int winId) {
@@ -196,13 +218,13 @@ void XUtils::maximizeWindow(int winId) {
     xev.xclient.window = winId;
     xev.xclient.message_type = wm_state;
     xev.xclient.format = 32;
-    xev.xclient.data.l[0] = 1; // _NET_WM_STATE_REMOVE
+    xev.xclient.data.l[0] = 1; // _NET_WM_STATE_ADD, 2: _NET_WM_STATE_TOGGLE
     xev.xclient.data.l[1] = max_horz;
     xev.xclient.data.l[2] = max_vert;
 
     XSendEvent(m_xdo->xdpy, DefaultRootWindow(m_xdo->xdpy), True, SubstructureNotifyMask, &xev);
-    // XFlush(QX11Info::display());
-    checkIfWinMaximum(winId);
+    XFlush(m_xdo->xdpy);
+    // checkIfWinMaximum(winId);
 }
 
 QPixmap XUtils::getWindowIconNameX11(int winId) {

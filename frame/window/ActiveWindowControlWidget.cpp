@@ -296,6 +296,7 @@ public:
         m_searchEdit = new QLineEdit(searchMenu);
         m_searchEdit->setAttribute(Qt::WA_TranslucentBackground);
         m_searchEdit->setMinimumWidth(240);
+        m_searchEdit->setFixedHeight(24);
         m_searchEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
         m_searchEdit->setClearButtonEnabled(true);
         m_searchEdit->setAlignment(Qt::AlignCenter);
@@ -404,25 +405,26 @@ public:
 
     void maximizeWindow()
     {
-        if (XUtils::checkIfWinMaximum(currActiveWinId))
-        {
-            XUtils::unmaximizeWindow(currActiveWinId);
+        XUtils::toggleWindow(currActiveWinId);
+        // if (XUtils::checkIfWinMaximum(currActiveWinId))
+        // {
+        //     XUtils::unmaximizeWindow(currActiveWinId);
 
-            // checkIfWinMaximum is MUST needed here.
-            //   I don't know whether XSendEvent is designed like this,
-            //   my test shows unmaximizeWindow by XSendEvent will work when others try to fetch its properties.
-            //   i.e., checkIfWinMaximum
-            // XUtils::checkIfWinMaximum(currActiveWinId);
+        //     // checkIfWinMaximum is MUST needed here.
+        //     //   I don't know whether XSendEvent is designed like this,
+        //     //   my test shows unmaximizeWindow by XSendEvent will work when others try to fetch its properties.
+        //     //   i.e., checkIfWinMaximum
+        //     // XUtils::checkIfWinMaximum(currActiveWinId);
 
-            // this->m_appInter->MinimizeWindow(this->currActiveWinId);
-        }
-        else
-        {
-            // sadly the dbus maximizeWindow cannot unmaximize window :(
-            // this->m_appInter->MaximizeWindow(this->currActiveWinId);
-            XUtils::maximizeWindow(currActiveWinId);
-            // XUtils::checkIfWinMaximum(currActiveWinId);
-        }
+        //     // this->m_appInter->MinimizeWindow(this->currActiveWinId);
+        // }
+        // else
+        // {
+        //     // sadly the dbus maximizeWindow cannot unmaximize window :(
+        //     // this->m_appInter->MaximizeWindow(this->currActiveWinId);
+        //     XUtils::maximizeWindow(currActiveWinId);
+        //     // XUtils::checkIfWinMaximum(currActiveWinId);
+        // }
     }
 
     void minimizeWindow() {

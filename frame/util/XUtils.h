@@ -30,6 +30,7 @@ public:
     static bool checkIfWinMinimun(int winId);
     static bool checkIfWinFullscreen(int winId);
 
+    static void toggleWindow(quint64 winId);
     static void unmaximizeWindow(int winId);
     static void maximizeWindow(int winId);
 
