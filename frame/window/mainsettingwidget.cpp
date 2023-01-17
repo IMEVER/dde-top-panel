@@ -195,6 +195,7 @@ MainSettingWidget::MainSettingWidget(QWidget *parent) :
     ui->buttonCustomCheckBox->setChecked(CustomSettings::instance()->isButtonCustom());
 
     //menu
+    ui->menu_app->setChecked(CustomSettings::instance()->isShowMenuApp());
     ui->menu_launch->setChecked(CustomSettings::instance()->isShowMenuLaunch());
     ui->menu_fileManager->setChecked(CustomSettings::instance()->isShowMenuFileManager());
     ui->menu_theme->setChecked(CustomSettings::instance()->isShowMenuTheme());
@@ -230,6 +231,7 @@ MainSettingWidget::MainSettingWidget(QWidget *parent) :
     connect(ui->buttonCustomCheckBox, &QCheckBox::stateChanged, CustomSettings::instance(), &CustomSettings::setButtonCustom);
 
     //menu
+    connect(ui->menu_app, &QCheckBox::stateChanged, CustomSettings::instance(), &CustomSettings::setMenuApp);
     connect(ui->menu_launch, &QCheckBox::stateChanged, CustomSettings::instance(), &CustomSettings::setMenuLaunch);
     connect(ui->menu_fileManager, &QCheckBox::stateChanged, CustomSettings::instance(), &CustomSettings::setMenuFileManager);
     connect(ui->menu_theme, &QCheckBox::stateChanged, CustomSettings::instance(), &CustomSettings::setMenuTheme);

@@ -11,13 +11,6 @@ CustomizeMenubar::CustomizeMenubar(QWidget *parent) : QMenuBar(parent)
 {
     setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
     // setContentsMargins(0, 0, 0, 0);
-    // setFixedHeight(24);
-
-    // QFont f = font();
-    // f.setPointSizeF(9.3);
-    // setFont(f);
-
-    // qInfo()<<"menubar height: "<<height()<<"font height: "<<fontMetrics().height();
 }
 
 CustomizeMenubar::~CustomizeMenubar()
@@ -73,24 +66,24 @@ void CustomizeMenubar::paintEvent(QPaintEvent *e)
         QAction *action = d->actions.at(i);
         QRect &adjustedActionRect = d->actionRects[i]; // actionGeometry(action);
 
-        if (adjustedActionRect.isEmpty() || !action->isVisible())
+        if (adjustedActionRect.isEmpty() || !action->isVisible() || d->hiddenActions.contains(action))
             continue;
 
         if(i == 0)
         {
-            if(firstWidth != adjustedActionRect.width())
-            {
-                if(firstWidth == -1)
-                    firstWidth = adjustedActionRect.width() + 12;
+            if(firstWidth == -1)
+                firstWidth = adjustedActionRect.width() + 10;
 
+            if(firstWidth != adjustedActionRect.width()) {
                 adjustedActionRect.setWidth(firstWidth);
                 needFix = true;
             }
         }
-        else if(needFix)
-        {
-            adjustedActionRect.setWidth(adjustedActionRect.width() - 1);
-            adjustedActionRect.moveLeft(adjustedActionRect.x() + 12 - (i - 1));
+        else if((i ==1 || i==2 || i==3) && needFix)
+            adjustedActionRect.moveLeft(adjustedActionRect.x() + 10);
+        else if(i == 4 && needFix) {
+            adjustedActionRect.setWidth(adjustedActionRect.width() - 10);
+            adjustedActionRect.moveLeft(adjustedActionRect.x() + 10);
         }
 
         // if (adjustedActionRect.isValid() && !result.contains(adjustedActionRect))
@@ -110,9 +103,10 @@ void CustomizeMenubar::paintEvent(QPaintEvent *e)
         if(action->objectName() == "appMenu")
         {
             font = p.font();
-            // opt.palette.setColor(QPalette::ButtonText, Qt::black);
             font.setBold(true);
             p.setFont(font);
+
+            opt.text = opt.text.trimmed();
         }
         style()->drawControl(QStyle::CE_MenuBarItem, &opt, &p, this);
 

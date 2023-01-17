@@ -65,6 +65,8 @@ public:
     void setShowDesktop(bool showDesktop);
     bool isShowDesktop();
 
+    void setMenuApp(bool show);
+    bool isShowMenuApp();
     void setMenuLaunch(bool show);
     bool isShowMenuLaunch();
     void setMenuFileManager(bool show);
@@ -107,6 +109,7 @@ private:
     QString activeMinimizedIconPath;
 
     // custom menu
+    bool m_menuApp;
     bool m_menuLaunch;
     bool m_menuFileManager;
     bool m_menuTheme;

@@ -165,9 +165,8 @@ public:
      * @param requestedProperties which properties has been requested
      */
     void updateAction(QAction *action, const QVariantMap &map, const QStringList &requestedProperties) {
-        Q_FOREACH (const QString &key, requestedProperties) {
+        for (auto &key : requestedProperties)
             updateActionProperty(action, key, map.value(key));
-        }
     }
 
     void updateActionProperty(QAction *action, const QString &key, const QVariant &value) {
@@ -192,39 +191,28 @@ public:
         QString text = swapMnemonicChar(value.toString(), '_', '&');
         action->setText(text);
 
-        if(!action->menu() && action->parent()->parent() == m_menu)
-        {
+        if(!action->menu()) {
             QAction::MenuRole role = action->menuRole();
             if(role == QAction::TextHeuristicRole)
             {
                 const QString txt = text.remove(QRegExp("\\(.*\\)|\\[.*\\]")).toLower().remove(title.toLower()).remove(QChar('.')).remove(QChar('&')).trimmed();
                 //if(text.toLower().contains("about")) qInfo()<<"About : "<<txt<<", origin: "<<text;
-                if(txt.length() < 12)
+                if(!txt.isEmpty() && txt.length() < 12)
                 {
                     if(txt.startsWith("退出") || txt.startsWith("quit") || txt.startsWith("exit"))
                     {
                         if(!txt.contains("playlist") && !txt.contains("列表") && !txt.contains("登录") && !txt.contains("login") && !txt.contains("account"))
-                        {
                             role = QAction::QuitRole;
-                        }
                     }
                     else if(txt == "关于" || txt == "about")
-                    {
                         role = QAction::AboutRole;
-                    }
                     else if(txt == "设置" || txt.startsWith("系统设置") || txt.startsWith("偏好设置") || txt.startsWith("常规设置") || txt.startsWith("首选项") || txt.startsWith("选项") || txt.startsWith("preferences") || txt.startsWith("options") || txt.startsWith("settings") || txt.startsWith("config") || txt.startsWith("setup"))
-                    {
                         role = QAction::PreferencesRole;
-                    }
                 }
             }
+            action->setMenuRole(role);
             if(appRoles.contains(role))
-            {
-                action->setMenuRole(role);
-                if(m_appMenus.contains(role))
-                    m_appMenus.remove(role);
                 m_appMenus.insert(role, action);
-            }
         }
     }
 
@@ -242,18 +230,14 @@ public:
         const QString iconName = value.toString();
         const QString previous = action->property(DBUSMENU_PROPERTY_ICON_NAME).toString();
 
-        if (previous == iconName) {
-            return;
-        }
+        if (previous == iconName) return;
 
         action->setProperty(DBUSMENU_PROPERTY_ICON_NAME, iconName);
 
-        if (iconName.isEmpty()) {
+        if (iconName.isEmpty())
             action->setIcon(QIcon());
-            return;
-        }
-
-        action->setIcon(QIcon::fromTheme(iconName));
+        else
+            action->setIcon(QIcon::fromTheme(iconName));
     }
 
     void updateActionIconByData(QAction *action, const QVariant &value) {
@@ -261,20 +245,15 @@ public:
         uint dataHash = qHash(data);
         uint previousDataHash = action->property(DBUSMENU_PROPERTY_ICON_DATA_HASH).toUInt();
 
-        if (previousDataHash == dataHash) {
-            return;
-        }
+        if (previousDataHash == dataHash) return;
 
         action->setProperty(DBUSMENU_PROPERTY_ICON_DATA_HASH, dataHash);
         QPixmap pix;
 
-        if (!pix.loadFromData(data)) {
-            qDebug() << "Failed to decode icon-data property for action" << action->text();
+        if (!pix.loadFromData(data))
             action->setIcon(QIcon());
-            return;
-        }
-
-        action->setIcon(QIcon(pix));
+        else
+            action->setIcon(QIcon(pix));
     }
 
     void updateActionVisible(QAction *action, const QVariant &value) {
@@ -290,38 +269,31 @@ public:
     }
 
     QMenu *menuForId(int id) const {
-        if (id == 0) {
-            return q->menu();
-        }
+        if (id == 0) return q->menu();
 
-        QAction *action = m_actionForId.value(id);
+        if(QAction *action = m_actionForId.value(id))
+            return action->menu();
 
-        if (!action) {
-            return nullptr;
-        }
-
-        return action->menu();
+        return nullptr;
     }
 
     void slotItemsPropertiesUpdated(const DBusMenuItemList &updatedList, const DBusMenuItemKeysList &removedList)
     {
-        Q_FOREACH (const DBusMenuItem &item, updatedList) {
+        for (auto &item : updatedList) {
             if(QAction *action = m_actionForId.value(item.id)) {
                 QVariantMap::ConstIterator
                 it = item.properties.constBegin(),
                 end = item.properties.constEnd();
 
-                for (; it != end; ++it) {
+                for (; it != end; ++it)
                     updateActionProperty(action, it.key(), it.value());
-                }
             }
         }
 
-        Q_FOREACH (const DBusMenuItemKeys &item, removedList) {
+        for (auto &item : removedList) {
             if(QAction *action = m_actionForId.value(item.id)) {
-                Q_FOREACH (const QString &key, item.properties) {
+                for (auto &key : item.properties)
                     updateActionProperty(action, key, QVariant());
-                }
             }
         }
     }

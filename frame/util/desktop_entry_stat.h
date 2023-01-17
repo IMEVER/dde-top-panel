@@ -25,23 +25,38 @@
 #include <QMap>
 #include <QIcon>
 
-struct desktop_entry {
+struct DesktopEntry {
     QString     name;
     QString     displayName;
     QStringList exec;
-    QString       icon;
+    QString     icon;
     QString     startup_wm_class;
     QString     desktopFile;
+
+    QIcon getIcon() {
+        return icon.isEmpty() ? QIcon() : (icon.startsWith('/') ? QIcon(icon) : QIcon::fromTheme(icon));
+    }
+
+    bool isNull() const {
+        return desktopFile.isEmpty();
+    }
 };
 
-using DesktopEntry = QSharedPointer<struct desktop_entry>;
-using DesktopEntryCache = QHash<QString, DesktopEntry>;
+struct Category {
+    QString name;
+    QString icon;
+    QSet<QString> categories;
+};
 
 class DesktopEntryStat : public QObject
 {
     Q_OBJECT
 public:
     static DesktopEntryStat *instance();
+
+    const QList<Category> &categories() const;
+    const QMap<QString, QList<DesktopEntry>> &categoryMap() const;
+
     DesktopEntry getDesktopEntryByName(const QString name);
     DesktopEntry getDesktopEntryByDesktopfile(const QString desktopFile);
     DesktopEntry getDesktopEntryByPid(int pid);
@@ -49,15 +64,14 @@ public:
 
 private:
     explicit DesktopEntryStat(QObject *parent = nullptr);
-    ~DesktopEntryStat();
+    ~DesktopEntryStat() =default ;
     void createDesktopEntry(const QString desktopFile);
     void refresh();
-    void parseDir(QString path);
-    QString trim(QString str);
 
 private:
-    DesktopEntryCache cache;
-    QMap<QString, QString> deskToNameMap;
+    QHash<QString, DesktopEntry> cache;
+    QMap<QString, QList<DesktopEntry>> categoryCache;
+
 };
 
 #endif // DESKTOP_ENTRY_STAT_H

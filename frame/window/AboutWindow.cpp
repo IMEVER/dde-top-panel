@@ -3,6 +3,7 @@
 #include <QTabWidget>
 #include <QTableView>
 #include <QListWidget>
+#include <QPlainTextEdit>
 #include <QGridLayout>
 #include <QProcess>
 #include <QAbstractItemModel>
@@ -206,10 +207,15 @@ QWidget* AboutWindow::createPackageInfoWidget()
 
 QWidget* AboutWindow::createFileListWidget()
 {
-    QListWidget *fileListWidget = new QListWidget(this);
-    fileListWidget->addItems(appInfo.m_fileList);
+    // QListWidget *fileListWidget = new QListWidget(this);
+    // fileListWidget->addItems(appInfo.m_fileList);
 
-    return fileListWidget;
+    // return fileListWidget;
+    QPlainTextEdit *listWidget = new QPlainTextEdit(this);
+    listWidget->setReadOnly(true);
+    listWidget->setLineWrapMode(QPlainTextEdit::NoWrap);
+    listWidget->setPlainText(appInfo.m_fileList.join('\n'));
+    return listWidget;
 }
 
 void AboutWindow::initData(KWindowInfo kwin)
@@ -250,10 +256,10 @@ void AboutWindow::initData(KWindowInfo kwin)
 
     if (entry.isNull() == false)
     {
-        appInfo.m_title = entry->displayName;
-        appInfo.m_cmdline = entry->exec.join(" ");
+        appInfo.m_title = entry.displayName;
+        appInfo.m_cmdline = entry.exec.join(" ");
         if (kwin.desktopFileName().isEmpty())
-            appInfo.m_desktopFile = entry->desktopFile;
+            appInfo.m_desktopFile = entry.desktopFile;
 
         QString searchPath;
         if(!appInfo.m_desktopFile.isEmpty() && !appInfo.m_desktopFile.contains(".local/share/applications/"))
@@ -330,4 +336,4 @@ void AboutWindow::showEvent(QShowEvent *event)
     view->resizeRowsToContents();
 }
 
- #include "AboutWindow.moc"
+#include "AboutWindow.moc"

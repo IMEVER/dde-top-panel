@@ -191,6 +191,7 @@ void CustomSettings::saveSettings() {
     settings.setValue("windowControl/minIcon", this->activeMinimizedIconPath);
     settings.setValue("windowControl/buttonCustom", this->m_buttonCustom);
 
+    settings.setValue("menu/app", this->m_menuApp);
     settings.setValue("menu/launch", this->m_menuLaunch);
     settings.setValue("menu/fileManager", this->m_menuFileManager);
     settings.setValue("menu/theme", this->m_menuTheme);
@@ -215,6 +216,7 @@ void CustomSettings::readSettings() {
     this->activeMinimizedIconPath = settings.value("windowControl/minIcon", this->activeMinimizedIconPath).toString();
     this->m_buttonCustom = settings.value("windowControl/buttonCustom", false).toBool();
 
+    this->m_menuApp = settings.value("menu/app", true).toBool();
     this->m_menuLaunch = settings.value("menu/launch", true).toBool();
     this->m_menuFileManager = settings.value("menu/fileManager", true).toBool();
     this->m_menuTheme = settings.value("menu/theme", true).toBool();
@@ -229,6 +231,21 @@ bool CustomSettings::isButtonCustom() const {
 void CustomSettings::setButtonCustom(bool buttonCustom) {
     this->m_buttonCustom = buttonCustom;
     emit settingsChanged();
+}
+
+void CustomSettings::setMenuApp(bool show)
+{
+    if(m_menuApp != show)
+    {
+        m_menuApp = show;
+        emit settingsChanged();
+        emit menuChanged("app", show);
+    }
+}
+
+bool CustomSettings::isShowMenuApp()
+{
+    return m_menuApp;
 }
 
 void CustomSettings::setMenuLaunch(bool show)

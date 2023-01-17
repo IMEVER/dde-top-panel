@@ -22,7 +22,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <dirent.h>
-
+#include <QDirIterator>
 #include <QFileInfo>
 #include <QDebug>
 #include <DDesktopEntry>
@@ -49,120 +49,104 @@ DesktopEntryStat *DesktopEntryStat::instance()
     return &instancePtr;
 }
 
-auto print_err_entry = [](decltype(errno) e, const QString &msg)
-{
-    qDebug() << QString("Error: [%1] %2, ").arg(e).arg(strerror(e)) << msg;
-};
-
 DesktopEntryStat::DesktopEntryStat(QObject *parent) : QObject(parent)
 {
     refresh();
+}
+
+const QList<Category> &DesktopEntryStat::categories() const {
+    static const QList<Category> _categories {
+        Category{ "网络通讯", "applications-internet", { "Network", "Chat", "Email", "WebBrowser" } },
+        Category{ "影音娱乐", "applications-multimedia", { "Video", "Audio", "AudioVideo", "Music", "Player", "TV" } },
+        Category{ "图形图像", "applications-graphics", { "Graphics", "Viewer" } },
+        Category{ "编程开发", "applications-development", { "Development", "IDE", "TerminalEmulator", "TextEditor" } },
+        Category{ "游戏娱乐", "applications-games", { "Game" } },
+        Category{ "办公学习", "applications-education", { "Education", "Office", "Documentation", "Math", "Ocr", "Calculator" } },
+        Category{ "系统工具", "applications-system", { "System", "Utility", "Settings", "Archiving", "Compression", "X-GNOME-NetworkSettings", "X-XFCE-SystemSettings" } },
+        Category{ "其他应用", "applications-other", {} },
+    };
+
+    return _categories;
 }
 
 void DesktopEntryStat::createDesktopEntry(const QString desktopFile)
 {
     DDesktopEntry entry(desktopFile);
 
-    if (entry.contains("NoDisplay") && entry.stringValue("NoDisplay") == "true")
+    if (entry.status() != DDesktopEntry::NoError || (entry.contains("NoDisplay") && entry.stringValue("NoDisplay") == "true"))
         return;
 
-    auto re = DesktopEntry(new desktop_entry {});
+    DesktopEntry re;
 
-    re->desktopFile = desktopFile;
-
-    re->displayName = entry.ddeDisplayName();
-    re->icon = entry.stringValue("Icon");
+    re.desktopFile = desktopFile;
+    re.displayName = entry.ddeDisplayName();
+    re.icon = entry.stringValue("Icon");
 
     auto tryExec = entry.stringValue("TryExec");
     auto exec = entry.stringValue("Exec");
 
     if (!tryExec.isEmpty() && !tryExec.contains("AppRun")) {
-        re->exec = tryExec.split(' ');
-        re->name = getExecName(re->exec);
+        re.exec = tryExec.split(' ');
+        re.name = getExecName(re.exec);
     } else if (!exec.isEmpty() && !exec.contains("AppRun")) {
-        re->exec = exec.split(' ');
-        re->name = getExecName(re->exec);
+        re.exec = exec.split(' ');
+        re.name = getExecName(re.exec);
     } else {
         if(!tryExec.isEmpty())
-            re->exec = tryExec.split(' ');
+            re.exec = tryExec.split(' ');
         else if(!exec.isEmpty())
-            re->exec = exec.split(' ');
+            re.exec = exec.split(' ');
 
-        re->name = entry.name();
+        re.name = entry.name();
     }
+
+    cache[desktopFile] = re;
+    cache[re.name] = re;
 
     auto wmclass = entry.stringValue("StartupWMClass").toLower();
+    if (!wmclass.isEmpty()) {
+        re.startup_wm_class = wmclass;
+        cache[wmclass] = re;
+    }
 
-    if (!cache.contains(re->name) && wmclass.isEmpty()) {
-        cache[re->name] = re;
-        deskToNameMap[desktopFile] = re->name;
-    } else if (!wmclass.isEmpty()) {
-        re->startup_wm_class = wmclass;
-
-        if (!cache.contains(wmclass))
-        {
-            cache[wmclass] = re;
-            deskToNameMap[desktopFile] = wmclass;
+    auto &cs = categories();
+    auto appCategories = entry.stringListValue("Categories");
+    bool checked = false;
+    if(!appCategories.isEmpty()) {
+        for(auto c : cs) {
+            for(auto category : appCategories) {
+                checked = c.categories.contains(category);
+                if(checked) {
+                    categoryCache[c.name].append(re);
+                    break;
+                }
+            }
+            if(checked) break;
         }
     }
-}
-
-QString DesktopEntryStat::trim(QString str)
-{
-    if (str.at(0) == '"')
-    {
-        str = str.mid(1, str.length() -2);
-    }
-    return str;
-}
-
-DesktopEntryStat::~DesktopEntryStat()
-{
+    if(!checked) categoryCache[cs.last().name].append(re);
 }
 
 void DesktopEntryStat::refresh()
 {
-    for(QString appPath :  QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation))
-        parseDir(appPath);
-}
-
-void DesktopEntryStat::parseDir(QString path)
-{
-    DIR *dir {};
-    struct dirent *dp;
-    errno = 0;
-    dir = opendir(path.toUtf8());
-    if (!dir) {
-        print_err_entry(errno, QString("open %1 failed").arg(path));
-        return;
-    }
-
-    errno = 0;
-    while ((dp = readdir(dir))) {
-        if (dp->d_type == DT_REG || dp->d_type == DT_LNK) {
-            QString name(dp->d_name);
-
-            if (!name.endsWith(".desktop"))
-                continue;
-
-            auto file = QString("%1/%2").arg(path).arg(name);
-
-            createDesktopEntry(file);
-
-        } else if (dp->d_type == DT_DIR)
-        {
-            QString name(dp->d_name);
-            if(strcmp(dp->d_name, ".") && strcmp(dp->d_name, ".."))
-            {
-                auto file = QString("%1/%2").arg(path).arg(name);
-                parseDir(file);
+    for(auto &path :  QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation)) {
+        QDirIterator it(path, QStringList("*.desktop"), QDir::Files | QDir::NoDotAndDotDot, QDirIterator::NoIteratorFlags);
+        while (it.hasNext()) {
+            it.next();
+            QString current = it.filePath();
+            QFileInfo fileInfo(current);
+            while(fileInfo.exists() && fileInfo.isSymLink()) {
+                current = fileInfo.symLinkTarget();
+                fileInfo = QFileInfo(current);
             }
+
+            if(fileInfo.exists()) createDesktopEntry(current);
         }
     }
-    if (errno && !cache.size()) {
-        print_err_entry(errno, QString("read %1 failed").arg(path));
-    }
-    closedir(dir);
+}
+
+const QMap<QString, QList<DesktopEntry>> &DesktopEntryStat::categoryMap() const {
+    return categoryCache;
 }
 
 DesktopEntry DesktopEntryStat::getDesktopEntryByName(const QString name)
@@ -181,18 +165,18 @@ DesktopEntry DesktopEntryStat::searchByName(QString name)
         }
         it++;
     }
-    return nullptr;
+    return {};
 }
 
 DesktopEntry DesktopEntryStat::getDesktopEntryByDesktopfile(const QString desktopFile)
 {
-    if (!deskToNameMap.contains(desktopFile))
+    if (!cache.contains(desktopFile))
         createDesktopEntry(desktopFile);
 
-    if (deskToNameMap.contains(desktopFile))
-        return cache[deskToNameMap.value(desktopFile)];
+    if (cache.contains(desktopFile))
+        return cache[desktopFile];
 
-    return nullptr;
+    return {};
 }
 
 DesktopEntry DesktopEntryStat::getDesktopEntryByPid(int pid)

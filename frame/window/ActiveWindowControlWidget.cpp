@@ -16,6 +16,7 @@
 
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QDesktopServices>
 #include <QGuiApplication>
 #include <QScreen>
 #include <DDBusSender>
@@ -103,9 +104,9 @@ public:
 
         QString logo = CustomSettings::instance()->getLogoImg();
 
-        QMenu *startMenu = this->menuBar->addMenu(!logo.isNull() ? QIcon(logo) : QIcon::fromTheme("app-launcher"), "开始");
+        QMenu *startMenu = this->menuBar->addMenu(!logo.isNull() ? QIcon(logo) : QIcon::fromTheme("deepin-launcher"), "开始");
         startMenu->menuAction()->setObjectName("logo");
-        startMenu->addAction(QIcon::fromTheme("applications-other"), "关   于", [] {
+        startMenu->addAction(QIcon::fromTheme("applications-other"), "关    于", [] {
             QProcess::startDetached("/usr/bin/dde-file-manager", {"-p", "computer:///"});
             // QProcess::startDetached("/usr/bin/dbus-send --session --print-reply --dest=com.deepin.SessionManager /com/deepin/StartManager com.deepin.StartManager.RunCommand string:\"/usr/bin/dde-file-manager\" array:string:\"-p\",\"computer:///\"");
             // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.RunCommand", "dde-file-manager", "(", "-p", "computer:///", ")"});
@@ -116,20 +117,31 @@ public:
             QProcess::startDetached("/usr/bin/dde-control-center", {"--show"});
         });
 
-        startMenu->addSeparator();
+        QMenu *launcherMenu = startMenu->addMenu(QIcon::fromTheme("deepin-launcher"), "应    用");
+        for(auto &category : DesktopEntryStat::instance()->categories()) {
+            QMenu *tmpMenu = launcherMenu->addMenu(QIcon::fromTheme(category.icon), category.name);
+            for(auto desktop : DesktopEntryStat::instance()->categoryMap()[category.name])
+                tmpMenu->addAction(desktop.getIcon(), desktop.name, [desktop] {
+                    QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", desktop.desktopFile, "0", "[]"});
+                });
+        }
+        launcherMenu->setVisible(CustomSettings::instance()->isShowMenuApp());
 
-        startMenu->addAction(QIcon::fromTheme("app-launcher"), "启动器", this, [] {
+        startMenu->addSeparator();
+        QAction *launcherAction = startMenu->addAction(QIcon::fromTheme("app-launcher"), "启动器", this, [] {
             QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.Launcher", "/com/deepin/dde/Launcher", "com.deepin.dde.Launcher.Toggle"});
         });
+        launcherAction->setVisible(CustomSettings::instance()->isShowMenuLaunch());
 
         startMenu->addAction(QIcon::fromTheme("deepin-app-store"), "应用商店", [] {
             // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/deepin-app-store.desktop", "0", "[]"});
             QProcess::startDetached("/usr/bin/deepin-home-appstore-client", {});
         });
 
-        startMenu->addAction(QIcon::fromTheme("folder"), "文件管理器", [] {
+        QAction *filemanagerAction = startMenu->addAction(QIcon::fromTheme("folder"), "文件管理器", [] {
             QProcess::startDetached("/usr/bin/dde-file-manager", {"-O"});
         });
+        filemanagerAction->setVisible(CustomSettings::instance()->isShowMenuFileManager());
 
         startMenu->addAction(QIcon::fromTheme("deepin-system-monitor"), "系统监视器", [] {
             // QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", "/usr/share/applications/deepin-system-monitor.desktop", "0", "[]"});
@@ -148,16 +160,17 @@ public:
 
         startMenu->addSeparator();
 
-        QMenu *systemMenu = startMenu->addMenu(QIcon::fromTheme("preferences-theme"), "系统主题");
-        QActionGroup *group = new QActionGroup(systemMenu);
+        QMenu *themeMenu = startMenu->addMenu(QIcon::fromTheme("preferences-theme"), "系统主题");
+        themeMenu->setVisible(CustomSettings::instance()->isShowMenuLaunch());
+        QActionGroup *group = new QActionGroup(themeMenu);
 
-        QAction *autoAction = systemMenu->addAction("自动");
+        QAction *autoAction = themeMenu->addAction("自动");
         autoAction->setCheckable(true);
         autoAction->setData("deepin-auto");
-        QAction *lightAction = systemMenu->addAction("浅色");
+        QAction *lightAction = themeMenu->addAction("浅色");
         lightAction->setCheckable(true);
         lightAction->setData("deepin");
-        QAction *darkAction = systemMenu->addAction("深色");
+        QAction *darkAction = themeMenu->addAction("深色");
         darkAction->setCheckable(true);
         darkAction->setData("deepin-dark");
 
@@ -166,14 +179,12 @@ public:
         group->addAction(darkAction);
 
         connect(group, &QActionGroup::triggered, this, [](QAction *action) {
-            QGSettings iconThemeSettings("com.deepin.dde.appearance");
-            iconThemeSettings.set("gtk-theme", action->data().toString());
+            QGSettings("com.deepin.dde.appearance").set("gtk-theme", action->data().toString());
         });
 
         auto checkTheme = [group]
         {
-            QGSettings iconThemeSettings("com.deepin.dde.appearance");
-            QString theme = iconThemeSettings.get("gtk-theme").toString();
+            QString theme = QGSettings("com.deepin.dde.appearance").get("gtk-theme").toString();
             for (auto action : group->actions())
             {
                 if (action->data() == theme)
@@ -207,18 +218,11 @@ public:
             DDBusSender().service("com.deepin.dde.shutdownFront").path("/com/deepin/dde/shutdownFront").interface("com.deepin.dde.shutdownFront").method("Shutdown").call();
         });
 
-        this->menuBar->addAction("关闭", [this] {
-            if(currActiveWinId > 0)
-            {
-                NETRootInfo ri( QX11Info::connection(), NET::CloseWindow );
-                ri.closeWindowRequest( currActiveWinId );
-            }
-        });
-
+        this->menuBar->addAction("关闭", this, &ActiveWindowControlWidgetPrivate::closeWindow);
         this->menuBar->addAction("还原", this, &ActiveWindowControlWidgetPrivate::maximizeWindow);
         this->menuBar->addAction("最小化", this, &ActiveWindowControlWidgetPrivate::minimizeWindow);
 
-        QMenu *appMenu = this->menuBar->addMenu("桌面");
+        QMenu *appMenu = this->menuBar->addMenu("桌面 ");
         appMenu->menuAction()->setObjectName("appMenu");
         connect(appMenu, &QMenu::aboutToShow, [this, appMenu] {
             KWindowInfo kwin(currActiveWinId, NET::WMState | NET::WMWindowType);
@@ -244,15 +248,11 @@ public:
             KWindowInfo kwin(currActiveWinId, NET::WMName|NET::WMDesktop|NET::WMPid, NET::WM2DesktopFileName|NET::WM2ClientMachine|NET::WM2WindowClass);
             if(kwin.valid())
             {
-                // engine = new QQmlApplicationEngine;
-
-                // engine->rootContext()->setContextProperty("appInfo", appInfo);
-                // engine->load(QUrl(QStringLiteral("qrc:/qml/about.qml")));
                 AboutWindow *about = new AboutWindow(kwin);
                 about->show();
                 connect(about, &AboutWindow::finished, about, &AboutWindow::deleteLater);
             }
-        });
+        })->setVisible(CustomSettings::instance()->isShowMenuAboutPackage());
 
         appMenu->addAction(QIcon(), "关于(&A)", [this] {
             if(QAction *action = this->m_appMenuModel->getAction(QAction::AboutRole))
@@ -303,7 +303,7 @@ public:
         m_searchEdit->setFrame(false);
         m_searchEdit->setContentsMargins(30, 2, 30, 2);
         m_searchEdit->setPlaceholderText("搜索");
-        m_searchEdit->setStyleSheet("QLineEdit{ border-with: 0; }");
+        // m_searchEdit->setStyleSheet("QLineEdit{ border-with: 0; }");
         m_searchEdit->installEventFilter(q);
         QTimer *searchTimer = new QTimer(this);
         searchTimer->setSingleShot(true);
@@ -337,6 +337,7 @@ public:
         QWidgetAction *searchAction = new QWidgetAction(searchMenu);
         searchAction->setDefaultWidget(m_searchEdit);
         searchMenu->addAction(searchAction);
+        searchAction->setVisible(CustomSettings::instance()->isShowMenuSearch());
 
         for (auto item : this->menuBar->actions())
         {
@@ -352,29 +353,13 @@ public:
                 if(action->menu() && this->menuBar->actions().contains(action)) this->menuBar->setActiveAction(action);
             });
 
-        // menu settings
-        if (!CustomSettings::instance()->isShowMenuLaunch())
-            startMenu->actions().at(3)->setVisible(false);
-        if (!CustomSettings::instance()->isShowMenuFileManager())
-            startMenu->actions().at(5)->setVisible(false);
-        if (!CustomSettings::instance()->isShowMenuTheme())
-            startMenu->actions().at(11)->setVisible(false);
-        if (!CustomSettings::instance()->isShowMenuAboutPackage())
-            appMenu->actions().first()->setVisible(false);
-        if (!CustomSettings::instance()->isShowMenuSearch())
-            searchMenu->menuAction()->setVisible(false);
-
-        connect(CustomSettings::instance(), &CustomSettings::menuChanged, [startMenu, appMenu, searchMenu](const QString menu, const bool show) {
-            if(menu == "launch")
-                startMenu->actions().at(3)->setVisible(show);
-            else if(menu == "fileManager")
-                startMenu->actions().at(5)->setVisible(show);
-            else if(menu == "theme")
-                startMenu->actions().at(11)->setVisible(show);
-            else if(menu == "aboutPackage")
-                appMenu->actions().at(0)->setVisible(show);
-            else if(menu == "search")
-                searchMenu->menuAction()->setVisible(show);
+        connect(CustomSettings::instance(), &CustomSettings::menuChanged, [launcherAction, launcherMenu, filemanagerAction, themeMenu, appMenu, searchMenu](const QString menu, const bool show) {
+            if(menu == "app") launcherMenu->setVisible(show);
+            else if(menu == "launch") launcherAction->setVisible(show);
+            else if(menu == "fileManager") filemanagerAction->setVisible(show);
+            else if(menu == "theme") themeMenu->setVisible(show);
+            else if(menu == "aboutPackage") appMenu->actions().at(0)->setVisible(show);
+            else if(menu == "search") searchMenu->menuAction()->setVisible(show);
         });
     }
 
@@ -390,45 +375,31 @@ public:
 
     void setButtonsVisible(const bool visible)
     {
-        if (visible != menuBar->actions().at(1)->isVisible())
+        if (visible != this->menuBar->actions().at(1)->isVisible())
         {
-            int i = 1;
-            while (i < 4)
-            {
-                QTimer::singleShot(100 * i, [this, visible, i] {
-                    this->menuBar->actions().at(i)->setVisible(visible);
-                });
-                i++;
-            }
+            QTimer::singleShot(100, [this, visible] { this->menuBar->actions().at(1)->setVisible(visible); });
+            QTimer::singleShot(200, [this, visible] { this->menuBar->actions().at(2)->setVisible(visible); });
+            QTimer::singleShot(300, [this, visible] { this->menuBar->actions().at(3)->setVisible(visible); });
+        }
+    }
+
+    void closeWindow() {
+        if(currActiveWinId > 0)
+        {
+            NETRootInfo ri( QX11Info::connection(), NET::CloseWindow );
+            ri.closeWindowRequest( currActiveWinId );
         }
     }
 
     void maximizeWindow()
     {
-        XUtils::toggleWindow(currActiveWinId);
-        // if (XUtils::checkIfWinMaximum(currActiveWinId))
-        // {
-        //     XUtils::unmaximizeWindow(currActiveWinId);
-
-        //     // checkIfWinMaximum is MUST needed here.
-        //     //   I don't know whether XSendEvent is designed like this,
-        //     //   my test shows unmaximizeWindow by XSendEvent will work when others try to fetch its properties.
-        //     //   i.e., checkIfWinMaximum
-        //     // XUtils::checkIfWinMaximum(currActiveWinId);
-
-        //     // this->m_appInter->MinimizeWindow(this->currActiveWinId);
-        // }
-        // else
-        // {
-        //     // sadly the dbus maximizeWindow cannot unmaximize window :(
-        //     // this->m_appInter->MaximizeWindow(this->currActiveWinId);
-        //     XUtils::maximizeWindow(currActiveWinId);
-        //     // XUtils::checkIfWinMaximum(currActiveWinId);
-        // }
+        if(currActiveWinId > 0)
+            XUtils::toggleWindow(currActiveWinId);
     }
 
     void minimizeWindow() {
-        KWindowSystem::minimizeWindow(currActiveWinId);
+        if(currActiveWinId > 0)
+            KWindowSystem::minimizeWindow(currActiveWinId);
     }
 
     void themeTypeChanged() {
@@ -506,8 +477,8 @@ public:
         else
             color = themeType == DGuiApplicationHelper::LightType ? "black" : "white";
         int padding = QRandomGenerator::system()->bounded(1);
-        menuBar->setStyleSheet(QString("QMenuBar {padding-left: %1; font-size: 15px; color: %2; background-color: rgba(0, 0, 0, 0); spacing: 1px; }\
-            QMenuBar::item { padding-top: 3px; padding-bottom: 3px; padding-left: 5px; padding-right: 5px; }\
+        menuBar->setStyleSheet(QString("QMenuBar {padding-left: %1; padding-right:12; font-size: 15px; color: %2; background-color: rgba(0, 0, 0, 0); spacing: 1px; }\
+            QMenuBar::item { padding-top: 3px; padding-bottom: 2px; padding-left: 5px; padding-right: 5px; }\
             QMenuBar::item:selected { border-radius: 4px; color: palette(highlighted-text); background-color: palette(highlight); }")
                                         .arg(padding)
                                         .arg(color));
@@ -611,19 +582,13 @@ public:
                 if (!kwin.windowClassName().isEmpty())
                     entry = DesktopEntryStat::instance()->getDesktopEntryByName(kwin.windowClassName());
 
-                if (!entry && kwin.pid() > 0)
+                if (entry.isNull() && kwin.pid() > 0)
                     entry = DesktopEntryStat::instance()->getDesktopEntryByPid(kwin.pid());
 
-                if (entry)
+                if (!entry.isNull())
                 {
-                    activeWinTitle = entry->displayName;
-                    if (!entry->icon.isNull())
-                    {
-                        if (entry->icon.startsWith("/"))
-                            appIcon = QIcon(entry->icon);
-                        else
-                            appIcon = QIcon::fromTheme(entry->icon);
-                    }
+                    activeWinTitle = entry.displayName;
+                    appIcon = entry.getIcon();
                 }
 
                 if (activeWinTitle.isEmpty())
@@ -639,7 +604,7 @@ public:
         else
             activeWinId = 0;
 
-        menuBar->actions().at(4)->setText(activeWinId == 0 ? "桌面" : activeWinTitle);
+        menuBar->actions().at(4)->setText(activeWinId == 0 ? "桌面    " : activeWinTitle + "    ");
 
         if (activeWinId == 0)
             appIcon = QIcon::fromTheme("dde-file-manager");
@@ -709,8 +674,7 @@ void ActiveWindowControlWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        QWidget *pressedWidget = childAt(event->pos());
-        if (pressedWidget == nullptr) {
+        if (childAt(event->pos()) == nullptr) {
             Q_D(ActiveWindowControlWidget);
             d->mouseClicked = true;
         }
