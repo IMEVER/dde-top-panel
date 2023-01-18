@@ -58,9 +58,6 @@ signals:
     void pluginItemInserted(PluginsItem *pluginItem) const;
     void pluginItemRemoved(PluginsItem *pluginItem) const;
     void pluginItemUpdated(PluginsItem *pluginItem) const;
-
-private:
-    void loadLocalPlugins();
 };
 
 #endif // DOCKPLUGINSCONTROLLER_H

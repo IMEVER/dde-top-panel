@@ -7,11 +7,8 @@ set(CMAKE_INSTALL_PREFIX /opt/apps/me.imever.dde-top-panel)
 set(CMAKE_AUTOMOC ON)
 # 启用 qrc 资源文件的支持
 set(CMAKE_AUTORCC ON)
-
 set(CMAKE_AUTOUIC ON)
-
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Sources files

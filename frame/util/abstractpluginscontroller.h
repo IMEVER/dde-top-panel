@@ -58,7 +58,7 @@ protected Q_SLOTS:
 
 private slots:
     void loadPlugin(const QString &pluginFile);
-    void initPlugin(PluginsItemInterface *interface);
+    void initPlugin(PluginsItemInterface *interface, const QString &pluginFile);
     void refreshPluginSettings();
 
 signals:
@@ -69,10 +69,7 @@ private:
     QGSettings *m_gsettings;
 
     QMap<PluginsItemInterface *, QMap<QString, QObject *>> m_pluginsMap;
-
-    // filepath, interface, loaded
-    QMap<QPair<QString, PluginsItemInterface *>, bool> m_pluginLoadMap;
-
+    QSet<QString> m_pluginLoadMap;
     QJsonObject m_pluginSettingsObject;
 };
 

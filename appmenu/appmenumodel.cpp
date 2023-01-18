@@ -110,16 +110,17 @@ void AppMenuModel::initDesktopMenu()
     };
 
     QMenu *fileMenu = new QMenu("文件");
-    fileMenu->addAction("新建窗口", [](){
+    fileMenu->addAction("新建窗口", []{
         QProcess::startDetached("/usr/bin/dde-file-manager", {"-n"});
     });
-    fileMenu->addAction("新建管理员窗口", [](){
+    fileMenu->addAction("新建管理员窗口", []{
         QProcess::startDetached("/usr/bin/dde-file-manager", {"-r"});
     });
-    fileMenu->addAction("打开终端", [](){
-        QProcess::startDetached("/usr/bin/deepin-terminal", {});
+    fileMenu->addAction("新建终端", []{
+        QProcess::startDetached("/usr/bin/deepin-terminal", {"-w", QDir::homePath()});
     });
-    fileMenu->addAction(QIcon::fromTheme("folder_new"), "新建文件夹", [](){
+    fileMenu->addSeparator();
+    fileMenu->addAction(QIcon::fromTheme("folder_new"), "新建文件夹", []{
         QDir desktopDir;
         desktopDir.setCurrent(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
         QString dir = "新建文件夹";
@@ -132,7 +133,7 @@ void AppMenuModel::initDesktopMenu()
     });
     QMenu *createMenu = new QMenu("新建文档");
     createMenu->setIcon(QIcon::fromTheme("filenew"));
-    createMenu->addAction(QIcon::fromTheme("text-plain"), "文本文件", [ = ](){
+    createMenu->addAction(QIcon::fromTheme("text-plain"), "文本文件", [ createNewFile ]{
         createNewFile("新建文本文件");
     });
 
@@ -159,6 +160,7 @@ void AppMenuModel::initDesktopMenu()
         }
     }
     fileMenu->addMenu(createMenu);
+    fileMenu->addSeparator();
 
     QMenu *recentMenu = new QMenu("最近使用");
     recentMenu->setIcon(QIcon::fromTheme("document-open-recent"));
@@ -239,11 +241,11 @@ void AppMenuModel::initDesktopMenu()
     this->desktopMenu->addMenu(fileMenu);
 
     QMenu *editMenu = new QMenu("编辑");
-    editMenu->addAction("刷新", [ ]{
+    editMenu->addAction("刷新", []{
         QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.desktop", "/com/deepin/dde/desktop", "com.deepin.dde.desktop.Refresh" });
     });
     editMenu->addSeparator();
-    editMenu->addAction("设置壁纸", [ ]{
+    editMenu->addAction("设置壁纸", []{
         QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.dde.desktop", "/com/deepin/dde/desktop", "com.deepin.dde.desktop.ShowWallpaperChooser" });
     });
     editMenu->addAction("设置屏保", []{

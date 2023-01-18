@@ -40,6 +40,10 @@ struct DesktopEntry {
     bool isNull() const {
         return desktopFile.isEmpty();
     }
+
+    bool operator<(const DesktopEntry &other) const {
+        return displayName < other.displayName;
+    }
 };
 
 struct Category {
@@ -68,10 +72,12 @@ private:
     void createDesktopEntry(const QString desktopFile);
     void refresh();
 
+signals:
+    void appsChanged();
+
 private:
     QHash<QString, DesktopEntry> cache;
     QMap<QString, QList<DesktopEntry>> categoryCache;
-
 };
 
 #endif // DESKTOP_ENTRY_STAT_H

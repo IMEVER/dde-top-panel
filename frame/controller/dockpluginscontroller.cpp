@@ -25,7 +25,6 @@
 
 #include <QDebug>
 #include <QDir>
-#include <QDrag>
 
 DockPluginsController::DockPluginsController(QObject *parent)
     : AbstractPluginsController(parent)
@@ -37,9 +36,8 @@ void DockPluginsController::itemAdded(PluginsItemInterface *const itemInter, con
     QMap<PluginsItemInterface *, QMap<QString, QObject *>> &mPluginsMap = pluginsMap();
 
     // check if same item added
-    if (mPluginsMap.contains(itemInter))
-        if (mPluginsMap[itemInter].contains(itemKey))
-            return;
+    if (mPluginsMap.contains(itemInter) and mPluginsMap[itemInter].contains(itemKey))
+        return;
 
     // 取 plugin api
     QString pluginApi = "1.1.1";
@@ -53,9 +51,9 @@ void DockPluginsController::itemAdded(PluginsItemInterface *const itemInter, con
     PluginsItem *item = nullptr;
     if (itemInter->pluginName() == "tray") {
         item = new TrayPluginItem(itemInter, itemKey, pluginApi);
-        if (item->graphicsEffect()) {
+        if (item->graphicsEffect())
             item->graphicsEffect()->setEnabled(false);
-        }
+
         item->centralWidget()->setProperty("iconSize", DEFAULT_HEIGHT - 4);
     } else {
         item = new PluginsItem(itemInter, itemKey, pluginApi);
@@ -68,33 +66,26 @@ void DockPluginsController::itemAdded(PluginsItemInterface *const itemInter, con
 
 void DockPluginsController::itemUpdate(PluginsItemInterface *const itemInter, const QString &itemKey)
 {
-    PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey));
-    if (!item)
-        return;
-
-    item->update();
-
-    emit pluginItemUpdated(item);
+    if(PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey))) {
+        item->update();
+        emit pluginItemUpdated(item);
+    }
 }
 
 void DockPluginsController::itemRemoved(PluginsItemInterface *const itemInter, const QString &itemKey)
 {
-    PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey));
-    if (!item)
-        return;
+    if(PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey))) {
 
-    item->detachPluginWidget();
+        item->detachPluginWidget();
 
-    emit pluginItemRemoved(item);
+        emit pluginItemRemoved(item);
 
-    QMap<PluginsItemInterface *, QMap<QString, QObject *>> &mPluginsMap = pluginsMap();
-    mPluginsMap[itemInter].remove(itemKey);
+        QMap<PluginsItemInterface *, QMap<QString, QObject *>> &mPluginsMap = pluginsMap();
+        mPluginsMap[itemInter].remove(itemKey);
 
-    // just delete our wrapper object(PluginsItem)
-    item->deleteLater();
-
-    if(mPluginsMap[itemInter].isEmpty() && !itemInter->pluginIsAllowDisable())
-        mPluginsMap.remove(itemInter);
+        // just delete our wrapper object(PluginsItem)
+        item->deleteLater();
+    }
 }
 /*
 void DockPluginsController::requestSetAppletVisible(PluginsItemInterface *const itemInter, const QString &itemKey, const bool visible)
@@ -112,11 +103,8 @@ void DockPluginsController::requestSetAppletVisible(PluginsItemInterface *const 
 */
 void DockPluginsController::requestWindowAutoHide(PluginsItemInterface *const itemInter, const QString &itemKey, const bool autoHide)
 {
-    PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey));
-    if (!item)
-        return;
-
-    Q_EMIT item->requestWindowAutoHide(autoHide);
+    if(PluginsItem *item = static_cast<PluginsItem *>(pluginItemAt(itemInter, itemKey)))
+        Q_EMIT item->requestWindowAutoHide(autoHide);
 }
 /*
 void DockPluginsController::requestRefreshWindowVisible(PluginsItemInterface *const itemInter, const QString &itemKey)
@@ -130,11 +118,6 @@ void DockPluginsController::requestRefreshWindowVisible(PluginsItemInterface *co
 */
 
 void DockPluginsController::startLoader()
-{
-    loadLocalPlugins();
-}
-
-void DockPluginsController::loadLocalPlugins()
 {
     // QString pluginsDir(QString("%1/.local/lib/dde-top-panel/plugins/").arg(QDir::homePath()));
     QStringList pluginsDirs({QString("/usr/lib/dde-dock/plugins/"), QString("%1/.local/lib/dde-top-panel/plugins/").arg(QDir::homePath())});

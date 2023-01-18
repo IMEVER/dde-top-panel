@@ -23,7 +23,6 @@
 #include "item/pluginsitem.h"
 #include "item/traypluginitem.h"
 
-
 DockItemManager::DockItemManager(QObject *parent)
     : QObject(parent)
     , m_updatePluginsOrderTimer(new QTimer(this))
@@ -38,17 +37,11 @@ DockItemManager::DockItemManager(QObject *parent)
     connect(m_pluginsInter, &DockPluginsController::pluginItemInserted, this, &DockItemManager::pluginItemInserted, Qt::QueuedConnection);
     connect(m_pluginsInter, &DockPluginsController::pluginItemRemoved, this, &DockItemManager::pluginItemRemoved, Qt::QueuedConnection);
     connect(m_pluginsInter, &DockPluginsController::pluginItemUpdated, this, &DockItemManager::itemUpdated, Qt::QueuedConnection);
-
-    // 刷新图标
-    QMetaObject::invokeMethod(this, "refershItemsIcon", Qt::QueuedConnection);
 }
 
-DockItemManager *DockItemManager::instance(QObject *parent)
+DockItemManager *DockItemManager::instance()
 {
-    static DockItemManager *INSTANCE = nullptr;
-    if (!INSTANCE)
-        INSTANCE = new DockItemManager(parent);
-
+    static DockItemManager *INSTANCE = new DockItemManager();
     return INSTANCE;
 }
 
@@ -65,14 +58,6 @@ const QList<PluginsItemInterface *> DockItemManager::pluginList() const
 void DockItemManager::startLoadPlugins() const
 {
     m_pluginsInter->startLoader();
-}
-
-void DockItemManager::refershItemsIcon()
-{
-    for (auto item : m_itemList) {
-        item->refershIcon();
-        item->update();
-    }
 }
 
 void DockItemManager::updatePluginsItemOrderKey()

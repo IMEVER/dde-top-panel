@@ -6,7 +6,6 @@ add_subdirectory("note")
 add_subdirectory("dde-mpris")
 add_subdirectory("dde-smart-dir")
 # add_subdirectory("onboard")
-# add_subdirectory("switch_graphics_card")
 
 # add_subdirectory("bluetooth")
 # add_subdirectory("sound")

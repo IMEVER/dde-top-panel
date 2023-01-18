@@ -25,10 +25,9 @@
 
 #include <DSysInfo>
 #include <QDebug>
-#include <QDir>
 #include <QGSettings>
 
-static const QStringList CompatiblePluginApiList {
+static const QSet<QString> CompatiblePluginApiList {
     "1.1.1",
     "1.2",
     "1.2.1",
@@ -46,9 +45,6 @@ AbstractPluginsController::AbstractPluginsController(QObject *parent)
 
 void AbstractPluginsController::saveValue(PluginsItemInterface *const itemInter, const QString &key, const QVariant &value)
 {
-    // is it necessary?
-//    refreshPluginSettings();
-
     // save to local cache
     QJsonObject localObject = m_pluginSettingsObject.value(itemInter->pluginName()).toObject();
     localObject.insert(key, QJsonValue::fromVariant(value)); //Note: QVariant::toJsonValue() not work in Qt 5.7
@@ -62,9 +58,8 @@ const QVariant AbstractPluginsController::getValue(PluginsItemInterface *const i
 {
     // load from local cache
     QVariant v = m_pluginSettingsObject.value(itemInter->pluginName()).toObject().value(key).toVariant();
-    if (v.isNull() || !v.isValid()) {
+    if (v.isNull() || !v.isValid()) 
         v = fallback;
-    }
 
     return v;
 }
@@ -90,7 +85,7 @@ QMap<PluginsItemInterface *, QMap<QString, QObject *> > &AbstractPluginsControll
 
 QObject *AbstractPluginsController::pluginItemAt(PluginsItemInterface *const itemInter, const QString &itemKey) const
 {
-    if (!m_pluginsMap.contains(itemInter))
+    if (!m_pluginsMap.contains(itemInter) or !m_pluginsMap[itemInter].contains(itemKey))
         return nullptr;
 
     return m_pluginsMap[itemInter][itemKey];
@@ -99,11 +94,8 @@ QObject *AbstractPluginsController::pluginItemAt(PluginsItemInterface *const ite
 PluginsItemInterface *AbstractPluginsController::pluginInterAt(const QString &itemKey)
 {
     for (auto it = m_pluginsMap.constBegin(); it != m_pluginsMap.constEnd(); ++it) {
-        for (auto key : it.value().keys()) {
-            if (key == itemKey) {
-                return it.key();
-            }
-        }
+        if (it.value().keys().contains(itemKey))
+            return it.key();
     }
 
     return nullptr;
@@ -112,11 +104,8 @@ PluginsItemInterface *AbstractPluginsController::pluginInterAt(const QString &it
 PluginsItemInterface *AbstractPluginsController::pluginInterAt(QObject *destItem)
 {
     for (auto it = m_pluginsMap.constBegin(); it != m_pluginsMap.constEnd(); ++it) {
-        for (auto item : it.value().values()) {
-            if (item == destItem) {
-                return it.key();
-            }
-        }
+        if (it.value().values().contains(destItem))
+            return it.key();
     }
 
     return nullptr;
@@ -125,13 +114,10 @@ PluginsItemInterface *AbstractPluginsController::pluginInterAt(QObject *destItem
 void AbstractPluginsController::startLoader(PluginLoader *loader)
 {
     connect(loader, &PluginLoader::finished, loader, &PluginLoader::deleteLater, Qt::QueuedConnection);
-    connect(loader, &PluginLoader::pluginFounded, this, [ = ](const QString &pluginFile){
-        QPair<QString, PluginsItemInterface *> pair;
-        pair.first = pluginFile;
-        pair.second = nullptr;
-        m_pluginLoadMap.insert(pair, false);
+    connect(loader, &PluginLoader::pluginFounded, this, [ this ](const QString &pluginFile){
+        m_pluginLoadMap.insert(pluginFile);
+        loadPlugin(pluginFile);
     });
-    connect(loader, &PluginLoader::pluginFounded, this, &AbstractPluginsController::loadPlugin, Qt::QueuedConnection);
 
     QTimer::singleShot(m_gsettings->get("delay-plugins-time").toUInt(), loader, [ loader ] { loader->start(QThread::LowestPriority); });
 }
@@ -141,14 +127,22 @@ void AbstractPluginsController::loadPlugin(const QString &pluginFile)
     QPluginLoader *pluginLoader = new QPluginLoader(pluginFile);
     const QJsonObject &meta = pluginLoader->metaData().value("MetaData").toObject();
     const QString &pluginApi = meta.value("api").toString();
-    bool pluginIsValid = true; //qInfo()<<"File: "<<pluginFile <<"\tmeta: " << meta;
+
     if (pluginApi.isEmpty() || !CompatiblePluginApiList.contains(pluginApi)) {
         qWarning() << objectName()
                    << "plugin api version not matched! expect versions:" << CompatiblePluginApiList
                    << ", got version:" << pluginApi
                    << ", the plugin file is:" << pluginFile;
 
-        pluginIsValid = false;
+        pluginLoader->unload();
+        pluginLoader->deleteLater();
+
+        m_pluginLoadMap.remove(pluginFile);
+        QString notifyMessage(tr("The plugin %1 is not compatible with the system."));
+        Dtk::Core::DUtil::DNotifySender(notifyMessage.arg(QFileInfo(pluginFile).fileName())).appIcon("dialog-warning").call();
+
+        if (m_pluginLoadMap.isEmpty()) emit pluginLoaderFinished();
+        return;
     }
 
     PluginsItemInterface *interface = qobject_cast<PluginsItemInterface *>(pluginLoader->instance());
@@ -158,64 +152,44 @@ void AbstractPluginsController::loadPlugin(const QString &pluginFile)
         pluginLoader->unload();
         pluginLoader->deleteLater();
 
-        pluginIsValid = false;
-    }
-
-    if (!pluginIsValid) {
-        for (auto &pair: m_pluginLoadMap.keys()) {
-            if (pair.first == pluginFile) {
-                m_pluginLoadMap.remove(pair);
-            }
-        }
+        m_pluginLoadMap.remove(pluginFile);
         QString notifyMessage(tr("The plugin %1 is not compatible with the system."));
         Dtk::Core::DUtil::DNotifySender(notifyMessage.arg(QFileInfo(pluginFile).fileName())).appIcon("dialog-warning").call();
+
+        if (m_pluginLoadMap.isEmpty()) emit pluginLoaderFinished();
         return;
     }
 
     if (interface->pluginName() == "multitasking") {
         if (qEnvironmentVariable("XDG_SESSION_TYPE").contains("wayland") or Dtk::Core::DSysInfo::deepinType() == Dtk::Core::DSysInfo::DeepinServer)
         {
-            for (auto &pair: m_pluginLoadMap.keys()) {
-                if (pair.first == pluginFile) {
-                    m_pluginLoadMap.remove(pair);
-                }
-            }
+            m_pluginLoadMap.remove(pluginFile);
+            pluginLoader->unload();
+            pluginLoader->deleteLater();
+            delete interface;
+
+            if (m_pluginLoadMap.isEmpty()) emit pluginLoaderFinished();
             return;
         }
     }
 
-
-    QMapIterator<QPair<QString, PluginsItemInterface *>, bool> it(m_pluginLoadMap);
-    while (it.hasNext()) {
-        it.next();
-        if (it.key().first == pluginFile)
-        {
-            m_pluginLoadMap.remove(it.key());
-            QPair<QString, PluginsItemInterface *> newPair;
-            newPair.first = pluginFile;
-            newPair.second = interface;
-            m_pluginLoadMap.insert(newPair, false);
-
-            break;
-        }
-    }
-
     // 保存 PluginLoader 对象指针
-    QMap<QString, QObject *> interfaceData;
-    interfaceData["pluginloader"] = pluginLoader;
-    m_pluginsMap.insert(interface, interfaceData);
+    m_pluginsMap.insert(interface, {{"pluginloader", pluginLoader}});
 
     QString dbusService = meta.value("depends-daemon-dbus-service").toString();
     if (!dbusService.isEmpty() && !m_dbusDaemonInterface->isServiceRegistered(dbusService).value())
     {
+        static int dbusCount = 0;
+        dbusCount++;
         qDebug() << objectName() << dbusService << "daemon has not started, waiting for signal";
         connect(m_dbusDaemonInterface, &QDBusConnectionInterface::serviceOwnerChanged, this,
-            [ = ](const QString & name, const QString & oldOwner, const QString & newOwner) {
+            [ this, dbusService, interface, pluginFile ](const QString & name, const QString & oldOwner, const QString & newOwner) {
                 Q_UNUSED(oldOwner);
                 if (name == dbusService && !newOwner.isEmpty()) {
                     qDebug() << objectName() << dbusService << "daemon started, init plugin and disconnect";
-                    initPlugin(interface);
-                    disconnect(m_dbusDaemonInterface);
+                    initPlugin(interface, pluginFile);
+                    if(--dbusCount < 1)
+                        disconnect(m_dbusDaemonInterface);
                 }
             });
         return;
@@ -224,33 +198,21 @@ void AbstractPluginsController::loadPlugin(const QString &pluginFile)
     // NOTE(justforlxz): 插件的所有初始化工作都在init函数中进行，
     // loadPlugin函数是按队列执行的，initPlugin函数会有可能导致
     // 函数执行被阻塞。
-    QTimer::singleShot(1, this, [ this, interface ] {
-        initPlugin(interface);
+    QTimer::singleShot(1, this, [ this, interface, pluginFile ] {
+        initPlugin(interface, pluginFile);
     });
 }
 
-void AbstractPluginsController::initPlugin(PluginsItemInterface *interface)
+void AbstractPluginsController::initPlugin(PluginsItemInterface *interface, const QString &pluginFile)
 {
     qDebug() << objectName() << "init plugin: " << interface->pluginName();
     interface->init(this);
 
-    for (const auto &pair : m_pluginLoadMap.keys()) {
-        if (pair.second == interface)
-            m_pluginLoadMap.insert(pair, true);
-    }
-
-    bool loaded = true;
-    for (int i = 0; i < m_pluginLoadMap.keys().size(); ++i) {
-        if (!m_pluginLoadMap.values()[i]) {
-            loaded = false;
-            break;
-        }
-    }
+    m_pluginLoadMap.remove(pluginFile);
 
     //插件全部加载完成
-    if (loaded) {
-        emit pluginLoaderFinished();
-    }
+    if (m_pluginLoadMap.isEmpty()) emit pluginLoaderFinished();
+
     qDebug() << objectName() << "init plugin finished: " << interface->pluginName();
 }
 
@@ -259,9 +221,7 @@ void AbstractPluginsController::refreshPluginSettings()
     QJsonObject pluginSettingsObject = QJsonDocument::fromJson(m_gsettings->get("plugin-settings").toString().toUtf8()).object();
 
     // nothing changed
-    if (pluginSettingsObject == m_pluginSettingsObject) {
-        return;
-    }
+    if (pluginSettingsObject == m_pluginSettingsObject) return;
 
     for (auto pluginsIt = pluginSettingsObject.constBegin(); pluginsIt != pluginSettingsObject.constEnd(); ++pluginsIt) {
         const QString &pluginName = pluginsIt.key();
@@ -275,26 +235,24 @@ void AbstractPluginsController::refreshPluginSettings()
     }
 
     // not notify plugins to refresh settings if this update is not emit by dock daemon
-    if (sender() != m_gsettings) {
-        return;
-    }
+    if (sender() != m_gsettings) return;
+
 
     // notify all plugins to reload plugin settings
-    for (PluginsItemInterface *pluginInter : m_pluginsMap.keys()) {
+    for (PluginsItemInterface *pluginInter : m_pluginsMap.keys())
         pluginInter->pluginSettingsChanged();
-    }
 
     qDebug()<<"settings: "<<m_pluginSettingsObject<<Qt::endl;
 
     // reload all plugin items for sort order or container
     QMap<PluginsItemInterface *, QMap<QString, QObject *>> pluginsMapTemp = m_pluginsMap;
     for (auto it = pluginsMapTemp.constBegin(); it != pluginsMapTemp.constEnd(); ++it) {
-        const QList<QString> &itemKeyList = it.value().keys();
-        for (auto key : itemKeyList) {
+        QList<QString> itemKeyList = it.value().keys();
+        itemKeyList.removeOne("pluginloader");
+        for (auto key : itemKeyList)
             itemRemoved(it.key(), key);
-        }
-        for (auto key : itemKeyList) {
+
+        for (auto key : itemKeyList)
             itemAdded(it.key(), key);
-        }
     }
 }

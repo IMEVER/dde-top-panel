@@ -117,15 +117,22 @@ public:
             QProcess::startDetached("/usr/bin/dde-control-center", {"--show"});
         });
 
-        QMenu *launcherMenu = startMenu->addMenu(QIcon::fromTheme("deepin-launcher"), "应    用");
-        for(auto &category : DesktopEntryStat::instance()->categories()) {
-            QMenu *tmpMenu = launcherMenu->addMenu(QIcon::fromTheme(category.icon), category.name);
-            for(auto desktop : DesktopEntryStat::instance()->categoryMap()[category.name])
-                tmpMenu->addAction(desktop.getIcon(), desktop.name, [desktop] {
-                    QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", desktop.desktopFile, "0", "[]"});
-                });
-        }
+        QMenu *launcherMenu = startMenu->addMenu(QIcon::fromTheme("deepin-launcher"), "全部应用");
+        auto updateLauncherMenu = [launcherMenu] {
+            launcherMenu->clear();
+            for(auto &category : DesktopEntryStat::instance()->categories()) {
+                QMenu *tmpMenu = launcherMenu->addMenu(QIcon::fromTheme(category.icon), category.name);
+                auto apps = DesktopEntryStat::instance()->categoryMap()[category.name];
+                std::sort(apps.begin(), apps.end());
+                for(auto desktop : apps)
+                    tmpMenu->addAction(desktop.getIcon(), desktop.displayName, [desktop] {
+                        QProcess::startDetached("/usr/bin/qdbus", {"com.deepin.SessionManager", "/com/deepin/StartManager", "com.deepin.StartManager.LaunchApp", desktop.desktopFile, "0", "[]"});
+                    });
+            }
+        };
         launcherMenu->setVisible(CustomSettings::instance()->isShowMenuApp());
+        connect(DesktopEntryStat::instance(), &DesktopEntryStat::appsChanged, launcherMenu, updateLauncherMenu);
+        updateLauncherMenu();
 
         startMenu->addSeparator();
         QAction *launcherAction = startMenu->addAction(QIcon::fromTheme("app-launcher"), "启动器", this, [] {

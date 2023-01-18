@@ -22,7 +22,6 @@
 #include "pluginloader.h"
 
 #include <QDir>
-#include <QDebug>
 #include <QLibrary>
 
 PluginLoader::PluginLoader(const QString &pluginDirPath, QObject *parent)
@@ -36,12 +35,10 @@ void PluginLoader::run()
     QDir pluginsDir(m_pluginDirPath);
     const QStringList plugins = pluginsDir.entryList(QDir::Files);
 
-    for (const QString file : plugins)
+    for (auto &file : plugins)
     {
-        if (!QLibrary::isLibrary(file))
-            continue;
-
-        emit pluginFounded(pluginsDir.absoluteFilePath(file));
+        if (QLibrary::isLibrary(file))
+            emit pluginFounded(pluginsDir.absoluteFilePath(file));
     }
 
     emit finished();

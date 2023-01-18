@@ -21,7 +21,7 @@ static MainSettingWidget *m_settingWidget=nullptr;
 
 MainWindow::MainWindow(QScreen *screen, bool disablePlugin, QWidget *parent)
     : DBlurEffectWidget(parent)
-    , m_itemManager(disablePlugin ? nullptr : DockItemManager::instance(this))
+    , m_itemManager(disablePlugin ? nullptr : DockItemManager::instance())
     , m_mainPanel(new MainPanelControl(this))
     , m_xcbMisc(XcbMisc::instance())
     , m_platformWindowHandle(this, this)

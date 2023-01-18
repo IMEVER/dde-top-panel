@@ -33,7 +33,7 @@ class DockItemManager : public QObject
     Q_OBJECT
 
 public:
-    static DockItemManager *instance(QObject *parent = nullptr);
+    static DockItemManager *instance();
 
     const QList<QPointer<DockItem> > itemList() const;
     const QList<PluginsItemInterface *> pluginList() const;
@@ -47,7 +47,6 @@ signals:
     // void requestRefershWindowVisible() const;
 
 public slots:
-    void refershItemsIcon();
     void updatePluginsItemOrderKey();
     void itemMoved(DockItem *const sourceItem, DockItem *const targetItem);
 

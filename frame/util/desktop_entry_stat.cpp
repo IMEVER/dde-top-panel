@@ -21,12 +21,12 @@
 
 #include <sys/types.h>
 #include <unistd.h>
-#include <dirent.h>
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QDebug>
 #include <DDesktopEntry>
 #include <QStandardPaths>
+#include <QFileSystemWatcher>
 
 #include "desktop_entry_stat.h"
 
@@ -51,6 +51,14 @@ DesktopEntryStat *DesktopEntryStat::instance()
 
 DesktopEntryStat::DesktopEntryStat(QObject *parent) : QObject(parent)
 {
+    QFileSystemWatcher *watcher = new QFileSystemWatcher(this);
+    watcher->addPaths(QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation));
+    connect(watcher, &QFileSystemWatcher::directoryChanged, this, [this](const QString &path) {
+        cache.clear();
+        categoryCache.clear();
+        refresh();
+        emit appsChanged();
+    });
     refresh();
 }
 
