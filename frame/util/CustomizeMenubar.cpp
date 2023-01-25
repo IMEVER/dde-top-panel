@@ -4,17 +4,110 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QDebug>
+#include <QProxyStyle>
+#include <QStyleOption>
+#include <QPalette>
+#include <QFontMetrics>
 #include <QtWidgets/private/qmenubar_p.h>
+
+class MenuProxyStyle: public QProxyStyle{
+public:
+    using QProxyStyle::QProxyStyle;
+    int pixelMetric(PixelMetric m, const QStyleOption *option, const QWidget *widget) const override{
+        if(m == PM_SmallIconSize) {
+            // if(auto opt = qstyleoption_cast<const QStyleOptionMenuItem*>(option)) {
+                // if(opt->text == "_开始_") {
+                    // int ret = QProxyStyle::pixelMetric(m, option, widget);
+                    // return ret + 2;
+                //}
+            // }
+        } else if(m == QStyle::PM_MenuBarPanelWidth)
+            return 0;
+        else if(m == QStyle::PM_MenuBarItemSpacing)
+            return 0;
+        else if(m == QStyle::PM_MenuBarVMargin)
+            return 0;
+        else if(m == QStyle::PM_MenuBarHMargin)
+            return 0;
+
+        return QProxyStyle::pixelMetric(m, option, widget);
+    }
+
+    int styleHint(StyleHint stylehint, const QStyleOption *opt = nullptr, const QWidget *widget = nullptr, QStyleHintReturn* returnData = nullptr) const override {
+        if(stylehint == QStyle::SH_FocusFrame_Mask) {
+            return 0;
+        }
+        return QProxyStyle::styleHint(stylehint, opt, widget, returnData);
+    }
+
+    QSize sizeFromContents(QStyle::ContentsType ct, const QStyleOption * option, const QSize & contentsSize, const QWidget * w = nullptr) const override {
+        QSize sz = QProxyStyle::sizeFromContents(ct, option, contentsSize, w);
+        if(ct == QStyle::CT_MenuBarItem) {
+            if(auto opt = qstyleoption_cast<const QStyleOptionMenuItem*>(option)) {
+                if(opt->text == QString("_开始_"))
+                    sz += QSize(14, 0);
+                else if(!opt->icon.isNull())
+                    sz += QSize(4, 0);
+                else {
+                    QFont font = opt->font;
+                    font.setPixelSize(15);
+                    font.setBold(opt->text.endsWith("__"));
+                    QFontMetrics fm(font);
+                    sz = fm.size(Qt::TextShowMnemonic, opt->text);
+                    if(font.bold())
+                        sz -= QSize(4, 0);
+                    else
+                        sz += QSize(10, 0);
+                }
+            }
+        }
+
+        sz.setHeight(24);
+        return sz;
+    }
+
+    void drawControl(ControlElement element, const QStyleOption *option, QPainter *p, const QWidget *w) const override {
+        if(element == QStyle::CE_MenuBarItem){
+            if(auto opt = qstyleoption_cast<const QStyleOptionMenuItem *>(option)){
+                if(opt->state & QStyle::State_Selected) {
+                    p->save();
+                    p->setBrush(opt->palette.color(QPalette::Highlight).lighter(90));
+                    p->setPen(Qt::transparent);
+                    p->drawRoundedRect(opt->rect, 4, 4, Qt::AbsoluteSize);
+                    p->restore();
+                }
+
+                if(opt->font.bold()) {
+                    QFont font = p->font();
+                    font.setBold(true);
+                    p->setFont(font);
+                    QProxyStyle::drawControl(element, opt, p, w);
+                    font.setBold(false);
+                    p->setFont(font);
+                    return;
+                }
+                // QCommonStyle::drawControl(element, opt, p, w);
+                // return;
+            }
+        }
+        QProxyStyle::drawControl(element, option, p, w);
+    }
+};
 
 QT_FORWARD_DECLARE_CLASS(QMenuBarPrivate)
 CustomizeMenubar::CustomizeMenubar(QWidget *parent) : QMenuBar(parent)
 {
     setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
-    // setContentsMargins(0, 0, 0, 0);
+    setStyle(new MenuProxyStyle(style()));
+    setAttribute(Qt::WA_TranslucentBackground);
 }
 
-CustomizeMenubar::~CustomizeMenubar()
-{}
+void CustomizeMenubar::setColor(QColor color) {
+    if(m_color != color) {
+        m_color = color;
+        update();
+    }
+}
 
 /*!
   Appends a new QMenu with \a title to the menu bar. The menu bar
@@ -40,81 +133,36 @@ QMenu *CustomizeMenubar::addMenu(const QIcon &icon, const QString &title)
     return menu;
 }
 
-
 void CustomizeMenubar::paintEvent(QPaintEvent *e)
 {
     QMenuBarPrivate *d = reinterpret_cast<QMenuBarPrivate *>(QMenuBar::d_ptr.data());
-    static int firstWidth = -1;
 
     QPainter p(this);
+    QFont font = p.font();font.setPixelSize(15);p.setFont(font);
     QRegion emptyArea(rect());
 
-    // int hmargin = style()->pixelMetric(QStyle::PM_MenuBarPanelWidth, 0, this);
-    // QRect result = rect();
-    // result.adjust(hmargin, 0, -hmargin, 0);
-
-    // if (extVisible) {
-    //     if (isRightToLeft())
-    //         result.setLeft(result.left() + extension->sizeHint().width());
-    //     else
-    //         result.setWidth(result.width() - extension->sizeHint().width());
-    // }
-
-    //draw the items
-    bool needFix = false;// d->actionRect(d->actions.at(0));
     for (int i = 0; i < d->actions.count(); ++i) {
         QAction *action = d->actions.at(i);
-        QRect &adjustedActionRect = d->actionRects[i]; // actionGeometry(action);
+        QRect adjustedActionRect = d->actionRects[i];
 
-        if (adjustedActionRect.isEmpty() || !action->isVisible() || d->hiddenActions.contains(action))
-            continue;
-
-        if(i == 0)
-        {
-            if(firstWidth == -1)
-                firstWidth = adjustedActionRect.width() + 10;
-
-            if(firstWidth != adjustedActionRect.width()) {
-                adjustedActionRect.setWidth(firstWidth);
-                needFix = true;
-            }
-        }
-        else if((i ==1 || i==2 || i==3) && needFix)
-            adjustedActionRect.moveLeft(adjustedActionRect.x() + 10);
-        else if(i == 4 && needFix) {
-            adjustedActionRect.setWidth(adjustedActionRect.width() - 10);
-            adjustedActionRect.moveLeft(adjustedActionRect.x() + 10);
-        }
-
-        // if (adjustedActionRect.isValid() && !result.contains(adjustedActionRect))
-        //     continue;
-
-        if(!e->rect().intersects(adjustedActionRect))
+        if (adjustedActionRect.isEmpty() || d->hiddenActions.contains(action) || !e->rect().intersects(adjustedActionRect))
             continue;
 
         emptyArea -= adjustedActionRect;
         QStyleOptionMenuItem opt;
         initStyleOption(&opt, action);
+        opt.palette.setColor(QPalette::Highlight, palette().color(QPalette::Highlight));
+        opt.palette.setColor(QPalette::ButtonText, m_color);
         opt.rect = adjustedActionRect;
+        // if(opt.state & QStyle::State_Selected) opt.palette.setColor(QPalette::Window, palette().color(QPalette::Window));
         p.setClipRect(adjustedActionRect);
 
-        QFont font;
-
-        if(action->objectName() == "appMenu")
-        {
-            font = p.font();
-            font.setBold(true);
-            p.setFont(font);
-
-            opt.text = opt.text.trimmed();
+        if(action->objectName() == "appMenu") {
+            opt.font.setBold(true);
+            opt.text.replace("__", "");
         }
+
         style()->drawControl(QStyle::CE_MenuBarItem, &opt, &p, this);
-
-        if(action->objectName() == "appMenu")
-        {
-            font.setBold(false);
-            p.setFont(font);
-        }
     }
 
      //draw border
@@ -136,7 +184,7 @@ void CustomizeMenubar::paintEvent(QPaintEvent *e)
     }
     p.setClipRegion(emptyArea);
     QStyleOptionMenuItem menuOpt;
-    menuOpt.palette = palette();
+    menuOpt.palette = palette();menuOpt.palette.setColor(QPalette::Window, QColor(0, 0, 0, 0));
     menuOpt.state = QStyle::State_None;
     menuOpt.menuItemType = QStyleOptionMenuItem::EmptyArea;
     menuOpt.checkType = QStyleOptionMenuItem::NotCheckable;

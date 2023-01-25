@@ -104,7 +104,7 @@ public:
 
         QString logo = CustomSettings::instance()->getLogoImg();
 
-        QMenu *startMenu = this->menuBar->addMenu(!logo.isNull() ? QIcon(logo) : QIcon::fromTheme("deepin-launcher"), "开始");
+        QMenu *startMenu = this->menuBar->addMenu(!logo.isNull() ? QIcon(logo) : QIcon::fromTheme("deepin-launcher"), "_开始_");
         startMenu->menuAction()->setObjectName("logo");
         startMenu->addAction(QIcon::fromTheme("applications-other"), "关    于", [] {
             QProcess::startDetached("/usr/bin/dde-file-manager", {"-p", "computer:///"});
@@ -483,12 +483,13 @@ public:
             color = settings->getActiveFontColor().name();
         else
             color = themeType == DGuiApplicationHelper::LightType ? "black" : "white";
-        int padding = QRandomGenerator::system()->bounded(1);
-        menuBar->setStyleSheet(QString("QMenuBar {padding-left: %1; padding-right:12; font-size: 15px; color: %2; background-color: rgba(0, 0, 0, 0); spacing: 1px; }\
-            QMenuBar::item { padding-top: 3px; padding-bottom: 2px; padding-left: 5px; padding-right: 5px; }\
-            QMenuBar::item:selected { border-radius: 4px; color: palette(highlighted-text); background-color: palette(highlight); }")
-                                        .arg(padding)
-                                        .arg(color));
+        // int padding = QRandomGenerator::system()->bounded(1);
+        // menuBar->setStyleSheet(QString("QMenuBar {padding-left: %1; padding-right:5; font-size: 15px; color: %2; background-color: rgba(0, 0, 0, 0); spacing: 1px; }\
+        //     QMenuBar::item { padding-top: 3px; padding-bottom: 2px; padding-left: 5px; padding-right: 5px; }\
+        //     QMenuBar::item:selected { border-radius: 4px; color: palette(highlighted-text); background-color: palette(highlight); }")
+        //                                 .arg(padding)
+        //                                 .arg(color));
+        menuBar->setColor(color);
     }
 
     void windowChanged(WId wId, NET::Properties properties, NET::Properties2 properties2)
@@ -611,7 +612,7 @@ public:
         else
             activeWinId = 0;
 
-        menuBar->actions().at(4)->setText(activeWinId == 0 ? "桌面    " : activeWinTitle + "    ");
+        menuBar->actions().at(4)->setText(activeWinId == 0 ? "桌面__" : activeWinTitle + "__");
 
         if (activeWinId == 0)
             appIcon = QIcon::fromTheme("dde-file-manager");
